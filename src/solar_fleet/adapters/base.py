@@ -1,0 +1,9 @@
+from typing import Protocol
+
+from ..domain import Ack, Configuration, Device, OrderResult, VendorCall
+
+
+class ControlAdapter(Protocol):
+    async def configuration(self, device: Device) -> Configuration: ...
+    async def send(self, call: VendorCall) -> Ack: ...
+    async def order(self, order_id: str) -> OrderResult: ...

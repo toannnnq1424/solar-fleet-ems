@@ -1,0 +1,1445 @@
+[
+  {
+    "method": "POST",
+    "path": "/v1.0/account/info",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/account/token",
+    "mode": "AUTH",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "appSecret",
+        "password"
+      ],
+      "properties": {
+        "appSecret": {
+          "type": "string"
+        },
+        "companyId": {
+          "type": "integer"
+        },
+        "countryCode": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "mobile": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/config/battery",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/config/system",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/config/tou",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/addLogger",
+    "mode": "LOCKED_ADMIN",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "deviceSns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/alertList",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "endTimestamp",
+        "startTimestamp"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "endTimestamp": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "startTimestamp": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/deleteLogger",
+    "mode": "LOCKED_ADMIN",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "deviceSns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/history",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "granularity",
+        "startAt"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "endAt": {
+          "type": "string"
+        },
+        "granularity": {
+          "type": "integer"
+        },
+        "measurePoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/historyRaw",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "endTimestamp",
+        "measurePoints",
+        "startTimestamp"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "endTimestamp": {
+          "type": "integer"
+        },
+        "measurePoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startTimestamp": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/latest",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceList"
+      ],
+      "properties": {
+        "deviceList": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/list",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/measurePoints",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "deviceType": {
+          "type": "string",
+          "enum": [
+            "INVERTER",
+            "COMBINER_BOX",
+            "BATTERY",
+            "WEATHER_STATION",
+            "METER",
+            "AIR_CONDITIONING",
+            "OTHER_TYPE",
+            "HARMONIC_METER",
+            "QUALITY_MONITOR",
+            "SMART_HOME",
+            "SOLAR_TRACKING_CONTROLLER",
+            "SOLAR_RADIATION_SPECTROMETER",
+            "DTU",
+            "REPEATER",
+            "MICRO_INVERTER",
+            "PV_MODULE",
+            "ELECTRIC_SOURCE",
+            "COLLECTOR",
+            "FAN",
+            "WATER_PUMP",
+            "HYBRID_POWER_SYSTEM_CABINET",
+            "STEAM_ENGINE",
+            "EPM",
+            "GAS_METER",
+            "WATER_METER",
+            "SMART_METER",
+            "TYPE_RF_SUB_DEVICE",
+            "TYPE_OFF_GRID_INVERTER",
+            "MECD",
+            "BOX_TRANSFORMER",
+            "SWITCHGEAR",
+            "OPTIMIZER",
+            "DC_CONVERTER",
+            "SURGE_PROTECTION",
+            "FLOW_METER_THERMOMETER",
+            "RELAY_BOX",
+            "FEED_IN_LIMIT",
+            "MICRO_STORAGE_IN_ONE",
+            "OPTIMIZER_CONCENTRATOR"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/device/register",
+    "mode": "LOCKED_ADMIN",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "gatewaySn",
+        "stationId"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "gatewaySn": {
+          "type": "string"
+        },
+        "stationId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/battery/modeControl",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "action",
+        "batteryModeType",
+        "deviceSn"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "batteryModeType": {
+          "type": "string",
+          "enum": [
+            "GEN_CHARGE",
+            "GRID_CHARGE"
+          ]
+        },
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/battery/parameter/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "paramterType",
+        "value"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "paramterType": {
+          "type": "string",
+          "enum": [
+            "MAX_CHARGE_CURRENT",
+            "MAX_DISCHARGE_CURRENT",
+            "GRID_CHARGE_AMPERE",
+            "BATT_LOW"
+          ]
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/battery/type/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "batteryType",
+        "deviceSn"
+      ],
+      "properties": {
+        "batteryType": {
+          "type": "string"
+        },
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/customControl",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "content",
+        "deviceSn"
+      ],
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "deviceSn": {
+          "type": "string"
+        },
+        "timeoutSeconds": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/gridPeakShaving/control",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "action",
+        "deviceSn",
+        "power"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "deviceSn": {
+          "type": "string"
+        },
+        "power": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/smartload/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "deviceType": {
+          "type": "string",
+          "enum": [
+            "INVERTER",
+            "COMBINER_BOX",
+            "BATTERY",
+            "WEATHER_STATION",
+            "METER",
+            "AIR_CONDITIONING",
+            "OTHER_TYPE",
+            "HARMONIC_METER",
+            "QUALITY_MONITOR",
+            "SMART_HOME",
+            "SOLAR_TRACKING_CONTROLLER",
+            "SOLAR_RADIATION_SPECTROMETER",
+            "DTU",
+            "REPEATER",
+            "MICRO_INVERTER",
+            "PV_MODULE",
+            "ELECTRIC_SOURCE",
+            "COLLECTOR",
+            "FAN",
+            "WATER_PUMP",
+            "HYBRID_POWER_SYSTEM_CABINET",
+            "STEAM_ENGINE",
+            "EPM",
+            "GAS_METER",
+            "WATER_METER",
+            "SMART_METER",
+            "TYPE_RF_SUB_DEVICE",
+            "TYPE_OFF_GRID_INVERTER",
+            "MECD",
+            "BOX_TRANSFORMER",
+            "SWITCHGEAR",
+            "OPTIMIZER",
+            "DC_CONVERTER",
+            "SURGE_PROTECTION",
+            "FLOW_METER_THERMOMETER",
+            "RELAY_BOX",
+            "FEED_IN_LIMIT",
+            "MICRO_STORAGE_IN_ONE",
+            "OPTIMIZER_CONCENTRATOR"
+          ]
+        },
+        "offSOC": {
+          "type": "integer"
+        },
+        "offVoltage": {
+          "type": "integer"
+        },
+        "onGridAlwaysOn": {
+          "type": "boolean"
+        },
+        "onSOC": {
+          "type": "integer"
+        },
+        "onVoltage": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/energyPattern/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "energyPattern"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "energyPattern": {
+          "type": "string",
+          "enum": [
+            "BATTERY_FIRST",
+            "LOAD_FIRST"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/limitControl",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "limitControlFunctionType"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "limitControlFunctionType": {
+          "type": "string",
+          "enum": [
+            "SELL_FIRST",
+            "ZERO_EXPORT_TO_UPS_LOAD",
+            "ZERO_EXPORT_TO_CT",
+            "ZERO_EXPORT_TO_WIRELESS_CT"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/power/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "powerType",
+        "value"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "powerType": {
+          "type": "string",
+          "enum": [
+            "MAX_SELL_POWER",
+            "MAX_SOLAR_POWER",
+            "ZERO_EXPORT_POWER"
+          ]
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/solarSell/control",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "action",
+        "deviceSn"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/tou/switch",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "action",
+        "deviceSn"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY"
+            ]
+          }
+        },
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/tou/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "timeUseSettingItems"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "timeUseSettingItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "enableGeneration",
+              "enableGridCharge",
+              "power",
+              "time"
+            ],
+            "properties": {
+              "enableGeneration": {
+                "type": "boolean"
+              },
+              "enableGridCharge": {
+                "type": "boolean"
+              },
+              "enableSell": {
+                "type": "boolean"
+              },
+              "power": {
+                "type": "integer"
+              },
+              "soc": {
+                "type": "integer"
+              },
+              "time": {
+                "type": "string"
+              },
+              "voltage": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/order/sys/workMode/update",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn",
+        "workMode"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "workMode": {
+          "type": "string",
+          "enum": [
+            "SELLING_FIRST",
+            "ZERO_EXPORT_TO_LOAD",
+            "ZERO_EXPORT_TO_CT",
+            "GREEN_POWER_MODE",
+            "FULL_CHARGE_MODE",
+            "CUSTOMIZED_MODE"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "GET",
+    "path": "/v1.0/order/{orderId}",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/alertList",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "endTimestamp",
+        "startTimestamp",
+        "stationId"
+      ],
+      "properties": {
+        "endTimestamp": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "startTimestamp": {
+          "type": "integer"
+        },
+        "stationId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/create",
+    "mode": "LOCKED_ADMIN",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "currency",
+        "gridInterconnectionType",
+        "installedCapacity",
+        "locationAddress",
+        "locationLat",
+        "locationLng",
+        "name",
+        "region"
+      ],
+      "properties": {
+        "constructionCost": {
+          "type": "number"
+        },
+        "contactPhone": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "gridInterconnectionType": {
+          "type": "string",
+          "enum": [
+            "DISTRIBUTED_FULLY",
+            "EXCESS",
+            "OFF_GRID",
+            "BATTERY_BACKUP",
+            "GROUND_FULLY",
+            "CENTRALIZED_FULLY",
+            "GEN_USE_BTR",
+            "GEN_USE",
+            "GRID_USE_BTR",
+            "USE_BTR"
+          ]
+        },
+        "installationAzimuthAngle": {
+          "type": "number"
+        },
+        "installationTiltAngle": {
+          "type": "number"
+        },
+        "installedCapacity": {
+          "type": "number"
+        },
+        "locationAddress": {
+          "type": "string"
+        },
+        "locationLat": {
+          "type": "number"
+        },
+        "locationLng": {
+          "type": "number"
+        },
+        "mergeElectricPrice": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "ownerCompany": {
+          "type": "string"
+        },
+        "ownerName": {
+          "type": "string"
+        },
+        "region": {
+          "type": "object",
+          "required": [
+            "countryCode",
+            "timezone"
+          ],
+          "properties": {
+            "countryCode": {
+              "type": "string"
+            },
+            "level1": {
+              "type": "integer"
+            },
+            "level2": {
+              "type": "integer"
+            },
+            "level3": {
+              "type": "integer"
+            },
+            "level4": {
+              "type": "integer"
+            },
+            "level5": {
+              "type": "integer"
+            },
+            "nationId": {
+              "type": "integer"
+            },
+            "timezone": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "startOperatingTime": {
+          "type": "string"
+        },
+        "stationImage": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "HOUSE_ROOF",
+            "COMMERCIAL_ROOF",
+            "INDUSTRIAL_ROOF",
+            "GROUND"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/device",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "stationIds"
+      ],
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "stationIds": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/history",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "granularity",
+        "startAt",
+        "stationId"
+      ],
+      "properties": {
+        "endAt": {
+          "type": "string"
+        },
+        "granularity": {
+          "type": "integer"
+        },
+        "startAt": {
+          "type": "string"
+        },
+        "stationId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/history/power",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "endTimestamp",
+        "startTimestamp",
+        "stationId"
+      ],
+      "properties": {
+        "endTimestamp": {
+          "type": "integer"
+        },
+        "startTimestamp": {
+          "type": "integer"
+        },
+        "stationId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/latest",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "stationId"
+      ],
+      "properties": {
+        "stationId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/list",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/station/listWithDevice",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "deviceType": {
+          "type": "string",
+          "enum": [
+            "INVERTER",
+            "COMBINER_BOX",
+            "BATTERY",
+            "WEATHER_STATION",
+            "METER",
+            "AIR_CONDITIONING",
+            "OTHER_TYPE",
+            "HARMONIC_METER",
+            "QUALITY_MONITOR",
+            "SMART_HOME",
+            "SOLAR_TRACKING_CONTROLLER",
+            "SOLAR_RADIATION_SPECTROMETER",
+            "DTU",
+            "REPEATER",
+            "MICRO_INVERTER",
+            "PV_MODULE",
+            "ELECTRIC_SOURCE",
+            "COLLECTOR",
+            "FAN",
+            "WATER_PUMP",
+            "HYBRID_POWER_SYSTEM_CABINET",
+            "STEAM_ENGINE",
+            "EPM",
+            "GAS_METER",
+            "WATER_METER",
+            "SMART_METER",
+            "TYPE_RF_SUB_DEVICE",
+            "TYPE_OFF_GRID_INVERTER",
+            "MECD",
+            "BOX_TRANSFORMER",
+            "SWITCHGEAR",
+            "OPTIMIZER",
+            "DC_CONVERTER",
+            "SURGE_PROTECTION",
+            "FLOW_METER_THERMOMETER",
+            "RELAY_BOX",
+            "FEED_IN_LIMIT",
+            "MICRO_STORAGE_IN_ONE",
+            "OPTIMIZER_CONCENTRATOR"
+          ]
+        },
+        "page": {
+          "type": "integer"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/strategy/dynamicControl",
+    "mode": "CONTROL",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        },
+        "gridChargeAction": {
+          "type": "string"
+        },
+        "gridChargeAmpere": {
+          "type": "integer"
+        },
+        "maxSellPower": {
+          "type": "integer"
+        },
+        "maxSolarPower": {
+          "type": "integer"
+        },
+        "solarSellAction": {
+          "type": "string"
+        },
+        "timeUseSettingItems": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "enableGeneration",
+              "enableGridCharge",
+              "power",
+              "time"
+            ],
+            "properties": {
+              "enableGeneration": {
+                "type": "boolean"
+              },
+              "enableGridCharge": {
+                "type": "boolean"
+              },
+              "enableSell": {
+                "type": "boolean"
+              },
+              "power": {
+                "type": "integer"
+              },
+              "soc": {
+                "type": "integer"
+              },
+              "time": {
+                "type": "string"
+              },
+              "voltage": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "touAction": {
+          "type": "string"
+        },
+        "touDays": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "MONDAY",
+              "TUESDAY",
+              "WEDNESDAY",
+              "THURSDAY",
+              "FRIDAY",
+              "SATURDAY",
+              "SUNDAY"
+            ]
+          }
+        },
+        "workMode": {
+          "type": "string",
+          "enum": [
+            "SELLING_FIRST",
+            "ZERO_EXPORT_TO_LOAD",
+            "ZERO_EXPORT_TO_CT",
+            "GREEN_POWER_MODE",
+            "FULL_CHARGE_MODE",
+            "CUSTOMIZED_MODE"
+          ]
+        },
+        "zeroExportPower": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/strategy/dynamicControl/read",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "required": [
+        "deviceSn"
+      ],
+      "properties": {
+        "deviceSn": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  },
+  {
+    "method": "POST",
+    "path": "/v1.0/strategy/dynamicControl/readResult",
+    "mode": "READ",
+    "request_schema": {
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_ids": [
+      "DEYE_API_001",
+      "DEYE_REGISTRY_001"
+    ],
+    "hardware_state": "UNKNOWN"
+  }
+]

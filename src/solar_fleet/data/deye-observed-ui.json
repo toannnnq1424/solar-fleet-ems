@@ -1,0 +1,139 @@
+{
+  "evidence_ids": [
+    "DEYE_UI_OBS_001"
+  ],
+  "grade": "E",
+  "state": "UI_OBSERVED_API_UNKNOWN",
+  "observed_at": "2026-09-13",
+  "scope": "Three phase LV Hybrid · 16 kW; one account/device only",
+  "groups": [
+    {
+      "name": "Battery Setting",
+      "fields": [
+        "Batt Type",
+        "Battery Capacity (Ah)",
+        "Max A Charge (A)",
+        "Max A Discharge (A)",
+        "Batt Shutdown (%)",
+        "Batt Low (%)",
+        "Batt Restart (%)",
+        "Activate Battery",
+        "Lithium Mode",
+        "Grid Charge",
+        "Gen Charge",
+        "Grid Signal",
+        "Gen Signal",
+        "Gen Max Run Time (h)",
+        "Gen Down Time (h)",
+        "Batt Charge Efficiency (%)",
+        "Batt Resistance (mΩ)",
+        "Gen Force"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "System Work Mode-1",
+      "fields": [
+        "System Work Mode",
+        "Solar Sell",
+        "Setup weekdays",
+        "Max solar power (W)",
+        "Max Sell Power (W)",
+        "Energy Pattern",
+        "Zero export power (W)",
+        "Hard Limit Function"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "System Work Mode-2",
+      "fields": [
+        "Time of Use: six rows",
+        "Grid Charge",
+        "Gen",
+        "Sell",
+        "Start Time",
+        "End Time",
+        "Power (W)",
+        "Batt (%)"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "SmartLoad Setting",
+      "fields": [
+        "SmartLoad Setup",
+        "AC couple Setup"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "Advanced Function-1",
+      "fields": [
+        "ARC Setup",
+        "Gen peak-shaving",
+        "Generator peak-shaving power (W)",
+        "Grid peak-shaving",
+        "Grid peak-shaving power (W)",
+        "BMS-stop",
+        "Parallel",
+        "Equipment mode",
+        "Modbus SN",
+        "DRM",
+        "Neutral to earth bonding",
+        "Backup Delay (s)",
+        "CT ratio",
+        "EX_MeterCT",
+        "Grid Tie Meter2",
+        "Meter Select",
+        "Asymmetric phase feeding",
+        "MPPT Scan"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "Advanced Function-2",
+      "fields": [
+        "DC 1 for WindTurbine",
+        "DC 2 for WindTurbine"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "EV_Charge_Mode",
+      "fields": [
+        "Off grid SOC (%)",
+        "Charging settings",
+        "EV_charge device connect set",
+        "Max charge power (W)"
+      ],
+      "enabled": false,
+      "state": "UI_OBSERVED_API_UNKNOWN"
+    },
+    {
+      "name": "Grid setting",
+      "fields": [],
+      "enabled": false,
+      "state": "MENU_OBSERVED_ONLY"
+    },
+    {
+      "name": "H/LVRT",
+      "fields": [],
+      "enabled": false,
+      "state": "MENU_OBSERVED_ONLY"
+    },
+    {
+      "name": "Basic Setting",
+      "fields": [],
+      "enabled": false,
+      "state": "MENU_OBSERVED_ONLY"
+    }
+  ],
+  "reason": "Các mục nhìn thấy trên web không chứng minh endpoint OpenAPI, range, quyền ghi hoặc readback. Một số mục chỉ có dữ liệu cache cũ, một số chưa từng được đọc."
+}

@@ -1,5 +1,7 @@
 # Vendor source audit
 
+Bổ sung sau baseline: [DEYE_UI_OBS_001 — quan sát phiên Deye Cloud có xác thực](deye-account-observation.md), cấp E, ngày 13/09/2026. Chỉ xác nhận các metadata/menu được thấy ở một thiết bị; không thay official API contract hoặc hardware acceptance. Source registry hiện có 38 mục.
+
 Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận thiết bị. E chưa có; F không bật production. Các nguồn chỉ đọc được qua index được ghi rõ. Manual gốc không được commit.
 
 ## DEYE_PORTAL_001

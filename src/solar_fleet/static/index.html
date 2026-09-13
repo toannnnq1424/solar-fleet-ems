@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solar Fleet — Vận hành năng lượng</title>
+  <link rel="stylesheet" href="/static/app.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+  <section id="login-view" class="login-shell">
+    <div class="login-story"><div class="brand"><span class="brand-mark">S</span> Solar Fleet <small>EMS</small></div>
+      <div><p class="eyebrow">VẬN HÀNH NĂNG LƯỢNG</p><h1>Hiểu rõ hệ thống.<br>Điều khiển có cơ sở.</h1>
+      <p class="lead">Một nơi để theo dõi công trình, kiểm tra nguồn dữ liệu và quản lý vận hành.</p></div>
+      <div class="story-footer"><span class="dot"></span> Controller tại máy của bạn <span>01 / PILOT</span></div>
+    </div>
+    <div class="login-card"><p class="eyebrow">KHÔNG GIAN LÀM VIỆC</p><h2>Đăng nhập controller</h2>
+      <p class="muted">Dùng tài khoản cục bộ đã tạo khi khởi tạo Solar Fleet.</p>
+      <form id="login-form"><label for="username">Tài khoản</label><input id="username" name="username" autocomplete="username" required maxlength="100">
+        <label for="password">Mật khẩu</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256">
+        <button class="primary" type="submit">Vào không gian làm việc <span>→</span></button>
+        <p id="login-error" role="alert"></p></form>
+      <div class="local-note"><span>◈</span><p>Mặc định chỉ đọc. Mỗi điều khiển cần profile thiết bị, quyền phù hợp và xác minh kết quả.</p></div>
+    </div>
+  </section>
+  <div id="app-view" class="app-shell" hidden>
+    <aside class="sidebar"><div class="brand"><span class="brand-mark">S</span> Solar Fleet <small>EMS</small></div>
+      <p class="nav-label">KHÔNG GIAN VẬN HÀNH</p>
+      <nav aria-label="Điều hướng chính">
+        <button data-page="fleet" class="selected"><span>▦</span> Tổng quan công trình</button>
+        <button data-page="devices"><span>▤</span> Thiết bị &amp; logger</button>
+        <button data-page="native"><span>⌘</span> Deye Native</button>
+        <button data-page="control"><span>↗</span> Nhật ký điều khiển</button>
+        <button data-page="research"><span>◎</span> Bằng chứng &amp; hỗ trợ</button>
+        <button data-page="integrations" data-admin><span>⇄</span> Kết nối</button>
+        <button data-page="security" data-admin><span>◇</span> Nhật ký bảo mật</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="local-status"><span class="dot"></span> LOCAL CONTROLLER</div><p>v0.1.0 · Pilot</p>
+        <p id="account-label"></p><button id="logout" class="quiet">Đăng xuất ↗</button></div>
+    </aside>
+    <main><header class="topbar"><span id="breadcrumb">Không gian vận hành / Tổng quan</span><span class="badge" id="write-status">CHỈ ĐỌC</span></header>
+      <div id="toast" role="status" hidden></div>
+      <section class="page-header"><div><p class="eyebrow" id="page-kicker">FLEET OVERVIEW</p><h1 id="page-title">Tổng quan công trình</h1><p id="page-description" class="muted"></p></div>
+        <button id="refresh" class="secondary">↻ Cập nhật màn hình</button></section>
+      <div id="content" aria-live="polite"></div>
+      <footer>Solar Fleet EMS <span>Dữ liệu chưa xác minh được giữ nguyên nguồn. “—” nghĩa là chưa biết.</span></footer>
+    </main>
+  </div>
+  <dialog id="detail-dialog"><div class="dialog-header"><div><p class="eyebrow">DEVICE WORKSPACE</p><h2 id="detail-title">Thiết bị</h2></div><button id="close-detail" aria-label="Đóng chi tiết">✕</button></div><div id="detail-body"></div></dialog>
+</body></html>
