@@ -5,8 +5,8 @@ import json
 import httpx
 import pytest
 
-from solar_fleet.adapters.deye import Budgets, Deye, source_time
-from solar_fleet.catalog import CONTRACTS, capabilities
+from solar_fleet.adapters.deye import CONTRACTS, Budgets, Deye, source_time
+from solar_fleet.catalog import capabilities
 from solar_fleet.domain import VendorCall, VendorError
 
 SYNTHETIC_CREDENTIALS = {

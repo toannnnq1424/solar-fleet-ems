@@ -13,10 +13,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field, SecretStr
 
-from .catalog import capabilities, data, native_catalog
+from .accounts import install_accounts
+from .administration import install_administration
+from .agent import install_agent
+from .analytics import install_analytics
+from .catalog import data, native_catalog
 from .controller import Controller
 from .domain import Model, Principal, Role, SafetyError, utcnow
+from .incident_api import install_incidents
+from .management import install_management
+from .runtime import install_runtime
 from .security import new_session, redact, session_user, verify_password
+from .workspaces import install_workspaces
 
 
 class Login(Model):
@@ -50,12 +58,14 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     async def lifespan(app):
         if poll:
             await controller.start()
+            await runtime.start()
         yield
+        await runtime.close()
         await controller.close()
 
     app = FastAPI(
         title="Solar Fleet EMS",
-        version="0.1.0",
+        version="0.2.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
@@ -70,11 +80,16 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         if request.headers.get("host") not in hosts:
             return JSONResponse({"error": "host_not_allowed"}, status_code=400)
         if request.method not in ("GET", "HEAD", "OPTIONS"):
-            if request.headers.get("origin") not in origins:
+            machine = request.url.path == "/api/agent/inbox"
+            if (machine and request.headers.get("origin")) or (
+                not machine and request.headers.get("origin") not in origins
+            ):
                 return JSONResponse({"error": "origin_not_allowed"}, status_code=403)
+            if len(await request.body()) > 2_000_000:
+                return JSONResponse({"error": "request_too_large"}, status_code=413)
             if request.headers.get("content-type", "").split(";")[0] != "application/json":
                 return JSONResponse({"error": "json_required"}, status_code=415)
-            if request.url.path != "/api/login":
+            if request.url.path != "/api/login" and not machine:
                 session = session_user(store, request.cookies.get("solar_session"))
                 if session is None or not hmac.compare_digest(
                     session[1], request.headers.get("x-csrf-token", "")
@@ -111,6 +126,8 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     def admin(who: Principal = Depends(user)) -> Principal:
         if who.role != Role.ADMIN:
             raise HTTPException(403, "administrator_required")
+        if "*" not in who.site_ids:
+            raise HTTPException(403, "organization_administrator_required")
         return who
 
     def authorized_device(id: str, who: Principal):
@@ -157,12 +174,16 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
             "csrf": session[1],
             "writes_enabled": controller.engine.writes_enabled,
             "hardware_profiles": 0,
-            "version": "0.1.0",
+            "version": "0.2.0",
         }
 
     @app.get("/api/fleet")
     async def fleet(who=Depends(user)):
-        sites = [s for s in store.list("site") if who.can_access(s["id"])]
+        sites = [
+            {**s, **(store.get("site_profile", s["id"]) or {})}
+            for s in store.list("site")
+            if who.can_access(s["id"])
+        ]
         devices = [d for d in store.list("device") if who.can_access(d["site_id"])]
         for d in devices:
             seen = controller.device(d["id"]).last_seen
@@ -198,8 +219,10 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         device = authorized_device(id, who)
         return {
             "device": device,
+            "adapter": controller.registry.describe(device.identity.vendor),
             "latest": controller.latest(device),
-            "capabilities": capabilities(device),
+            "capabilities": controller.capabilities(device),
+            "control_profiles": controller.registry.profiles.explain(device),
             "bindings": [b for b in store.list("binding") if b["device_id"] == id],
         }
 
@@ -211,6 +234,8 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     @app.post("/api/devices/{id}/history")
     async def vendor_history(id: str, body: HistoryQuery, who=Depends(user)):
         device = authorized_device(id, who)
+        if "history" not in controller.registry.describe(device.identity.vendor)["features"]:
+            raise SafetyError("adapter_feature_not_implemented")
         payload = await controller.adapter(device).history(
             device.vendor_id, body.start, body.end, body.points
         )
@@ -219,15 +244,20 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     @app.post("/api/devices/{id}/configuration")
     async def configuration(id: str, who=Depends(user)):
         device = authorized_device(id, who)
+        if "configuration" not in controller.registry.describe(device.identity.vendor)["features"]:
+            raise SafetyError("adapter_feature_not_implemented")
         return await controller.adapter(device).configuration(device)
 
     @app.post("/api/devices/{id}/alerts")
     async def alerts(id: str, who=Depends(user)):
         device = authorized_device(id, who)
+        if "alarms" not in controller.registry.describe(device.identity.vendor)["features"]:
+            raise SafetyError("adapter_feature_not_implemented")
         end = int(utcnow().timestamp())
         rows = await controller.adapter(device).alerts(device.vendor_id, end - 86400, end)
         payload = {"source": "VENDOR_CLOUD", "received_at": utcnow().isoformat(), "native": redact(rows)}
         store.put("alerts", id, payload)
+        payload["correlation"] = controller.collect_alarms(device, rows)
         return payload
 
     @app.get("/api/research")
@@ -255,8 +285,8 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     async def audit(category: str, who=Depends(user)):
         if category not in ("control", "security"):
             raise HTTPException(404)
-        if category == "security" and who.role != Role.ADMIN:
-            raise HTTPException(403, "administrator_required")
+        if category == "security":
+            admin(who)
         rows = [
             row
             for row in store.audit_rows(category)
@@ -268,5 +298,26 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     async def index():
         return FileResponse(assets / "index.html")
 
+    from .data_workspace import install_data_workspace
+
+    install_data_workspace(app, controller, user, admin)
+    from .streams import install_stream
+
+    install_stream(app, controller, origins, hosts)
+    install_workspaces(app, controller, user, admin)
+    install_incidents(app, controller, user)
+    from .maintenance import install_maintenance
+
+    install_maintenance(app, controller, user)
+    from .schedule_planning import install_schedule_planning
+
+    install_schedule_planning(app, controller, user)
+    install_accounts(app, controller, admin)
+    install_management(app, controller, user, admin)
+    install_agent(app, controller)
+    install_analytics(app, controller, user)
+    install_administration(app, controller, user, admin)
+    runtime = install_runtime(app, controller, user)
+    app.state.operations_runtime = runtime
     app.mount("/static", StaticFiles(directory=assets), name="static")
     return app

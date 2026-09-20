@@ -1,0 +1,436 @@
+{
+  "measured_at_utc": "2026-09-20T04:16:39.467258+00:00",
+  "scope": "working_tree_including_uncommitted",
+  "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
+  "groups": [
+    {
+      "key": "backend",
+      "label": "Backend Python",
+      "files": 38,
+      "lines": 7959,
+      "nonblank": 7100,
+      "entries": [
+        {
+          "path": "src/solar_fleet/__init__.py",
+          "lines": 3,
+          "nonblank": 2
+        },
+        {
+          "path": "src/solar_fleet/accounts.py",
+          "lines": 238,
+          "nonblank": 222
+        },
+        {
+          "path": "src/solar_fleet/adapters/__init__.py",
+          "lines": 1,
+          "nonblank": 1
+        },
+        {
+          "path": "src/solar_fleet/adapters/base.py",
+          "lines": 9,
+          "nonblank": 6
+        },
+        {
+          "path": "src/solar_fleet/adapters/cloud.py",
+          "lines": 87,
+          "nonblank": 69
+        },
+        {
+          "path": "src/solar_fleet/adapters/deye.py",
+          "lines": 289,
+          "nonblank": 263
+        },
+        {
+          "path": "src/solar_fleet/adapters/deye_control.py",
+          "lines": 63,
+          "nonblank": 58
+        },
+        {
+          "path": "src/solar_fleet/adapters/plugins.py",
+          "lines": 159,
+          "nonblank": 140
+        },
+        {
+          "path": "src/solar_fleet/adapters/solarman.py",
+          "lines": 106,
+          "nonblank": 93
+        },
+        {
+          "path": "src/solar_fleet/adapters/solis.py",
+          "lines": 141,
+          "nonblank": 126
+        },
+        {
+          "path": "src/solar_fleet/administration.py",
+          "lines": 146,
+          "nonblank": 132
+        },
+        {
+          "path": "src/solar_fleet/agent.py",
+          "lines": 278,
+          "nonblank": 255
+        },
+        {
+          "path": "src/solar_fleet/analytics.py",
+          "lines": 205,
+          "nonblank": 189
+        },
+        {
+          "path": "src/solar_fleet/app.py",
+          "lines": 323,
+          "nonblank": 280
+        },
+        {
+          "path": "src/solar_fleet/budgets.py",
+          "lines": 32,
+          "nonblank": 26
+        },
+        {
+          "path": "src/solar_fleet/capability_profiles.py",
+          "lines": 193,
+          "nonblank": 169
+        },
+        {
+          "path": "src/solar_fleet/catalog.py",
+          "lines": 40,
+          "nonblank": 29
+        },
+        {
+          "path": "src/solar_fleet/cli.py",
+          "lines": 197,
+          "nonblank": 179
+        },
+        {
+          "path": "src/solar_fleet/control.py",
+          "lines": 269,
+          "nonblank": 254
+        },
+        {
+          "path": "src/solar_fleet/controller.py",
+          "lines": 311,
+          "nonblank": 291
+        },
+        {
+          "path": "src/solar_fleet/data_workspace.py",
+          "lines": 397,
+          "nonblank": 357
+        },
+        {
+          "path": "src/solar_fleet/domain.py",
+          "lines": 254,
+          "nonblank": 209
+        },
+        {
+          "path": "src/solar_fleet/incident_api.py",
+          "lines": 194,
+          "nonblank": 168
+        },
+        {
+          "path": "src/solar_fleet/incident_models.py",
+          "lines": 146,
+          "nonblank": 114
+        },
+        {
+          "path": "src/solar_fleet/incidents.py",
+          "lines": 322,
+          "nonblank": 293
+        },
+        {
+          "path": "src/solar_fleet/integration.py",
+          "lines": 145,
+          "nonblank": 117
+        },
+        {
+          "path": "src/solar_fleet/local_solarman.py",
+          "lines": 114,
+          "nonblank": 100
+        },
+        {
+          "path": "src/solar_fleet/maintenance.py",
+          "lines": 435,
+          "nonblank": 386
+        },
+        {
+          "path": "src/solar_fleet/management.py",
+          "lines": 653,
+          "nonblank": 584
+        },
+        {
+          "path": "src/solar_fleet/providers.py",
+          "lines": 70,
+          "nonblank": 67
+        },
+        {
+          "path": "src/solar_fleet/rules.py",
+          "lines": 88,
+          "nonblank": 76
+        },
+        {
+          "path": "src/solar_fleet/runtime.py",
+          "lines": 461,
+          "nonblank": 428
+        },
+        {
+          "path": "src/solar_fleet/schedule_planning.py",
+          "lines": 252,
+          "nonblank": 216
+        },
+        {
+          "path": "src/solar_fleet/security.py",
+          "lines": 162,
+          "nonblank": 136
+        },
+        {
+          "path": "src/solar_fleet/storage.py",
+          "lines": 263,
+          "nonblank": 236
+        },
+        {
+          "path": "src/solar_fleet/streams.py",
+          "lines": 147,
+          "nonblank": 132
+        },
+        {
+          "path": "src/solar_fleet/telemetry.py",
+          "lines": 154,
+          "nonblank": 141
+        },
+        {
+          "path": "src/solar_fleet/workspaces.py",
+          "lines": 612,
+          "nonblank": 556
+        }
+      ]
+    },
+    {
+      "key": "frontend_js",
+      "label": "Frontend JavaScript",
+      "files": 13,
+      "lines": 7902,
+      "nonblank": 7866,
+      "entries": [
+        {
+          "path": "src/solar_fleet/static/accounts.js",
+          "lines": 738,
+          "nonblank": 736
+        },
+        {
+          "path": "src/solar_fleet/static/app.js",
+          "lines": 1,
+          "nonblank": 1
+        },
+        {
+          "path": "src/solar_fleet/static/data-workspace.js",
+          "lines": 459,
+          "nonblank": 458
+        },
+        {
+          "path": "src/solar_fleet/static/i18n.js",
+          "lines": 210,
+          "nonblank": 210
+        },
+        {
+          "path": "src/solar_fleet/static/icons.js",
+          "lines": 36,
+          "nonblank": 36
+        },
+        {
+          "path": "src/solar_fleet/static/incident-center.js",
+          "lines": 247,
+          "nonblank": 243
+        },
+        {
+          "path": "src/solar_fleet/static/live.js",
+          "lines": 54,
+          "nonblank": 54
+        },
+        {
+          "path": "src/solar_fleet/static/maintenance-workspace.js",
+          "lines": 383,
+          "nonblank": 370
+        },
+        {
+          "path": "src/solar_fleet/static/native-device.js",
+          "lines": 90,
+          "nonblank": 89
+        },
+        {
+          "path": "src/solar_fleet/static/schedule-planner.js",
+          "lines": 86,
+          "nonblank": 84
+        },
+        {
+          "path": "src/solar_fleet/static/schema-form.js",
+          "lines": 163,
+          "nonblank": 162
+        },
+        {
+          "path": "src/solar_fleet/static/workbench.js",
+          "lines": 2218,
+          "nonblank": 2216
+        },
+        {
+          "path": "src/solar_fleet/static/workspace.js",
+          "lines": 3217,
+          "nonblank": 3207
+        }
+      ]
+    },
+    {
+      "key": "frontend_style",
+      "label": "Frontend CSS / HTML",
+      "files": 2,
+      "lines": 1500,
+      "nonblank": 1499,
+      "entries": [
+        {
+          "path": "src/solar_fleet/static/app.css",
+          "lines": 1477,
+          "nonblank": 1476
+        },
+        {
+          "path": "src/solar_fleet/static/index.html",
+          "lines": 23,
+          "nonblank": 23
+        }
+      ]
+    },
+    {
+      "key": "backend_tests",
+      "label": "Test BE / simulator / fixture",
+      "files": 17,
+      "lines": 3706,
+      "nonblank": 3140,
+      "entries": [
+        {
+          "path": "tests/conftest.py",
+          "lines": 80,
+          "nonblank": 64
+        },
+        {
+          "path": "tests/test_accounts_local.py",
+          "lines": 312,
+          "nonblank": 261
+        },
+        {
+          "path": "tests/test_capability_profiles.py",
+          "lines": 101,
+          "nonblank": 78
+        },
+        {
+          "path": "tests/test_control.py",
+          "lines": 270,
+          "nonblank": 229
+        },
+        {
+          "path": "tests/test_controller.py",
+          "lines": 70,
+          "nonblank": 56
+        },
+        {
+          "path": "tests/test_deye.py",
+          "lines": 273,
+          "nonblank": 218
+        },
+        {
+          "path": "tests/test_extension_data_stream.py",
+          "lines": 387,
+          "nonblank": 334
+        },
+        {
+          "path": "tests/test_incident_center.py",
+          "lines": 201,
+          "nonblank": 168
+        },
+        {
+          "path": "tests/test_maintenance_execution.py",
+          "lines": 278,
+          "nonblank": 233
+        },
+        {
+          "path": "tests/test_management_runtime.py",
+          "lines": 414,
+          "nonblank": 367
+        },
+        {
+          "path": "tests/test_multivendor.py",
+          "lines": 208,
+          "nonblank": 182
+        },
+        {
+          "path": "tests/test_rules.py",
+          "lines": 70,
+          "nonblank": 58
+        },
+        {
+          "path": "tests/test_schedule_planning.py",
+          "lines": 144,
+          "nonblank": 114
+        },
+        {
+          "path": "tests/test_security_app.py",
+          "lines": 168,
+          "nonblank": 135
+        },
+        {
+          "path": "tests/test_telemetry.py",
+          "lines": 143,
+          "nonblank": 115
+        },
+        {
+          "path": "tests/test_workspaces.py",
+          "lines": 384,
+          "nonblank": 350
+        },
+        {
+          "path": "tests/ui_fixture.py",
+          "lines": 203,
+          "nonblank": 178
+        }
+      ]
+    },
+    {
+      "key": "browser_tests",
+      "label": "Test UI / browser fixture",
+      "files": 3,
+      "lines": 221,
+      "nonblank": 193,
+      "entries": [
+        {
+          "path": "ui_tests/conftest.py",
+          "lines": 88,
+          "nonblank": 77
+        },
+        {
+          "path": "ui_tests/test_maintenance_screens.py",
+          "lines": 68,
+          "nonblank": 61
+        },
+        {
+          "path": "ui_tests/test_operations_screens.py",
+          "lines": 65,
+          "nonblank": 55
+        }
+      ]
+    },
+    {
+      "key": "scripts",
+      "label": "Scripts tự viết",
+      "files": 2,
+      "lines": 118,
+      "nonblank": 106,
+      "entries": [
+        {
+          "path": "scripts/check-ui.cjs",
+          "lines": 34,
+          "nonblank": 34
+        },
+        {
+          "path": "scripts/measure_code.py",
+          "lines": 84,
+          "nonblank": 72
+        }
+      ]
+    }
+  ]
+}

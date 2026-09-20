@@ -121,9 +121,9 @@ class CommandStatus(StrEnum):
 
 
 class Constraint(Model):
-    min: float | None = None
-    max: float | None = None
-    step: float | None = None
+    min: float | None = Field(default=None, allow_inf_nan=False)
+    max: float | None = Field(default=None, allow_inf_nan=False)
+    step: float | None = Field(default=None, allow_inf_nan=False)
     enum: list[Any] | None = None
     unit: str | None = None
     json_schema: dict[str, Any] | None = None
@@ -170,8 +170,15 @@ class Capability(Model):
     adapter_version: str = "0.1.0"
     vendor_api_version: str | None = None
     last_verified_date: str | None = None
+    profile_id: str | None = None
+    profile_version: str | None = None
+    acceptance_id: str | None = None
+    acceptance_expires_at: datetime | None = None
 
     def validate_for(self, device: Device, values: dict[str, Any]) -> None:
+        if self.acceptance_expires_at is not None:
+            if self.acceptance_expires_at.tzinfo is None or self.acceptance_expires_at <= utcnow():
+                raise ValueError("hardware acceptance expired")
         if self.state != "VERIFIED" or self.evidence_grade == "F" or not self.evidence_ids:
             raise ValueError("capability not verified")
         if not self.hardware_verified:

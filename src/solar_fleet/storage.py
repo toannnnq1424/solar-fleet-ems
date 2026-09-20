@@ -4,12 +4,14 @@ import hashlib
 import json
 import sqlite3
 import threading
+import uuid
 from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 from .domain import CommandPlan, CommandStatus, Sample, utcnow
+from .streams import initialize_events, invalidation
 
 
 def encoded(value: Any) -> str:
@@ -52,9 +54,23 @@ class Store:
             PRAGMA user_version=1;
         """)
 
+        initialize_events(self.db)
+
     @contextmanager
     def transaction(self):
+        """Atomic synchronous work, including audit writes. Never await inside this scope."""
         with self.lock:
+            if self.db.in_transaction:
+                savepoint = "sf_" + uuid.uuid4().hex
+                self.db.execute(f"SAVEPOINT {savepoint}")
+                try:
+                    yield self.db
+                    self.db.execute(f"RELEASE SAVEPOINT {savepoint}")
+                except BaseException:
+                    self.db.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                    self.db.execute(f"RELEASE SAVEPOINT {savepoint}")
+                    raise
+                return
             self.db.execute("BEGIN IMMEDIATE")
             try:
                 yield self.db
@@ -67,11 +83,12 @@ class Store:
         self.db.close()
 
     def put(self, kind: str, id: str, body: dict):
-        with self.lock:
+        with self.transaction():
             self.db.execute(
                 "INSERT INTO entities VALUES(?,?,?) ON CONFLICT(kind,id) DO UPDATE SET body=excluded.body",
                 (kind, id, encoded(body)),
             )
+            invalidation(self, kind, id, body)
 
     def get(self, kind: str, id: str) -> dict | None:
         row = self.db.execute("SELECT body FROM entities WHERE kind=? AND id=?", (kind, id)).fetchone()
@@ -222,5 +239,25 @@ class Store:
             for r in self.db.execute(
                 "SELECT body FROM samples WHERE device_id=? ORDER BY source_ts DESC LIMIT ?",
                 (device_id, min(limit, 5000)),
+            )
+        ]
+
+    def report_samples(self, device_id, start=None, end=None, metric=None, limit=10001):
+        # Filter before limiting; julianday handles timezone offsets rather than lexicographic ISO ordering.
+        moment = "julianday(CASE WHEN source_ts='UNKNOWN' THEN received_at ELSE source_ts END)"
+        where, parameters = ["device_id=?"], [device_id]
+        for bound, op in ((start, ">="), (end, "<")):
+            if bound is not None:
+                where.append(f"{moment} {op} julianday(?)")
+                parameters.append(bound.isoformat())
+        if metric is not None:
+            where.append("metric=?")
+            parameters.append(metric)
+        parameters.append(min(limit, 10001))
+        return [
+            json.loads(r[0])
+            for r in self.db.execute(
+                f"SELECT body FROM samples WHERE {' AND '.join(where)} ORDER BY {moment} DESC LIMIT ?",
+                parameters,
             )
         ]

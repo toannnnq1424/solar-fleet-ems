@@ -1,8 +1,8 @@
 # Solar Fleet EMS
 
-Nền tảng O&M/EMS cho đội EPC, ưu tiên controller cục bộ và điều khiển có bằng chứng. **Bản 0.1.0 là nền móng và pilot chỉ đọc; chưa đạt Deye MVP nghiệm thu phần cứng.**
+Nền tảng O&M/EMS cho đội EPC, ưu tiên controller cục bộ và điều khiển có bằng chứng. **Bản 0.2.0 có core backend, workspace Anh/Việt và ba adapter cloud; điều khiển phần cứng vẫn chờ nghiệm thu.** Xem [tính năng bản 0.2](docs/release-0.2.md) và [trạng thái triển khai](docs/implementation-status.md).
 
-[Báo cáo nghiên cứu A–N](docs/research-architecture-report.md) được lập và commit **trước code**. Có 38 nguồn sau khi bổ sung quan sát Deye Cloud được người dùng cho phép, 10 phạm vi hệ sinh thái, 34 intent và 10 ADRs. Xem [quan sát tài khoản thực](docs/deye-account-observation.md), [source audit](docs/vendor-source-audit.md), [compatibility matrix](docs/vendor-compatibility-matrix.md) và [control mapping](docs/universal-control-mapping.md).
+[Báo cáo nghiên cứu A–N](docs/research-architecture-report.md) được lập và commit **trước code**. Có 43 nguồn sau khi bổ sung quan sát Deye Cloud được người dùng cho phép và hợp đồng Solis/SOLARMAN, 10 phạm vi hệ sinh thái, 34 intent và 10 ADRs. Xem [quan sát tài khoản thực](docs/deye-account-observation.md), [source audit](docs/vendor-source-audit.md), [compatibility matrix](docs/vendor-compatibility-matrix.md) và [control mapping](docs/universal-control-mapping.md).
 
 ## Chạy trên Windows
 
@@ -19,7 +19,13 @@ Mở **http://127.0.0.1:8765**. `init` yêu cầu tự đặt mật khẩu tối
 
 Trên Linux/macOS, dùng `python3.12 -m venv .venv`, rồi dùng `.venv/bin/python` và `.venv/bin/solar-fleet`. Cần OS keyring khả dụng, hoặc cung cấp khóa Fernet qua `SOLAR_MASTER_KEY` từ trình quản lý bí mật. Không lưu khóa này trong repository, shell history hoặc cùng bản backup database.
 
-## Kết nối Deye thật
+## Kết nối nhiều hãng
+
+Vào **Cài đặt → Kết nối hãng** để thêm Deye, Solis hoặc SOLARMAN. Chọn vùng dữ liệu, nhập khóa API được cấp, lưu rồi kiểm tra discovery/sync. Solis dùng Key ID/Secret; Deye và SOLARMAN dùng App ID/Secret và tài khoản API; SOLARMAN Pro có Org ID tùy chọn. Secret được mã hóa tại controller, không lưu trong localStorage. Các hệ khác được liệt kê với trạng thái cần hoàn thiện contract, không giả báo kết nối thành công.
+
+[Hợp đồng đa hãng](docs/multivendor-contracts.md) ghi rõ nguồn, endpoint đã triển khai, phần chưa biết và quy trình nghiên cứu từ phiên truy cập được cấp quyền. Solis chưa chứng minh đơn vị timestamp; dữ liệu được giữ native và không được gọi là fresh. Danh sách phân trang chưa đầy đủ bị từ chối thay vì mất thiết bị âm thầm.
+
+## Kết nối Deye bằng CLI (tùy chọn)
 
 Dừng controller bằng Ctrl+C, rồi chạy:
 
@@ -32,7 +38,7 @@ Chọn đúng loại account đã được Deye cấp; các giá trị là `Owne
 
 Đăng nhập Deye Cloud trên web **không** tự tạo credential OpenAPI. Phiên browser chỉ được dùng để đối chiếu thông tin; ứng dụng không đọc cookie/token web. Cần app được cấp quyền tại [Deye Developer Portal](https://developer.deyecloud.com/) và đúng data center. Không gửi App Secret hoặc mật khẩu vào chat.
 
-Controller tự discovery, polling theo chu kỳ 120 giây; trang **Kết nối** hiển thị lỗi xác thực/quyền/quota. Chưa có credential thì fleet trống, không thay bằng JSON mẫu. Có thể dùng nút đồng bộ chỉ đọc, với cooldown và cùng rate budget. Latest tối đa 10 serial mỗi request; pagination xử lý nhiều trang. Lịch sử raw được đọc theo khoảng tối đa 24 giờ mỗi request; alert theo 24 giờ trên UI.
+Controller tự discovery, polling theo chu kỳ 120 giây; trang **Cài đặt → Kết nối hãng** hiển thị lỗi xác thực/quyền/quota. Chưa có credential thì fleet trống, không thay bằng JSON mẫu. Có thể dùng nút đồng bộ chỉ đọc, với cooldown và cùng rate budget. Latest tối đa 10 serial mỗi request; pagination xử lý nhiều trang. Lịch sử raw được đọc theo khoảng tối đa 24 giờ mỗi request; alert theo 24 giờ trên UI.
 
 ## Đã triển khai
 
@@ -40,8 +46,9 @@ Controller tự discovery, polling theo chu kỳ 120 giây; trang **Kết nối*
 |---|---|
 | Domain / storage | Identity theo inverter/logger/model/firmware/account; binding dữ liệu riêng; SQLite WAL, sample theo source timestamp, retention 7 ngày / 200.000 points |
 | Deye transport thật | HTTPS allowlist theo region; token và tái xác thực khi hết hạn; discovery station/device; latest batch; config; history; alerts; native order transport/status |
-| Telemetry | Giữ raw key/unit/timestamp/provenance; chỉ mapping đã review mới thành canonical; không tự đoán dấu, reserve SOC hay unit |
-| Giao diện tiếng Việt | Fleet, thiết bị/logger, energy flow có trạng thái chưa biết, lịch sử, alerts, cấu hình gốc, quick/advanced capabilities, 39 endpoint native và nhóm quan sát web |
+| Telemetry | Giữ raw key/unit/timestamp/provenance; chỉ profile đúng identity đã nghiệm thu trong adapter mới thành canonical; không tự đoán dấu, reserve SOC hay unit |
+| Workspace Anh/Việt | 13 mục điều hướng chung, quản lý nhà máy, thiết bị, sự cố/bảo trì, lịch nháp, EMS dry-run, bulk assessment, báo cáo/CSV, kết nối và người dùng |
+| Solis / SOLARMAN | Transport đọc thật theo contract; auth, discovery, native telemetry, giới hạn API và lỗi; chưa live acceptance |
 | Command engine | Dry-run bất biến, hash preview/confirm, idempotency bền vững, kiểm tra quyền/profile/config lại trước gửi, khóa từng device, order tracking, readback, audit; lỗi không rõ kết quả chặn lệnh sau |
 | Bảo mật | Loopback có auth, password scrypt, secret Fernet + OS keyring, cookie HttpOnly/SameSite, CSRF/origin/Host allowlist, rate limit đăng nhập, RBAC theo site, role revoke |
 | Chất lượng | Unit, contract và integration tests dùng simulator/MockTransport; lint; kiểm tra JS; build wheel/sdist; workflow Windows/Linux |
@@ -53,8 +60,8 @@ Native control transport tồn tại để phát triển profile được nghi�
 - Chưa có credential OpenAPI để thử kết nối live, chưa có write/readback end-to-end trên inverter thật. Có bằng chứng UI cho một hệ hybrid LV 16 kW và logger; chưa đủ exact model hoặc API privileges.
 - Chưa có mapping metric đã nghiệm thu cho model thực, nên sơ đồ năng lượng canonical sẽ còn “—”; bảng native vẫn hiển thị số hãng trả về khi API kết nối được.
 - Các getter config Deye đã nghiên cứu không chứng minh dữ liệu mới từ device. Chúng luôn trả `freshness_verified=false`. Đây là blocker cần giải quyết trước điều khiển.
-- Chưa triển khai local hardware driver, Site Agent, outbox mTLS, Modbus/IEC104 register profile, các adapter vendor khác, bulk control, reconciliation UI hoặc EMS optimizer. Xem [implementation status](docs/implementation-status.md).
-- Pilot một process, tối đa 50 thiết bị cho một vòng polling. Với nhiều hơn, controller luân phiên và báo `PILOT_CAPACITY_EXCEEDED`; không hứa SLA fleet lớn. SQLite hiện chưa phải storage production cho hàng nghìn inverter.
+- Đã có Agent ingest/outbox, collector SOLARMAN V5 tùy chọn, rollout canary và UI reconciliation. Chưa mTLS/service agent, profile Modbus/IEC104 nghiệm thu, năm adapter cloud còn lại hoặc optimizer thực thi. Xem [implementation status](docs/implementation-status.md).
+- Pilot một process, batch 50 thiết bị Deye hoặc 10 thiết bị Solis/SOLARMAN cho một vòng polling. Với nhiều hơn, controller luân phiên và báo `PILOT_CAPACITY_EXCEEDED`; không hứa SLA fleet lớn. SQLite hiện chưa phải storage production cho hàng nghìn inverter.
 - Audit hash chain và trigger phát hiện sửa nội dung trong database; chưa bảo vệ khỏi người có quyền hệ điều hành xóa cả file, cắt đuôi log hoặc thay chương trình. Cần backup/checkpoint ngoài máy và hardening trước production.
 
 ## Quản lý tài khoản và dữ liệu
@@ -77,10 +84,20 @@ Khi có lệnh TIMEOUT, không retry hoặc sửa trực tiếp database để x
 ```powershell
 .\.venv\Scripts\python.exe -m ruff check src tests
 .\.venv\Scripts\python.exe -m pytest -q
-node --check src/solar_fleet/static/app.js
+node --experimental-vm-modules scripts/check-ui.cjs
 .\.venv\Scripts\python.exe -m build --no-isolation
 ```
 
-`constraints.txt` cố định các phiên bản đã cài và kiểm tra cho baseline Python 3.12. Test chặn HTTP transport thật; socketpair loopback nội bộ của asyncio trên Windows được cho phép. Simulator chỉ nằm trong `tests/`, không có demo mode hoặc test device trong production package. Không test nào gửi lệnh tới Deye thật.
+`constraints.txt` cố định các phiên bản đã cài và kiểm tra cho baseline Python 3.12. Test chặn HTTP transport thật; socketpair loopback nội bộ của asyncio trên Windows được cho phép. Simulator chỉ nằm trong `tests/`, không có demo mode hoặc test device trong production package. Không test nào gửi request tới tài khoản hãng hoặc phần cứng thật. Các module ES được parse toàn bộ, không chỉ file entry point.
 
 Xem [hardware acceptance](docs/hardware-acceptance.md) trước mọi đợt commissioning và [validation record](docs/validation.md) cho kết quả kiểm tra phiên bản này.
+
+
+## Core và đối chiếu màn hình
+
+- [26 mockup](docs/mockup-coverage.md): BE/FE, còn thiếu, sidebar và từng tab.
+- [Hợp đồng mở rộng](docs/core-extension-contract.md): plugin, credential, observation, compiler, native UI, mapping/realtime.
+- [Style global](docs/ui-design-system.md): cùng sidebar/shell và `static/app.css`.
+- [Bluesun và nguồn mở](docs/bluesun-integration.md): brand khác transport/OEM.
+
+Collector tùy chọn: `python -m pip install -c constraints.txt -e ".[local-solarman]"`. Kiểm tra tương thích trên site host trước; Windows mới có test transport giả lập. Cloud/UI không cần extra này.

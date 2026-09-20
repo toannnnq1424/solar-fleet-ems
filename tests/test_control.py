@@ -264,7 +264,7 @@ async def test_idempotency_survives_database_reopen(tmp_path, device, operator, 
 
 @pytest.mark.parametrize("intent", ["SET_ZERO_EXPORT", "SET_RESERVE_SOC"])
 def test_nearby_deye_controls_are_never_substituted(device, intent):
-    from solar_fleet.control import compile_deye
+    from solar_fleet.adapters.deye_control import compile_deye
 
     with pytest.raises(SafetyError, match="intent_mapping_unknown"):
         compile_deye(device, intent, {"value": 20})

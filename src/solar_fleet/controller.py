@@ -5,10 +5,14 @@ import hashlib
 import time
 from datetime import datetime
 
-from .adapters.deye import Budgets, Deye, source_time
+from .adapters.plugins import builtins
+from .budgets import Budgets
 from .catalog import capabilities
 from .control import CommandEngine
+from .data_workspace import accepted_profile, apply_profile, collection_due
 from .domain import Device, DeviceIdentity, SafetyError, Sample, utcnow
+from .incidents import IncidentService
+from .integration import ReadAdapter
 from .security import Vault, principal, redact
 from .storage import Store
 from .telemetry import normalize_points, refresh_quality
@@ -21,9 +25,11 @@ def entity_id(*parts) -> str:
 class Controller:
     """One local process. No fake integrations, vendor switching or writable protocol fallbacks."""
 
-    def __init__(self, store: Store, vault: Vault, *, writes_enabled=False):
+    def __init__(self, store: Store, vault: Vault, *, writes_enabled=False, registry=None):
         self.store, self.vault = store, vault
+        self.incidents = IncidentService(store)
         self.adapters = {}
+        self.registry = registry if registry is not None else builtins()
         self.budgets = Budgets()
         self.poll_lock = asyncio.Lock()
         self.poll_task = None
@@ -35,6 +41,7 @@ class Controller:
             self.capability,
             lambda id: principal(store, id),
             writes_enabled=writes_enabled,
+            compiler=self.registry.compile,
         )
 
     def device(self, id: str) -> Device:
@@ -43,22 +50,31 @@ class Controller:
             raise SafetyError("device_not_found")
         return Device.model_validate(row)
 
-    def adapter(self, device: Device) -> Deye:
+    def adapter(self, device: Device) -> ReadAdapter:
         return self.integration_adapter(device.integration_id)
 
-    def integration_adapter(self, id: str) -> Deye:
+    def integration_adapter(self, id: str) -> ReadAdapter:
         if id not in self.adapters:
             config = self.store.get("integration", id)
-            if not config or config.get("vendor") != "Deye" or not config.get("enabled"):
+            if not config or not config.get("enabled"):
                 raise SafetyError("integration_not_available")
-            self.adapters[id] = Deye(config, self.vault.get(id), budgets=self.budgets)
+            self.adapters[id] = self.registry.create(config, self.vault.get(id), self.budgets)
         return self.adapters[id]
 
     def capability(self, device: Device, intent: str):
+        commissioned = self.registry.profiles.resolve(device, intent)
+        if commissioned is not None:
+            return commissioned
         candidate = next((c for c in capabilities(device) if c.intent == intent), None)
         if candidate is None:
             raise SafetyError("intent_unknown")
         return candidate
+
+    def capabilities(self, device: Device):
+        intents = dict.fromkeys(c.intent for c in capabilities(device))
+        for profile in self.registry.profiles.candidates(device):
+            intents.update(dict.fromkeys(c.intent for c in profile.contracts))
+        return [self.capability(device, intent) for intent in intents]
 
     async def start(self):
         self.store.recover_commands()
@@ -81,32 +97,36 @@ class Controller:
                 self.store.audit("system", {"event": "poll_failed", "reason": "internal_poll_error"})
             await asyncio.sleep(120)
 
-    async def discover(self, config: dict, adapter: Deye):
+    async def discover(self, config: dict, adapter: ReadAdapter):
+        plugin = self.registry.require(config["vendor"])
         stations = await adapter.stations()
+        vendor = config["vendor"]
         discovered = []
         for station in stations:
-            vendor_id = station.get("id")
-            if not isinstance(vendor_id, int) or isinstance(vendor_id, bool):
+            observed_plant = plugin.plant(station)
+            vendor_id = observed_plant.external_id
+            if type(vendor_id) not in (int, str) or str(vendor_id).strip() == "":
                 raise SafetyError("station_identity_invalid")
-            site_id = entity_id("Deye", config["region"], "station", vendor_id)
+            site_id = entity_id(vendor, config["region"], "station", vendor_id)
             site = {
                 "id": site_id,
                 "integration_id": config["id"],
                 "vendor_id": vendor_id,
-                "name": str(station.get("name") or vendor_id),
-                "vendor": "Deye",
-                "timezone": station.get("regionTimezone"),
+                "name": observed_plant.name,
+                "vendor": vendor,
+                "timezone": observed_plant.timezone,
                 "source": "VENDOR_CLOUD",
                 "discovered_at": utcnow().isoformat(),
                 "native": redact(station),
             }
             self.store.put("site", site_id, site)
             for raw in await adapter.devices(vendor_id):
-                serial = raw.get("deviceSn")
+                observed = plugin.device(raw)
+                serial = observed.serial
                 if not isinstance(serial, str) or not serial:
                     raise SafetyError("device_identity_invalid")
                 # A serial seen through two accounts must not create two independent command queues.
-                id = entity_id("Deye", "device", serial)
+                id = entity_id(vendor, "device", serial)
                 binding_id = entity_id(config["id"], "binding", serial)
                 if id in discovered:
                     raise SafetyError("ambiguous_device_site_binding")
@@ -116,19 +136,21 @@ class Controller:
                     site_id=site_id,
                     integration_id=config["id"],
                     vendor_id=serial,
-                    type=str(raw.get("deviceType") or "UNKNOWN"),
+                    type=observed.type,
                     identity=DeviceIdentity(
-                        vendor="Deye",
+                        vendor=vendor,
+                        model=observed.model,
                         region=config["region"],
                         account_type=config.get("account_type"),
                         privilege=config.get("privilege"),
                     ),
-                    last_seen=source_time(raw.get("collectionTime")),
-                    online=raw.get("connectStatus") == 1,
+                    last_seen=observed.timestamp,
+                    online=observed.online,
                     metadata={
                         "discovery": redact(raw),
-                        "product_id": raw.get("productId"),
+                        "product_id": observed.product_id,
                         "identity_state": "UNKNOWN",
+                        "declared_equipment_brand": config.get("equipment_brand"),
                     },
                 )
                 if previous:
@@ -152,7 +174,7 @@ class Controller:
                         "vendor_device_sn": serial,
                         "telemetry_enabled": True,
                         "control_enabled": False,
-                        "evidence_ids": ["DEYE_API_001"],
+                        "evidence_ids": list(plugin.evidence_ids),
                     },
                 )
                 discovered.append(id)
@@ -171,11 +193,12 @@ class Controller:
         async with self.poll_lock:
             self.last_poll = time.monotonic()
             for config in self.store.list("integration"):
-                if not config.get("enabled"):
+                if not config.get("enabled") or not collection_due(self.store, config):
                     continue
                 state = {"id": config["id"], "last_attempt": utcnow().isoformat(), "state": "CONNECTING"}
                 try:
                     adapter = self.integration_adapter(config["id"])
+                    plugin = self.registry.require(config["vendor"])
                     discovery = self.store.get("discovery", config["id"])
                     if (
                         not discovery
@@ -190,23 +213,36 @@ class Controller:
                     ]
                     # Pilot budget: 50 devices per cycle; rotate fairly beyond that and report degradation.
                     cursor = (self.store.get("poll_cursor", config["id"]) or {}).get("offset", 0)
-                    selected = (devices[cursor:] + devices[:cursor])[:50] if devices else []
+                    batch = min(
+                        getattr(adapter, "per_poll", 50),
+                        (self.store.get("collection_policy", config["id"]) or {}).get(
+                            "max_devices_per_poll", 50
+                        ),
+                    )
+                    selected = (devices[cursor:] + devices[:cursor])[:batch] if devices else []
                     wanted = {d.vendor_id: d for d in selected}
                     rows = await adapter.latest(list(wanted))
                     seen = set()
                     for raw in rows:
-                        device = wanted.get(raw.get("deviceSn"))
+                        observed = plugin.measurement(raw)
+                        device = wanted.get(observed.serial)
                         if device is None:
                             raise SafetyError("latest_response_device_mismatch")
                         seen.add(device.id)
-                        timestamp = source_time(raw.get("collectionTime"))
+                        timestamp = observed.timestamp
                         device.last_seen = timestamp
-                        device.online = raw.get("deviceState") == 1
-                        points = raw.get("dataList")
-                        if not isinstance(points, list) or any(not isinstance(p, dict) for p in points):
-                            raise SafetyError("vendor_invalid_measurements")
+                        device.online = observed.online
+                        points = observed.points
                         binding_id = entity_id(config["id"], "binding", device.vendor_id)
-                        samples = normalize_points(device.id, binding_id, points, timestamp)
+                        samples = normalize_points(
+                            device.id,
+                            binding_id,
+                            points,
+                            timestamp,
+                            namespace=plugin.namespace,
+                            evidence_ids=list(plugin.evidence_ids),
+                        )
+                        samples = apply_profile(accepted_profile(plugin.telemetry_profiles, device), samples)
                         self.store.add_samples(samples)
                         self.store.put(
                             "latest",
@@ -225,10 +261,10 @@ class Controller:
                             device.online = False
                             self.store.put("device", device.id, device.model_dump(mode="json"))
                     self.store.put(
-                        "poll_cursor", config["id"], {"offset": (cursor + 50) % max(1, len(devices))}
+                        "poll_cursor", config["id"], {"offset": (cursor + batch) % max(1, len(devices))}
                     )
                     state.update(
-                        state="PILOT_CAPACITY_EXCEEDED" if len(devices) > 50 else "CONNECTED",
+                        state="PILOT_CAPACITY_EXCEEDED" if len(devices) > batch else "CONNECTED",
                         last_success=utcnow().isoformat(),
                         devices=len(devices),
                         received=len(seen),
@@ -240,10 +276,36 @@ class Controller:
                 self.store.put("integration_state", config["id"], state)
 
     def latest(self, device: Device) -> dict:
-        row = self.store.get("latest", device.id)
-        if not row:
-            return {"device_id": device.id, "samples": [], "state": "NO_DATA"}
+        row = self.store.get("latest", device.id) or {
+            "device_id": device.id,
+            "samples": [],
+            "state": "NO_DATA",
+        }
+        for source in self.store.list("agent_latest"):
+            if source["device_id"] == device.id:
+                agent = self.store.get("agent", source["agent_id"])
+                if agent and agent["enabled"] and agent["site_id"] == device.site_id:
+                    row["samples"].extend(source["samples"])
+                    row["state"] = "HAS_DATA"
         row["samples"] = [
             refresh_quality(Sample.model_validate(s), 300).model_dump(mode="json") for s in row["samples"]
         ]
         return row
+
+    def collect_alarms(self, device: Device, rows: list[dict]):
+        from .incident_models import AlarmObservation
+
+        plugin = self.registry.require(device.identity.vendor)
+        if plugin.decode_alarm is None:
+            return {"state": "NATIVE_ONLY", "correlated": 0}
+        # Validate the whole response before changing the incident store. An empty
+        # response is never evidence that previously active alarms recovered.
+        observations = [AlarmObservation.model_validate(plugin.decode_alarm(row)) for row in rows]
+        if any(o.namespace != plugin.namespace or not set(o.evidence_ids) <= set(plugin.evidence_ids)
+               for o in observations):
+            raise SafetyError("alarm_mapping_provenance_invalid")
+        binding_id = entity_id(device.integration_id, "binding", device.vendor_id)
+        with self.store.transaction():
+            results = [self.incidents.apply_alarm(device, binding_id, o)
+                       for o in sorted(observations, key=lambda o: o.source_timestamp)]
+        return {"state": "CORRELATED", "correlated": len(results), "results": results}

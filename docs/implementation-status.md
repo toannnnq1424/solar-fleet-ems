@@ -1,28 +1,31 @@
-# Implementation status — 0.1.0
+# Implementation status — 0.2.0
 
-Baseline được xác lập trong [Research & Architecture Report](research-architecture-report.md). Mục tiêu đợt triển khai này là foundational domain và Deye adapter, đúng thứ tự yêu cầu. Không đánh dấu hoàn thành hardware MVP khi các blocker từ hãng/thiết bị còn tồn tại.
+Updated 2026-09-20. [26-screen coverage](mockup-coverage.md) is the detailed BE/FE inventory and sidebar specification. This is a local pilot, not the complete v1 product. No live hardware acceptance is claimed.
 
-| Mốc | Kết quả | Điều kiện tiếp theo |
+| Area | Implemented application behavior | Remaining |
 |---|---|---|
-| Research trước code | Hoàn thành baseline A–N, source audit, matrix, 34 intents, 10 ADRs; bổ sung E từ account web sau đó | Cập nhật có version khi nhận tài liệu mới |
-| Domain, secret, RBAC, storage | Có code và kiểm thử | Review bảo mật/hardening môi trường production |
-| Deye cloud read | Có transport thật, contract tests và ingestion tests | App/account/region thật; discovery/telemetry/history/alarm đối chiếu trên tài khoản |
-| Monitoring UI | Có fleet, device, logger theo discovery, raw/history/config/alarm, provenance | Canonical metric profiles và timestamp acceptance theo model |
-| Control engine | Có state machine, preview/confirm, idempotency, serialization, readback, audit | Exact commissioned profile + fresh getter + range + quyền + hardware test |
-| Deye native | Giữ 39 endpoint schemas và 10 nhóm UI quan sát; write khóa | Bổ sung từng mapping hợp lệ; private web menu không được coi là API public |
-| Quick/Advanced/TOU forms | Capability được hiển thị với lý do khóa; chưa có form ghi được bật | Tạo form theo typed constraint của profile đầu tiên, không mở generic raw editor |
-| Reconciliation | Restart/in-flight → TIMEOUT; quarantine device, không resend | Operator reconciliation có readback mới, bằng chứng và audit; không tự clear |
-| Site Agent / local | Kiến trúc, failure modes và coexistence trong report/ADRs; chưa có agent chạy | Protocol/register map hợp lệ, driver read-only, outbox dedupe/mTLS; thử cloud/local |
-| Multi-vendor | Đã nghiên cứu có scope; chưa adapter nào ngoài Deye | Vendor access, contract/profile/test theo cùng DoD |
-| Bulk/schedule/EMS | Chưa gửi bulk, chưa controller schedule/optimizer | Hoàn thành correctness/readback của single-device trước |
+| Shared UI | One shell, 13 sidebar destinations, global app.css, reusable forms/tables/dialogs, VI/EN; account layout follows mockup 21 | Complete visual/usability acceptance, accessibility and translation polish |
+| Plants/devices | Metadata, customers, scoped inventory, manual assets, topology, coordinate map, bindings, readings/history | Real basemap/clusters, full plant dashboard, weather/forecast, hardware identity acceptance |
+| Multi-vendor core | Plugin registry, observation DTOs, credential contracts, native descriptors, compiler; synthetic extra-vendor test | Five other ecosystem adapters; actual OEM/model acceptance |
+| Cloud accounts | Deye/Solis/SOLARMAN read clients, encrypted setup, connection checks, cooldown, suspend, scoped read API keys | Live grants/data validation, other clouds, actual local-agent certificates |
+| Telemetry/mapping | Native provenance, quality, source priority, discrepancy; draft editor/simulation/review/version; exact code-registered profiles | Shipping canonical profiles, cloud backfill, production time-series store |
+| Realtime | Scoped authenticated WebSocket, durable bounded invalidations, cursor/reset/revocation; monitoring refresh | Detailed chart streaming, production fanout/cluster load acceptance |
+| Collection | Per-integration interval/cap policies applied by polling, revision history, status/cursor inspection | Agent service configuration, distributed scheduling |
+| Local Agent | Site/device token ingest, sequence/replay, SQLite outbox, upload CLI; optional SOLARMAN V5 read collector | mTLS/service/update lifecycle, auto discovery, hardware/profile acceptance |
+| Control | Intent preview/diff/confirm, locks, persistent idempotency, fresh read, order/readback, audit; exact per-device/account acceptance registry with expiry, revocation and ambiguity rejection | Shipping hardware acceptance, model-specific native contracts and live readback; new profile code/tests not yet verified |
+| Native UI | Adapter capabilities, nine groups and documentation | Actual native field schemas and model-specific grid/BMS/CT/generator control |
+| TOU | Weekly editor/version/copy; compile API/UI with full-week gaps, timezone/DST, adapter translation, saved explanations, source digest and guarded rollout preparation | Shipping vendor translators, real device schedule acceptance, optimizer and unattended execution; new code/tests not yet run |
+| EMS | Multiple AND conditions/actions, deterministic dry-run, unit/freshness checks; timed hold/notify monitor | Physical dispatch, optimizer, hysteresis/conflict policy, forecast planning |
+| Bulk | Persistent rollout, compatibility, canary then remaining-device confirmation, cancellation, outcomes | Shipping profiles and scalable deployment scheduler |
+| Incident center | BE/FE filters, triage, assignment, notes, append-only timeline, 24/7 SLA snapshots/escalation, versioned playbooks/checklist, linked work; adapter-neutral alarm correlation with duplicate/order/recovery handling | Actual vendor alarm decoders, model-specific playbooks, external notification, evidence uploads; new code/UI tests not yet executed |
+| Maintenance execution | BE/FE plan versioning, checklist/evidence references, work time/overlap/void, independent review, digest/reviewer/evidence revalidation before closing, reopen workflow; observation health and service calendar; append-only execution history | Materials/procurement, service contracts, actual file storage, electrical health methods, firmware compatibility/OTA; new BE/browser tests authored, not executed |
+| Commissioning | Manual checklist, diagnostics, six-check handover gate and report | Electrical tests, signatures, physical acceptance |
+| Reports | CSV/XLSX, coverage/reset-aware counter analytics, printable global-style HTML | PDF templates, verified savings/CO2/yield, distribution |
+| Administration | RBAC/site scope, users/session revoke, vault, scoped API keys, audit hash chain | Hosted multitenancy, SSO/MFA, backup/rotation UI, external checkpoints |
+| Firmware/network | Persisted requests/network drafts with permissions | Firmware/network writes, certificates, recovery/rollback |
 
-Các mục cố ý bị khóa vì thiếu bằng chứng là UNKNOWN, không phải silently unsupported. Các chức năng kỹ thuật chưa viết được liệt kê riêng ở bảng để tránh hiểu nhầm “đã có kiến trúc” thành “đã chạy”.
+One controller, SQLite WAL, telemetry retention at most seven days / 200,000 points. Polling uses adapter caps and a 120-second base tick. These are pilot limits, not a fleet-scale SLA. Missing data is not populated with production fixtures.
 
-## Bước triển khai có thể review tiếp theo
+Vendor logins enable contract verification; they do not complete the independent engineering above. See [core extension contract](core-extension-contract.md).
 
-1. Cấp Deye OpenAPI app và nhập credential bằng CLI. Đối chiếu discovery với web, không nhập snapshot web thành live telemetry.
-2. Thu thập nhãn inverter/logger, exact firmware, protocol document, BMS và CT/meter topology. Lưu evidence gắn model/region/account.
-3. Tạo metric profile đã đối chiếu đơn vị/dấu/timestamp cho PV, grid import/export, battery charge/discharge/SOC, load và daily energy.
-4. Xác minh getter mới từ thiết bị. Nếu getter cache không chứng minh freshness thì không tiếp tục write.
-5. Nghiệm thu một intent ít rủi ro với kỹ thuật viên tại công trình, rồi mở typed form, reconciliation và tolerance có bằng chứng. Test mất mạng/timeout/partial apply trên môi trường phù hợp.
-6. Sau Deye single-device: Site Agent/local hoặc vendor thứ hai tùy tài liệu/quyền thực có sẵn. Chưa chạy closed-loop optimizer ở pha đầu.
+The separate estimate → implemented code → unbuilt scope → completion criteria table and reproducible BE/FE/test inventory are in [mockup coverage](mockup-coverage.md). Do not use route count or LOC as a completion percentage. Implementation and test authoring continue; final test/build/QA is deferred as requested.

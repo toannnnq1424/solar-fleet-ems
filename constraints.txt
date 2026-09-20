@@ -42,3 +42,10 @@ trove-classifiers==2026.6.1.19
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.52.4
+
+tzdata==2026.4
+
+websockets==16.1.1
+pysolarmanv5==3.0.6
+umodbus==1.0.4
+pyserial==3.5

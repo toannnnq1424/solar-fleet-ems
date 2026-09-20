@@ -118,7 +118,7 @@ def test_empty_fleet_and_full_native_catalog_are_not_fake(client):
     fleet = client.get("/api/fleet").json()
     assert fleet["devices"] == [] and fleet["sites"] == [] and fleet["state"] == "NO_INTEGRATION"
     research = client.get("/api/research").json()
-    assert len(research["native"]) == 39 and len(research["sources"]) == 38
+    assert len(research["native"]) == 39 and len(research["sources"]) == 45
     assert all(not item["enabled"] for item in research["native"])
 
 

@@ -43,7 +43,7 @@ def test_future_timestamp_invalid_and_stale():
 def test_unknown_sign_is_never_inferred_from_vendor_key():
     result = normalize_points("SIM", "SIM", [{"key": "gridPower", "value": -4.2, "unit": "kW"}], utcnow())[0]
     assert (
-        result.metric == "deye.gridPower"
+        result.metric == "native.gridPower"
         and result.value == -4.2
         and result.unit == "kW"
         and result.quality == "UNVERIFIED"
@@ -76,11 +76,11 @@ def test_wrong_unit_does_not_convert_and_negative_unidirectional_keeps_raw():
         "simPV": {"verified": True, "source_unit": "kW", "metric": "pv_power_w", "evidence_ids": ["SIM-TEST"]}
     }
     raw = normalize_points("SIM", "SIM", [{"key": "simPV", "value": -2, "unit": "kW"}], utcnow(), profile)[0]
-    assert raw.metric == "deye.simPV" and raw.value == -2 and raw.unit == "kW"
+    assert raw.metric == "native.simPV" and raw.value == -2 and raw.unit == "kW"
     wrong = normalize_points(
         "SIM", "SIM", [{"key": "simPV", "value": 2, "unit": "unknown"}], utcnow(), profile
     )[0]
-    assert wrong.metric == "deye.simPV" and wrong.quality == "UNVERIFIED"
+    assert wrong.metric == "native.simPV" and wrong.quality == "UNVERIFIED"
 
 
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), "-Infinity"])
@@ -118,6 +118,19 @@ def test_parameter_range_step_and_type_are_fail_closed(value):
 def test_enum_does_not_conflate_bool_and_integer():
     with pytest.raises(ValueError):
         Constraint(enum=[1, 2]).validate_value(True)
+
+
+def test_undocumented_numeric_unit_stays_unknown_without_dropping_native_reading():
+    rows = normalize_points(
+        "SIM",
+        "SIM",
+        [{"key": "power", "value": 20, "unit": 1}],
+        utcnow(),
+        namespace="solis",
+        evidence_ids=["SOLIS_DEV_DATA_002"],
+    )
+    assert rows[0].value == 20 and rows[0].unit is None and rows[0].quality == "UNVERIFIED"
+    assert rows[0].evidence_ids == ["SOLIS_DEV_DATA_002"]
 
 
 def test_history_deduplicates_original_timestamp_and_retains_distinct_sources(store):

@@ -1,5 +1,7 @@
 # Vendor compatibility matrix
 
+> 0.2.0 update: see [multi-vendor contracts](multivendor-contracts.md). The current registry has 43 records. Solis now has a documented owner/installer user API and implemented read adapter; SOLARMAN cloud reads are implemented. Older conclusions below are retained as the original research snapshot, not current implementation status.
+
 Mỗi block là một row đầy đủ, trình bày dọc để đọc được trên màn hình. Không có `yes` không nguồn. “DOCUMENTED” chỉ xác nhận đường giao tiếp, không chứng nhận thiết bị. Các nhóm còn lại có mapping chi tiết riêng.
 
 ## deye

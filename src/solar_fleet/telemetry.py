@@ -34,7 +34,10 @@ def refresh_quality(sample: Sample, max_age_seconds: float, now: datetime | None
 
 
 def select_source(
-    samples: list[Sample], max_age_seconds: float, now: datetime | None = None
+    samples: list[Sample],
+    max_age_seconds: float,
+    now: datetime | None = None,
+    priority_order: list[str] | None = None,
 ) -> Sample | None:
     """Select one metric/device; never silently merge different targets or stale sources."""
     if len({(s.device_id, s.metric) for s in samples}) > 1:
@@ -42,6 +45,9 @@ def select_source(
     ranked = [refresh_quality(s, max_age_seconds, now) for s in samples]
     valid = [s for s in ranked if not s.stale and s.quality == "GOOD" and s.value is not None]
     priority = {Source.LOCAL: 0, Source.AGENT: 1, Source.CLOUD: 2, Source.SIMULATOR: 3}
+    if priority_order is not None:
+        priority = {Source(value): index for index, value in enumerate(priority_order)}
+        valid = [s for s in valid if s.source in priority]
     if not valid:
         return None
     return min(valid, key=lambda s: (priority[s.source], -s.source_timestamp.timestamp()))
@@ -65,13 +71,16 @@ def normalize_points(
     points: list[dict[str, Any]],
     timestamp: datetime | None,
     profile: dict[str, dict[str, Any]] | None = None,
+    *,
+    namespace: str = "native",
+    evidence_ids: list[str] | None = None,
 ) -> list[Sample]:
-    """DEYE_API_001: keep unknown keys raw; profiles supply reviewed metric and sign semantics."""
+    """Keep unknown keys raw; adapter profiles supply reviewed metric and sign semantics."""
     result = []
     for point in points:
         key = str(point.get("key", "unknown"))
         mapping = (profile or {}).get(key)
-        unit = point.get("unit")
+        unit = point.get("unit") if isinstance(point.get("unit"), str) else None
         value = point.get("value")
         try:
             value = float(value) if value is not None and not isinstance(value, bool) else None
@@ -100,21 +109,21 @@ def normalize_points(
         try:
             sample = Sample(
                 device_id=device_id,
-                metric=mapping["metric"] if canonical else f"deye.{key}",
+                metric=mapping["metric"] if canonical else f"{namespace}.{key}",
                 value=value,
                 unit=unit,
                 source=Source.CLOUD,
                 source_timestamp=timestamp,
                 quality="GOOD" if canonical and value is not None else "UNVERIFIED",
                 binding_id=binding_id,
-                evidence_ids=mapping["evidence_ids"] if canonical else [],
+                evidence_ids=mapping["evidence_ids"] if canonical else (evidence_ids or []),
             )
         except ValueError:
             sample = Sample(
                 device_id=device_id,
-                metric=f"deye.{key}",
+                metric=f"{namespace}.{key}",
                 value=None,
-                unit=point.get("unit"),
+                unit=original_unit,
                 source=Source.CLOUD,
                 source_timestamp=timestamp,
                 quality="INVALID",

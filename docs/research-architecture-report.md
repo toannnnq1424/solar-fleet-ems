@@ -1,5 +1,7 @@
 # Nghiên cứu và kiến trúc Solar Fleet EMS
 
+> 0.2.0 update: see [multi-vendor contracts](multivendor-contracts.md). The current registry has 43 records. Solis now has a documented owner/installer user API and implemented read adapter; SOLARMAN cloud reads are implemented. Older conclusions below are retained as the original research snapshot, not current implementation status.
+
 ## A. Executive summary
 
 Nền tảng được thiết kế cho đơn vị EPC quản lý nhiều khách hàng, kết hợp giám sát, vận hành, bảo trì và điều khiển có kiểm chứng. Quyết định kiến trúc là controller tại văn phòng, UI có xác thực trên `127.0.0.1`, adapter cloud độc lập và Site Agent tại từng công trình. Khả năng của inverter, logger, tài khoản và firmware phải được xác định riêng; thương hiệu không phải là một capability.

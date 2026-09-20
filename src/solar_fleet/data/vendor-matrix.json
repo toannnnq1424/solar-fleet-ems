@@ -59,16 +59,16 @@
     "firmware": "UNKNOWN",
     "app": "UNKNOWN",
     "web": "UNKNOWN",
-    "owner_account": "UNKNOWN",
-    "installer_account": "UNKNOWN",
+    "owner_account": "DOCUMENTED; PER_ACCOUNT_GRANTS_UNVERIFIED",
+    "installer_account": "DOCUMENTED; PER_ACCOUNT_GRANTS_UNVERIFIED",
     "organization_account": "UNKNOWN",
-    "official_api": "UNKNOWN",
-    "api_authentication": "UNKNOWN",
-    "telemetry": "MONITORING_PATH",
+    "official_api": "USER_API_DOCUMENTED",
+    "api_authentication": "HMAC_SHA1_KEY_ID_SECRET",
+    "telemetry": "READ_ADAPTER_CONTRACT_TESTED; LIVE_UNVERIFIED",
     "history": "UNKNOWN",
     "alarms": "UNKNOWN",
     "remote_config": "UNKNOWN",
-    "remote_control": "UI_ONLY; MODBUS_CONDITIONAL",
+    "remote_control": "API_DOCUMENTED; NO_MODEL_WRITE_PROFILE",
     "dispatch": "UNKNOWN",
     "modbus_tcp": "MODBUS_TCP_DOCUMENTED",
     "modbus_rtu": "UNKNOWN",
@@ -91,14 +91,22 @@
     "source_links": [
       "https://solis-service.solisinverters.com/en/support/solutions/articles/44002212561-request-api-access-soliscloud",
       "https://solis-service.solisinverters.com/en/support/solutions/articles/44002663852-non-nda-modus-table",
-      "https://solis-service.solisinverters.com/en/support/solutions/articles/44002530087-solis-s2-wl-st-modbus-tcp-communication"
+      "https://solis-service.solisinverters.com/en/support/solutions/articles/44002530087-solis-s2-wl-st-modbus-tcp-communication",
+      "https://developer.soliscloud.com/guide/authorization.html",
+      "https://developer.soliscloud.com/guide/data-access-user.html",
+      "https://developer.soliscloud.com/guide/device-control-v1.html",
+      "https://developer.soliscloud.com/guide/modbus.html"
     ],
     "evidence_grade": "See individual source IDs",
-    "known_limitations": "No customer model/firmware/account validation. Not production Supported. Unspecified cells deliberately UNKNOWN.",
+    "known_limitations": "Live credentials absent. New developer portal includes owners/installers, superseding the older end-user-only blanket restriction for this documented user API. Pagination and timestamp unit unresolved. Local coexistence still depends on exact logger mode.",
     "evidence_ids": [
       "SOLIS_API_001",
       "SOLIS_MODBUS_001",
-      "SOLIS_LOCAL_001"
+      "SOLIS_LOCAL_001",
+      "SOLIS_DEV_AUTH_002",
+      "SOLIS_DEV_DATA_002",
+      "SOLIS_DEV_CONTROL_002",
+      "SOLIS_DEV_MODBUS_002"
     ]
   },
   {
@@ -313,9 +321,9 @@
     "owner_account": "UNKNOWN",
     "installer_account": "UNKNOWN",
     "organization_account": "UNKNOWN",
-    "official_api": "UNKNOWN",
-    "api_authentication": "UNKNOWN",
-    "telemetry": "LICENSED_CLOUD; CONDITIONAL_LOCAL",
+    "official_api": "CLOUD_API_DOCUMENTED",
+    "api_authentication": "APP_ID_APP_SECRET_PASSWORD_SHA256_BEARER",
+    "telemetry": "READ_ADAPTER_CONTRACT_TESTED; LIVE_UNVERIFIED",
     "history": "UNKNOWN",
     "alarms": "UNKNOWN",
     "remote_config": "UNKNOWN",
@@ -342,14 +350,16 @@
     "source_links": [
       "https://helpcenter.solarmanpv.com/portal/en/kb/articles/how-to-control-inverter-via-api",
       "https://helpcenter.solarmanpv.com/portal/en/kb/articles/i-want-to-open-api-how-can-i-open-api",
-      "https://docs.solarman.ai/docs/api/opendata/"
+      "https://docs.solarman.ai/docs/api/opendata/",
+      "https://doc.solarmanpv.com/en/Account%20Interface/2.1Obtain%20Token.md"
     ],
     "evidence_grade": "See individual source IDs",
-    "known_limitations": "No customer model/firmware/account validation. Not production Supported. Unspecified cells deliberately UNKNOWN.",
+    "known_limitations": "Global/CN API discovery/native telemetry implemented; exact OEM/model/logger/firmware and app privileges remain unknown. Cloud platform identity is not inverter manufacturer identity.",
     "evidence_ids": [
       "SOLARMAN_CONTROL_001",
       "SOLARMAN_LOCAL_001",
-      "SOLARMAN_LICENSE_001"
+      "SOLARMAN_LICENSE_001",
+      "SOLARMAN_CLOUD_002"
     ]
   },
   {
