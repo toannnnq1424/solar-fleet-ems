@@ -21,7 +21,9 @@ The Bluesun spreadsheet attachment linked from the wiki was not successfully ret
 
 ## Cloud route
 
-Select **Bluesun → SOLARMAN account** only when that plant is actually present in an authorized SOLARMAN account. The stored transport remains `SOLARMAN`; `equipment_brand=Bluesun` is the user's declared brand, not an automatically verified OEM identity. Existing signed authentication/discovery/native read contracts are reused. Other Bluesun platforms remain discoverable in the UI with their current readiness, without sending credentials to the wrong host.
+Select **Bluesun → SOLARMAN account** only when that plant is actually present in an authorized SOLARMAN account. The stored transport remains `SOLARMAN`; `equipment_brand=Bluesun` is the user's declared brand, not an automatically verified OEM identity.
+
+As of 24 September, **Bluesun → SmartESS / Eybond** also opens a real read connector form with explicit DessMonitor or ShineMonitor platform selection. It signs requests, discovers plant/collector/device routes and retains native telemetry without inferred units or source timestamps. The shared controller, device views and collection policies consume those observations. This is not complete support for every Bluesun model: see [Eybond implementation and gaps](eybond-read-integration.md). BMS Cloud and other unverified platforms have no generic fallback.
 
 ## Local route
 

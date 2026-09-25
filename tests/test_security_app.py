@@ -118,7 +118,10 @@ def test_empty_fleet_and_full_native_catalog_are_not_fake(client):
     fleet = client.get("/api/fleet").json()
     assert fleet["devices"] == [] and fleet["sites"] == [] and fleet["state"] == "NO_INTEGRATION"
     research = client.get("/api/research").json()
-    assert len(research["native"]) == 39 and len(research["sources"]) == 45
+    assert len(research["native"]) == 39
+    source_ids = [source["id"] for source in research["sources"]]
+    assert len(source_ids) == len(set(source_ids))
+    assert {"DEYE_PORTAL_001", "SOLIS_READ_AUDIT_001", "HUAWEI_CLIENT_AUDIT_001"} <= set(source_ids)
     assert all(not item["enabled"] for item in research["native"])
 
 

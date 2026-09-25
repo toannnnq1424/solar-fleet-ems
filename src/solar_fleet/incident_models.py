@@ -21,6 +21,7 @@ TRANSITIONS = {
 
 class AlarmObservation(Model):
     """Adapter-decoded event. False requires an explicit source recovery indication."""
+
     namespace: str = Field(pattern=r"^[a-z][a-z0-9_.-]{0,79}$")
     code: str = Field(min_length=1, max_length=120)
     source_event_id: str = Field(min_length=1, max_length=160)
@@ -83,7 +84,9 @@ class SLAPolicy(Model):
     revision: int = Field(default=0, ge=0)
     name: str = Field(min_length=1, max_length=120)
     targets: dict[Severity, SLATarget]
-    escalation_roles: list[Literal["Operator", "Installer", "Senior Engineer", "Administrator"]] = Field(min_length=1, max_length=4)
+    escalation_roles: list[Literal["Operator", "Installer", "Senior Engineer", "Administrator"]] = Field(
+        min_length=1, max_length=4
+    )
 
     @field_validator("targets")
     @classmethod

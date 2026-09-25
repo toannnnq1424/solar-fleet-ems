@@ -13,6 +13,21 @@ import { createWorkbench, maintenanceSections } from "./workbench.js";
 import { accountsView } from "./accounts.js";
 import { icon } from "./icons.js";
 import { schemaControl } from "./schema-form.js";
+import { renderPlantsMainWorkspace, openPlantWizard } from "./plant-workspace.js";
+import { renderDevicesMainWorkspace, createDeviceWorkspace } from "./device-workspace.js";
+import { createCommissioningWorkspace } from "./commissioning-workspace.js";
+import { renderGisMapWorkspace, createGisMapView } from "./gis-map.js";
+import { renderTopologyWorkspace, createTopologyView } from "./topology-view.js";
+import { createFirmwareWorkspace } from "./firmware-workspace.js";
+import { renderSiteOverviewWorkspace } from "./site-overview-workspace.js";
+import { renderControlMainWorkspace } from "./control-workspace.js";
+import { renderScheduleMainWorkspace } from "./schedule-workspace.js";
+import { renderEmsWorkspace } from "./ems-workspace.js";
+import { renderDataConnectionsWorkspace, ownsDataWorkspaceRoute } from "./data-workspace.js";
+import { renderIncidentWorkspace } from "./incident-workspace.js";
+import { renderReportWorkspace } from "./report-workspace.js";
+import { renderJournalMainWorkspace } from "./journal-workspace.js";
+import { renderSettingsWorkspace } from "./settings-workspace.js";
 
 const $ = (s, p = document) => p.querySelector(s);
 const state = {
@@ -31,6 +46,7 @@ const state = {
 const pages = [
   "overview",
   "plants",
+  "topology",
   "devices",
   "operations",
   "incidents",
@@ -41,6 +57,7 @@ function navigation() {
   return [
     ["overview", "main", "", l("Tổng quan", "Overview"), "home"],
     ["plants", "main", "", l("Nhà máy", "Plants"), "plant"],
+    ["topology", "main", "", l("Hệ thống / SLD", "Topology / SLD"), "activity"],
     ["plants", "map", "", l("Bản đồ", "Map"), "map"],
     ["devices", "main", "", l("Thiết bị", "Devices"), "device"],
     ["operations", "main", "control", l("Điều khiển", "Control"), "control"],
@@ -69,11 +86,12 @@ function navigation() {
     ["reports", "analytics", "", l("Báo cáo", "Reports"), "report"],
     ["incidents", "health", "", l("Bảo trì", "Maintenance"), "tool"],
     ["operations", "main", "journal", l("Nhật ký", "Journal"), "report"],
+    ["settings", "main", "users", l("Người dùng", "Users"), "device"],
     [
       "settings",
       "main",
       "connections",
-      l("Quản trị", "Administration"),
+      l("Cài đặt & Hãng", "Settings & Vendors"),
       "settings",
     ],
   ];
@@ -87,8 +105,10 @@ function settingsMenu() {
     div(
       "stack",
       ...[
-        ["main", "connections", l("Tài khoản hãng", "Vendor accounts")],
         ["main", "users", l("Người dùng & phân quyền", "Users & access")],
+        ["main", "vendors", l("Tài khoản hãng & kết nối", "Vendor accounts")],
+        ["main", "site_config", l("Cấu hình nhà máy", "Site configuration")],
+        ["main", "device_onboarding", l("Liên kết thiết bị mới", "Device onboarding")],
         ["agents", "", l("Local Agent", "Local Agents")],
         ["source_policy", "", l("Nguồn dữ liệu", "Data sources")],
         ["notification_policy", "", l("Thông báo", "Notifications")],
@@ -99,7 +119,7 @@ function settingsMenu() {
           l("Tài liệu & tương thích", "Evidence & compatibility"),
         ],
       ]
-        .filter(([, tab]) => admin() || !["users", "security"].includes(tab))
+        .filter(([, tab]) => admin() || !["users", "security", "site_config", "device_onboarding"].includes(tab))
         .map(([section, tab, label]) =>
           btn(label, () => {
             closeDialog();
@@ -242,8 +262,14 @@ function select(options, value = "") {
   if (n.selectedIndex < 0 && options.length) n.selectedIndex = 0;
   return n;
 }
-const field = (label, control) =>
-  add(e("label", "", "field"), e("span", label), control);
+let fieldSequence = 0;
+const field = (label, control) => {
+  const caption = e("span", label);
+  caption.id = `field-label-${++fieldSequence}`;
+  // Explicit labelling excludes a select's options from its accessible name.
+  control.setAttribute("aria-labelledby", caption.id);
+  return add(e("label", "", "field"), caption, control);
+};
 const fact = (label, value) =>
   div("fact", e("span", label), e("b", value ?? "—"));
 function notice(vi, en, warn = false) {
@@ -372,6 +398,11 @@ function form(onSubmit, label = t("save")) {
     event.preventDefault();
     if (!f.reportValidity()) return;
     submit.disabled = true;
+    const workspace = $("#content");
+    const controls = [...(workspace?.querySelectorAll('input,select,textarea,button') || [])]
+      .map(node => [node, node.disabled]);
+    controls.forEach(([node]) => { node.disabled = true; });
+    if (workspace) { workspace.inert = true; workspace.setAttribute('aria-busy', 'true'); }
     error.textContent = "";
     try {
       await onSubmit();
@@ -379,6 +410,8 @@ function form(onSubmit, label = t("save")) {
       error.textContent = err.message;
     } finally {
       submit.disabled = false;
+      controls.forEach(([node, disabled]) => { if (node.isConnected) node.disabled = disabled; });
+      if (workspace) { workspace.inert = false; workspace.removeAttribute('aria-busy'); }
     }
   };
   return f;
@@ -538,6 +571,9 @@ function searchable(headers, items, build, filters = []) {
   return div("stack", div("toolbar", q, v, ...filters), out, pager);
 }
 function showLogin() {
+  // An initial /me rejection and its caller can both request this view.
+  // Preserve any credentials the user has already begun entering.
+  if ($("#root .login")) return;
   $(".skip-link").textContent = l("Tới nội dung chính", "Skip to content");
   closeDialog();
   const user = input(),
@@ -731,6 +767,10 @@ async function render() {
       "Quản lý nhà máy và khách hàng tập trung.",
       "Manage your plants and customers in one place.",
     ),
+    topology: l(
+      "Sơ đồ đơn tuyến điện, phân bổ chuỗi PV và kiểm định đấu nối.",
+      "Single-line electrical diagram, string mapping and grid checks.",
+    ),
     devices: l(
       "Thiết bị, dữ liệu và đường kết nối rõ ràng.",
       "Equipment, readings and connections at a glance.",
@@ -758,14 +798,28 @@ async function render() {
     ["", "connections"].includes(state.tab);
   const heading = accountPage
     ? l("Tài khoản hãng & thông tin truy cập", "Vendor accounts & access")
-    : active?.[3] || t(state.page);
+    : ownsDataWorkspaceRoute(state)
+      ? l("Dữ liệu & kết nối", "Data & connections")
+      : active?.[3] || t(state.page);
   document.title = `${heading} · SolarOne`;
+  const reportsAnalyticsPage =
+    state.page === "reports" && state.section === "analytics";
   const description = accountPage
     ? l(
         "Quản lý các tài khoản đám mây của hãng, thông tin xác thực và quyền truy cập để đồng bộ dữ liệu về SolarOne.",
         "Manage vendor cloud accounts, credentials and access to synchronize data with SolarOne.",
       )
-    : maintenancePage ? l("Theo dõi thiết bị, lập kế hoạch và kiểm tra kết quả bảo trì.", "Observe equipment, plan work and review maintenance results.") : headings[state.page];
+    : maintenancePage
+      ? l(
+          "Theo dõi thiết bị, lập kế hoạch và kiểm tra kết quả bảo trì.",
+          "Observe equipment, plan work and review maintenance results.",
+        )
+      : reportsAnalyticsPage
+        ? l(
+            "Trung tâm báo cáo & phân tích hiệu suất năng lượng, tài chính EVN và chỉ số ESG.",
+            "Reports & analytics center for solar energy, EVN tariffs and ESG metrics.",
+          )
+        : headings[state.page];
   const wrapper = div(
     "content-wrap",
     div(
@@ -906,6 +960,7 @@ async function render() {
   const views = {
     overview,
     plants: plantsView,
+    topology: topologyView,
     devices: devicesView,
     operations: operationsView,
     incidents: incidentsView,
@@ -970,7 +1025,10 @@ async function logout() {
   showLogin();
 }
 
-function overview() {
+async function overview() {
+  if (state.site) {
+    return await renderSiteOverview(state.site);
+  }
   const ds = devices(),
     open = records("incident").filter(
       (r) => !["resolved", "closed"].includes(r.status),
@@ -1062,6 +1120,55 @@ function overview() {
   );
   return root;
 }
+
+async function renderSiteOverview(siteId) {
+  const ctx = {
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    render,
+    empty,
+    admin,
+    operator,
+    siteName,
+    sites,
+    devices,
+    siteSelect,
+    deviceDetail,
+    toast,
+    go,
+    scheduleForm,
+    siteForm,
+    records,
+    recordDetail,
+    controlForm,
+    l,
+    t,
+    number,
+    date,
+  };
+  return await renderSiteOverviewWorkspace(ctx, siteId);
+}
+
 function plantTable(rows) {
   return searchable(
     [
@@ -1078,7 +1185,8 @@ function plantTable(rows) {
         s.name,
         async () => {
           state.site = s.id;
-          await go("devices");
+          state.tab = "overview";
+          await go("overview");
         },
         "link",
       ),
@@ -1090,49 +1198,110 @@ function plantTable(rows) {
         ? btn(l("Thông tin", "Profile"), () => siteForm(s))
         : btn(t("details"), async () => {
             state.site = s.id;
-            await go("devices");
+            state.tab = "overview";
+            await go("overview");
           }),
     ],
   );
 }
-function plantsView() {
-  const root = div("stack");
-  if (admin())
-    root.append(
-      div(
-        "row",
-        btn(l("+ Thêm nhà máy", "+ Add plant"), () => siteForm(), "primary"),
-        btn(l("Kết nối cloud của hãng", "Connect vendor cloud"), () =>
-          go("settings"),
-        ),
-      ),
-    );
-  root.append(card("", plantTable(sites())));
-  const mapped = sites().filter(
-    (s) => s.latitude != null && s.longitude != null,
-  );
-  root.append(
-    card(
-      l("Vị trí nhà máy", "Plant locations"),
-      mapped.length
-        ? table(
-            [t("name"), t("latitude"), t("longitude"), t("address")],
-            mapped.map((s) => [
-              s.name,
-              number(s.latitude, 6),
-              number(s.longitude, 6),
-              s.address || "—",
-            ]),
-          )
-        : p(
-            l(
-              "Bổ sung tọa độ trong thông tin nhà máy để quản lý vị trí. Bản đồ nền chưa được cấu hình.",
-              "Add coordinates in the plant profile to manage locations. A base map provider is not configured.",
-            ),
-          ),
-    ),
-  );
-  return root;
+async function plantsView() {
+  if (state.section === "map") {
+    return await renderGisMapWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      refresh,
+      render,
+      admin,
+      operator,
+      go,
+      siteName,
+      sites,
+      siteForm,
+    });
+  }
+  return await renderPlantsMainWorkspace({
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    render,
+    admin,
+    operator,
+    go,
+    siteName,
+    sites,
+    siteForm,
+  });
+}
+async function topologyView() {
+  return await renderTopologyWorkspace({
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    render,
+    admin,
+    operator,
+    go,
+    siteName,
+    sites,
+    siteForm,
+  });
 }
 function siteForm(site) {
   const fields = {
@@ -1183,57 +1352,39 @@ function siteForm(site) {
     f,
   );
 }
-function devicesView() {
-  const ds = devices();
-  const root = div("stack");
-  if (!ds.length)
-    return empty(
-      l("Sẵn sàng thêm thiết bị", "Ready for your devices"),
-      l(
-        "Kết nối tài khoản hãng để khám phá thiết bị. Các hệ không có API sẽ được bổ sung adapter theo phiên truy cập được cấp quyền.",
-        "Connect a vendor account to discover equipment. Systems without APIs need an adapter based on authorized access.",
-      ),
-      btn(
-        l("Thiết lập kết nối", "Set up connection"),
-        () => go("settings"),
-        "primary",
-      ),
-    );
-  root.append(
-    card(
-      "",
-      searchable(
-        [
-          t("name"),
-          t("plants"),
-          t("vendor"),
-          l("Loại / model", "Type / model"),
-          t("status"),
-          t("lastSeen"),
-        ],
-        ds,
-        (d) => [
-          btn(d.name || d.vendor_id, () => deviceDetail(d.id), "link"),
-          siteName(d.site_id),
-          d.identity.vendor,
-          div("", e("b", d.type), p(d.identity.model || t("UNKNOWN"))),
-          div(
-            "stack",
-            status(d.online ? "online" : "offline"),
-            d.stale ? badge(t("stale"), "warn") : null,
-          ),
-          date(d.last_seen),
-        ],
-      ),
-    ),
-  );
-  root.append(
-    notice(
-      "Thiết bị qua SOLARMAN cần xác minh hãng inverter thực tế. Một logger không đồng nghĩa tất cả tính năng của inverter đều được hỗ trợ.",
-      "SOLARMAN-connected equipment needs its actual inverter OEM verified. A logger does not establish all inverter capabilities.",
-    ),
-  );
-  return root;
+async function devicesView() {
+  return await renderDevicesMainWorkspace({
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    render,
+    admin,
+    operator,
+    go,
+    siteName,
+    sites,
+    siteForm,
+    deviceDetail,
+  });
 }
 async function deviceDetail(id, tab = "data") {
   const info = await api("/devices/" + id),
@@ -1244,19 +1395,18 @@ async function deviceDetail(id, tab = "data") {
       "row",
       e("b", d.name || d.vendor_id, "device-title"),
       badge(d.identity.vendor, "blue"),
-      status(d.online ? "online" : "offline"),
+      status(d.last_seen ? (d.online ? "online" : "offline") : "UNKNOWN"),
     ),
   );
   root.append(
     tabs(
       [
-        ["data", l("Dữ liệu", "Readings")],
-        ["history", l("Lịch sử", "History")],
-        ["control", l("Điều khiển", "Control")],
-        ["alarms", l("Cảnh báo hãng", "Vendor alarms")],
-        ["native", l("Cấu hình theo hãng", "Vendor configuration")],
-        ["documents", l("Tài liệu", "Documentation")],
-        ["sources", l("Thiết bị & nguồn", "Identity & sources")],
+        ["data", l("Giám sát", "Monitoring")],
+        ["control", l("Điều khiển từ xa", "Remote Control")],
+        ["native", l("Cấu hình nâng cao", "Advanced Config")],
+        ["alarms", l("Nhật ký & Cảnh báo", "Journal & Alarms")],
+        ["documents", l("Tài liệu", "Documents")],
+        ["sources", l("Bảo trì & Nguồn", "Maintenance & Sources")],
       ],
       tab,
       (key) => deviceDetail(id, key),
@@ -1313,6 +1463,24 @@ async function deviceDetail(id, tab = "data") {
           : p(t("noData")),
       ),
     );
+    const nativePoints = info.latest.native?.dataList;
+    if (Array.isArray(nativePoints) && nativePoints.length) {
+      root.append(card(
+        l("Thông số gốc từ hãng", "Vendor native readings"),
+        notice(
+          "Giữ nguyên tên, trạng thái và đơn vị do nền tảng cung cấp. Thời điểm nhận dữ liệu không thay thế thời điểm thiết bị đo.",
+          "Names, states and units are preserved from the platform. Receipt time does not replace the device measurement time."
+        ),
+        table(
+          [l("Thông số", "Metric"), l("Giá trị gốc", "Native value"), l("Đơn vị", "Unit")],
+          nativePoints.map((point) => [
+            point.title || point.name || point.key || "—",
+            point.value == null ? "—" : String(point.value),
+            point.unit || "—",
+          ]),
+        ),
+      ));
+    }
     root.append(
       raw(
         l("Chi tiết dữ liệu gốc", "Native data details"),
@@ -1628,165 +1796,41 @@ function controlForm(device, capability) {
 }
 
 async function settingsView() {
-  const tab = state.tab || "connections";
-  const options = [
-    ["connections", l("Kết nối hãng", "Vendor connections")],
-    ["users", l("Người dùng", "Users")],
-    ["evidence", l("Tương thích & tài liệu", "Compatibility & evidence")],
-    ["security", l("Nhật ký bảo mật", "Security log")],
-  ];
-  const root = div(
-    "stack",
-    tabs(
-      options.filter(
-        ([key]) => admin() || ["connections", "evidence"].includes(key),
-      ),
-      tab,
-      (key) => go("settings", key),
-    ),
-  );
-  if (tab === "connections") {
-    return accountsView({
-      state,
-      e,
-      add,
-      div,
-      p,
-      btn,
-      badge,
-      card,
-      raw,
-      field,
-      input,
-      select,
-      table,
-      api,
-      form,
-      showDialog,
-      closeDialog,
-      refresh,
-      admin,
-      go,
-      integrationForm,
-      icon,
-    });
-  } else if (tab === "users" && admin()) {
-    const users = await api("/users");
-    root.append(
-      div(
-        "row",
-        btn(l("+ Thêm người dùng", "+ Add user"), userForm, "primary"),
-      ),
-      notice(
-        "Vai trò quản trị quản lý tài khoản. Các quyền kỹ thuật nhạy cảm không tự đi kèm vai trò quản trị.",
-        "Administrators manage accounts. Sensitive engineering privileges are not automatically granted.",
-      ),
-    );
-    root.append(
-      card(
-        "",
-        table(
-          [
-            l("Tài khoản", "Account"),
-            l("Vai trò", "Role"),
-            l("Phạm vi", "Scope"),
-            t("status"),
-            l("Thao tác", "Action"),
-          ],
-          users.map((u) => [
-            u.id,
-            t(u.role),
-            u.site_ids.includes("*")
-              ? t("all")
-              : u.site_ids.map(siteName).join(", "),
-            badge(
-              u.active
-                ? l("Đang hoạt động", "Active")
-                : l("Tạm khóa", "Disabled"),
-              u.active ? "good" : "",
-            ),
-            u.id === state.me.user.id
-              ? "—"
-              : div(
-                  "row",
-                  btn(l("Phân quyền", "Access"), () => accessForm(u)),
-                  btn(l("Đổi mật khẩu", "Reset password"), () =>
-                    resetPasswordForm(u),
-                  ),
-                  btn(
-                    u.active ? l("Tạm khóa", "Disable") : l("Mở lại", "Enable"),
-                    async () => {
-                      await api(
-                        "/users/" + encodeURIComponent(u.id) + "/enabled",
-                        { enabled: !u.active },
-                      );
-                      await refresh();
-                    },
-                  ),
-                ),
-          ]),
-        ),
-      ),
-    );
-  } else if (tab === "evidence") {
-    const data = await api("/research");
-    root.append(
-      notice(
-        "Mức tương thích được xác định theo model + logger + firmware + vùng + tài khoản. Logo hãng không phải bằng chứng điều khiển được.",
-        "Compatibility is defined by model, logger, firmware, region and account. A vendor logo does not prove control support.",
-      ),
-    );
-    root.append(
-      card(
-        l("Hồ sơ nghiên cứu", "Research registry"),
-        ...data.sources.map((s) =>
-          div(
-            "step",
-            badge(s.evidence_grade || "—"),
-            div(
-              "",
-              link(s.title || s.id, s.url),
-              p(`${s.publisher || ""} · ${s.retrieved_date || ""}`),
-              raw(l("Phạm vi & câu hỏi còn mở", "Scope & open questions"), {
-                id: s.id,
-                products: s.applicable_products,
-                claims: s.claims,
-                open_questions: s.open_questions,
-              }),
-            ),
-          ),
-        ),
-      ),
-    );
-    root.append(
-      card(
-        l("Danh mục kỹ thuật của hãng", "Vendor technical catalog"),
-        p(
-          l(
-            "Giữ các endpoint đã nghiên cứu để triển khai theo đúng profile. Không có nút gửi lệnh thô.",
-            "Researched endpoints are retained for profile-based implementation. There is no raw-command send action.",
-          ),
-        ),
-        raw(l("Deye OpenAPI", "Deye OpenAPI"), data.native),
-        raw(l("Ma trận các hãng", "Vendor matrix"), data.vendors),
-      ),
-    );
-  } else if (tab === "security" && admin()) {
-    const data = await api("/audit/security");
-    root.append(
-      card(
-        l("Nhật ký truy cập", "Access journal"),
-        badge(
-          data.hash_chain_valid
-            ? l("Chuỗi audit hợp lệ", "Audit chain valid")
-            : l("Cần kiểm tra audit", "Audit needs attention"),
-          data.hash_chain_valid ? "good" : "bad",
-        ),
-        raw(l("Bản ghi audit", "Audit entries"), data.entries),
-      ),
-    );
-  }
-  return root;
+  const ui = {
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    admin,
+    go,
+    siteName,
+    sites,
+    toast,
+    userForm,
+    accessForm,
+    resetPasswordForm,
+    integrationForm,
+    icon,
+  };
+  return ["", "connections", "vendors"].includes(state.tab) ? accountsView(ui) : renderSettingsWorkspace(ui);
 }
 function accessForm(user) {
   const role = select(
@@ -1947,7 +1991,7 @@ function integrationForm(spec) {
   const region = select(
     spec.regions.map((r) => [
       r,
-      {
+      spec.region_names?.[r] || {
         global: l("Quốc tế", "International"),
         cn: l("Trung Quốc", "China"),
         eu: l("Châu Âu", "Europe"),
@@ -1968,11 +2012,12 @@ function integrationForm(spec) {
   const fields = Object.fromEntries(
     spec.fields.map((key) => {
       const control = input(
-        ["key_secret", "app_secret", "password"].includes(key)
+        [...(spec.secret_fields || []), "key_secret", "app_secret", "password", "token", "system_code", "user_password"].includes(key)
           ? "password"
           : "text",
       );
       control.required = true;
+      control.value = spec.field_defaults?.[key] || "";
       control.maxLength = 4096;
       control.autocomplete = "off";
       return [key, control];
@@ -2007,17 +2052,17 @@ function integrationForm(spec) {
   );
   f.finish(
     notice(
-      "1. Chọn đúng vùng dữ liệu. 2. Nhập khóa API được cấp. 3. Lưu rồi đồng bộ để kiểm tra. Không nhập mật khẩu cục bộ của Solar Fleet vào đây.",
-      "1. Select your data center. 2. Enter issued API credentials. 3. Save and sync to test. Do not enter your local Solar Fleet password here.",
+      spec.setup_help?.vi || "1. Chọn đúng vùng dữ liệu. 2. Nhập khóa API được cấp. 3. Lưu rồi đồng bộ để kiểm tra. Không nhập mật khẩu cục bộ của Solar Fleet vào đây.",
+      spec.setup_help?.en || "1. Select your data center. 2. Enter issued API credentials. 3. Save and sync to test. Do not enter your local Solar Fleet password here.",
     ),
     div(
       "form-grid",
       field(t("name"), name),
-      field(l("Vùng dữ liệu", "Data center"), region),
+      field(spec.region_label ? l(spec.region_label.vi, spec.region_label.en) : l("Vùng dữ liệu", "Data center"), region),
       spec.identity
         ? field(l("Cách đăng nhập hãng", "Vendor login method"), identity)
         : null,
-      ...Object.entries(fields).map(([key, control]) => field(t(key), control)),
+      ...Object.entries(fields).map(([key, control]) => field(spec.field_labels?.[key] ? l(spec.field_labels[key].vi, spec.field_labels[key].en) : t(key), control)),
       spec.organization === true
         ? field(
             l(
@@ -2096,7 +2141,38 @@ function userForm() {
   showDialog(l("Thêm người dùng", "Add user"), f);
 }
 
-function incidentsView() {
+async function incidentsView() {
+  if (state.tab !== "work_order") {
+    return await renderIncidentWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      operator,
+      siteName,
+      siteSelect,
+      deviceDetail,
+      go,
+      records,
+    });
+  }
   const kind = state.tab === "work_order" ? "work_order" : "incident";
   const rows = records(kind);
   const root = div(
@@ -2351,6 +2427,155 @@ function recordDetail(kind, row) {
 
 async function operationsView() {
   const tab = state.tab || "control";
+  if (
+    [
+      "rules",
+      "fleet_batch",
+      "ems_batch",
+      "automation",
+      "optimization",
+      "compatibility",
+      "ems_simulation",
+    ].includes(tab)
+  ) {
+    return await renderEmsWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      refresh,
+      render,
+      admin,
+      operator,
+      go,
+      siteName,
+      sites,
+      devices,
+      controlForm,
+      deviceDetail,
+      ruleForm,
+    });
+  }
+  if (["control", "remote", "advanced", "batch", "pq_dispatch", "safety_gates"].includes(tab)) {
+    return await renderControlMainWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      refresh,
+      render,
+      admin,
+      operator,
+      go,
+      siteName,
+      sites,
+      devices,
+      controlForm,
+      deviceDetail,
+      ruleForm,
+    });
+  }
+  if (["schedules", "weekly", "tariffs", "simulation", "compiler", "deploy"].includes(tab)) {
+    return await renderScheduleMainWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      refresh,
+      render,
+      admin,
+      operator,
+      go,
+      siteName,
+      sites,
+      devices,
+      scheduleForm,
+    });
+  }
+  if (["journal", "control_journal", "realtime", "audit_trail", "sync_journal"].includes(tab)) {
+    return await renderJournalMainWorkspace({
+      state,
+      e,
+      add,
+      div,
+      p,
+      btn,
+      badge,
+      card,
+      raw,
+      input,
+      select,
+      field,
+      fact,
+      notice,
+      table,
+      tabs,
+      form,
+      api,
+      download,
+      showDialog,
+      closeDialog,
+      refresh,
+      render,
+      admin,
+      operator,
+      go,
+      siteName,
+      sites,
+      devices,
+    });
+  }
   const root = div(
     "stack",
     tabs(
@@ -2366,32 +2591,7 @@ async function operationsView() {
       (key) => go("operations", key),
     ),
   );
-  if (tab === "control") {
-    root.append(
-      notice(
-        "Chọn một thiết bị để xem khả năng điều khiển. Thông số sẽ được mở theo profile của thiết bị sau khi đối chiếu tài khoản và phần cứng.",
-        "Select a device to inspect its capabilities. Settings become available through device profiles after account and hardware acceptance.",
-      ),
-    );
-    root.append(
-      card(
-        l("Thiết bị trong phạm vi", "Devices in scope"),
-        devices().length
-          ? table(
-              [t("name"), t("vendor"), t("plants"), l("Điều khiển", "Control")],
-              devices().map((d) => [
-                d.name || d.vendor_id,
-                d.identity.vendor,
-                siteName(d.site_id),
-                btn(l("Xem khả năng", "View capabilities"), () =>
-                  deviceDetail(d.id, "control"),
-                ),
-              ]),
-            )
-          : p(t("noData")),
-      ),
-    );
-  } else if (tab === "schedules") {
+  if (tab === "schedules") {
     root.append(
       notice(
         "Lịch được lưu dưới dạng nháp. Chưa gửi xuống inverter hoặc chạy trên controller. Giới hạn số khung giờ sẽ được kiểm tra theo từng model.",
@@ -3046,6 +3246,43 @@ function plot(rows, metric) {
   return svg;
 }
 async function reportsView() {
+  const ctx = {
+    state,
+    e,
+    add,
+    div,
+    p,
+    btn,
+    badge,
+    card,
+    raw,
+    input,
+    select,
+    field,
+    fact,
+    notice,
+    table,
+    tabs,
+    form,
+    api,
+    download,
+    showDialog,
+    closeDialog,
+    refresh,
+    render,
+    admin,
+    operator,
+    go,
+    siteName,
+    sites,
+    devices,
+  };
+  if (ownsDataWorkspaceRoute(state)) {
+    return await renderDataConnectionsWorkspace(ctx);
+  }
+  if (state.tab !== "telemetry") {
+    return await renderReportWorkspace(ctx);
+  }
   const ds = devices();
   if (!ds.length)
     return empty(
@@ -3193,9 +3430,12 @@ async function start() {
   try {
     await load();
     await render();
-  } catch {
-    state.me = null;
-    showLogin();
+  } catch (err) {
+    if (!state.me) showLogin();
+    else $("#root").replaceChildren(card(
+      l("Không tải được không gian làm việc", "Could not load the workspace"),
+      p(err.message), btn(l("Thử lại", "Retry"), start),
+    ));
   }
 }
 window.addEventListener("hashchange", () => {

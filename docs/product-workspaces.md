@@ -1,38 +1,34 @@
 # Không gian sản phẩm / Product workspaces
 
-Ngày quyết định: 2026-09-13. Đầu vào: 26 mockup do chủ dự án cung cấp. Đây là ý định tính năng, không phải dữ liệu thực, chứng nhận hãng hoặc yêu cầu sao chép từng pixel.
+[README dự án](../README.md) · [Mục lục tài liệu](README.md)
 
-## Điều hướng thống nhất
+Cập nhật 25/09/2026 từ 26 mockup của chủ dự án. Bảy nhóm ban đầu ngày 13/09 đã được thay bằng **15 mục sidebar chuẩn** trong [bảng route/subtab](sidebar-subtabs-architecture.md). [Workspace specification](sidebar-workspace-specification.md) mô tả thiết kế đích; [đối chiếu 26 mockup](mockup-coverage.md) xác định phần thực sự có BE/FE.
 
-| Mục chính VI / EN | Chức năng có một nơi quản lý | Mockup nguồn |
-|---|---|---|
-| Tổng quan / Overview | Tình hình toàn danh mục, việc cần xử lý, chất lượng kết nối | 1–4 |
-| Nhà máy / Plants | Danh sách, tìm kiếm, khách hàng, vị trí; chọn site để thu hẹp toàn bộ workspace | 1, 5, 15, 22 |
-| Thiết bị / Devices | Inventory inverter, pin/BMS, logger, meter/CT và thiết bị phụ; dữ liệu và nguồn của từng thiết bị | 2–4, 7, 13, 17, 26 |
-| Vận hành / Operations | Điều khiển theo khả năng, lịch nháp, kiểm tra nhiều thiết bị, nhật ký lệnh | 1, 8, 9, 11, 16, 18, 24 |
-| Sự cố & bảo trì / Incidents & maintenance | Tiếp nhận, phân công, ghi chú, trạng thái xử lý, phiếu công việc | 10, 20, 23, 25 |
-| Dữ liệu & báo cáo / Data & reports | Mẫu lịch sử, lọc khoảng thời gian/metric, xuất dữ liệu có nguồn và đơn vị | 6, 12, 26 |
-| Cài đặt / Settings | Kết nối cloud, quyền người dùng, ngôn ngữ, tài liệu và mức tương thích | 13–15, 19, 21 |
+## Một nơi sở hữu mỗi chức năng
 
-Sidebar không thay đổi khi vào site/device. Site là bộ lọc phạm vi, device detail là một workspace dùng lại. Không tạo các trang “Hệ thống” và “Nhà máy” đồng nghĩa. Nút điều khiển nhanh luôn đi qua cùng bộ kiểm tra và nhật ký; không có đường ghi tắt ở trang tổng quan.
+- Tổng quan tóm tắt fleet hoặc site và dẫn tới chức năng chi tiết. Nhà máy sở hữu hồ sơ/khách hàng; Hệ thống sở hữu topology/SLD; Bản đồ sở hữu phân bố địa lý; Thiết bị sở hữu inventory/detail.
+- Điều khiển sở hữu preview/confirm và vòng đời lệnh. Lịch/TOU và Điều phối EMS soạn mục tiêu/chính sách qua cùng capability/compiler, không có đường ghi tắt.
+- Dữ liệu & kết nối sở hữu telemetry, source quality, collection, mapping và sync; liên kết tới màn chủ của cloud accounts, Local Agent và diagnostics. Báo cáo sở hữu artifact theo scope/kỳ.
+- Cảnh báo sở hữu incident/timeline/SLA; Bảo trì sở hữu work order/plan/execution/review. Tạo phiếu từ incident giữ liên kết hai chiều.
+- Nhật ký tập hợp dữ liệu command/operations/sync/security theo quyền. Người dùng sở hữu local roles/site scope; Cài đặt & Hãng sở hữu accounts và cấu hình, dẫn tới TOU/EMS/mapping dùng chung.
+
+Sidebar không thay đổi khi vào site/device. Site là phạm vi của workspace, không phải một bản sao sidebar. Nhà máy và Hệ thống không cùng quản lý lại site CRUD. Các route tắt phải giữ scope; mọi page dùng [hệ thống UI chung](ui-design-system.md).
 
 ## Dành cho người ít kinh nghiệm
 
-- Mặc định tiếng Việt, đổi sang English ở màn hình đăng nhập và trong ứng dụng; định dạng số/ngày theo ngôn ngữ.
-- Màn hình đầu trả lời: đang quản lý bao nhiêu nhà máy, thiết bị nào cần chú ý, bước tiếp theo là gì. Kết nối mới theo luồng chọn hãng → nhập thông tin → khám phá → xem dữ liệu.
-- Trạng thái kết nối, thời gian cập nhật và chất lượng dữ liệu tách riêng. Có kết nối API không có nghĩa telemetry mới hoặc điều khiển đã nghiệm thu.
-- Dùng chữ cùng biểu tượng/màu; nhãn form rõ ràng, focus bàn phím, hỗ trợ màn hình nhỏ. Chi tiết giao thức, JSON và evidence nằm trong phần mở rộng.
-- Không biến thiếu dữ liệu thành 0. Không cộng những đại lượng khác đơn vị, đo khác thời điểm hoặc chưa xác định cùng phạm vi; không vẽ SOC/V/Hz chung trục kW.
-- Việc ghi nhận sự cố, lịch nháp, phiếu bảo trì là dữ liệu quản lý nội bộ. Không gọi việc “đã tiếp nhận” là đã xóa lỗi inverter; không gọi lưu lịch nháp là đã gửi xuống thiết bị.
+- Tiếng Việt/English có cùng cấu trúc; định dạng số/ngày theo ngôn ngữ.
+- Trang đầu trả lời: nhà máy nào cần chú ý, nguồn nào có vấn đề, bước tiếp theo là gì. Kết nối mới theo luồng chọn brand/platform → thông tin được cấp → khám phá → xem dữ liệu.
+- Trạng thái API, trạng thái thiết bị, độ mới và chất lượng mẫu đo là những thông tin khác nhau. Đọc thành công không đồng nghĩa dữ liệu mới hoặc control đã nghiệm thu.
+- Nhãn form rõ ràng, chữ đi cùng biểu tượng/màu, focus bàn phím và layout nhỏ dùng chung. Chi tiết giao thức/evidence đặt trong phần chuyên sâu; chất lượng thực tế cần QA tiếp.
+- Không đổi dữ liệu thiếu thành 0 hoặc cộng khác đơn vị/phạm vi/thời điểm. Không đặt SOC/V/Hz chung trục kW.
+- Ghi nhận incident không xóa alarm trên inverter; lưu lịch nháp không gửi xuống thiết bị; review mapping không kích hoạt canonical profile.
 
-## Nhóm nâng cao cần thực hiện theo khả năng thực
+## Ranh giới của thiết kế và hiện thực
 
-TOU trên inverter và lịch do controller chạy là hai cơ chế khác nhau. Native schedule cần giới hạn slot, timezone/DST, cách lưu và readback đúng model. Automation cần precedence, TTL, fail-safe đã thử; lưu nháp không kích hoạt scheduler. Bulk kiểm tra riêng từng thiết bị, không lấy thương hiệu làm kết luận Exact.
+Native TOU trên inverter khác scheduler của controller: slot, timezone/DST, enum, readback tùy model. Automation cần precedence/TTL/failsafe; bulk phải kiểm tra từng identity, không đánh giá Exact theo thương hiệu.
 
-Firmware/network/grid-code/CT/BMS/generator/ATS và custom command cần protocol profile cụ thể. Không tự mở chức năng ghi vì mockup có nút. Khám phá qua cloud được phép đọc; quét mạng và đổi logger phải cấu hình phạm vi rõ ràng. “Raw command” là quyền kỹ thuật riêng, không tự cấp mọi quyền quản trị.
+Firmware/network/grid-code/CT/BMS/generator/ATS và raw command cần contract cụ thể. Form khóa phải nói rõ lý do; có nút trong mockup chưa chứng minh transport đã xây. Physical discovery cần phạm vi và driver phù hợp.
 
-Bản đồ dùng tọa độ được cấu hình hoặc trả từ nguồn đã đối chiếu; không gửi vị trí khách hàng đến nhà cung cấp tile/geocode chưa cấu hình. Thời tiết, dự báo, tiết kiệm tiền, CO₂, uptime, health score và vòng đời pin chỉ xuất hiện khi có dữ liệu và phương pháp tính phù hợp. Chưa có dữ liệu thì hiển thị lý do, không dùng các con số trong mockup.
+Coordinate view chưa phải GIS basemap. Weather có provider khi có GPS; tiết kiệm, CO₂, uptime, health score hoặc vòng đời pin cần dữ liệu/phương pháp thực. Không dùng số mockup làm production data.
 
-Commissioning lưu checklist và bằng chứng thật; các test có tác động điện cần người phụ trách công trình. Chữ ký, email/Zalo/SMS và phát hành báo cáo là các tích hợp riêng; không tự gửi thông báo từ việc người dùng cung cấp mockup.
-
-Phạm vi đã chạy và phần còn thiếu được cập nhật trong [implementation status](implementation-status.md), không suy ra từ bảng này rằng mọi chức năng đã triển khai.
+Commissioning có checklist thủ công và evidence references; electrical tests, evidence uploads, chữ ký, notification delivery và các phần khác vẫn còn thiếu. [Implementation status](implementation-status.md) và bảng phạm vi là căn cứ báo tiến độ.

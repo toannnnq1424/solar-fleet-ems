@@ -1,4 +1,6 @@
-# Core extension contract — 20 September 2026
+# Core extension contract — updated 25 September 2026
+
+[Documentation index](README.md) · [Implementation status](implementation-status.md) · [Multi-vendor contracts](multivendor-contracts.md)
 
 Controller and command engine dispatch through `IntegrationRegistry`. Integration names, HTTP paths, credential transformations and response dialects belong to `adapters/`. Core accepts `PlantObservation`, `DeviceObservation`, `MeasurementObservation` and universal intents. `adapters/plugins.py` is the composition root.
 
@@ -12,13 +14,13 @@ Controller and command engine dispatch through `IntegrationRegistry`. Integratio
 
 `tests/test_extension_data_stream.py` registers a synthetic tenth ecosystem with a different response shape, discovers and polls it, and exercises onboarding without changing core. That fixture is not a shipping adapter. Candidate Deye mappings now live in `adapters/deye_control.py`; shared budgets live in `budgets.py`.
 
-GoodWe/Sungrow/Huawei/Growatt/Eybond still require concrete contracts, adapters and acceptance. Bluesun remains a brand with model-specific transport profiles.
+Eight cloud read integrations are now registered, including GoodWe Classic SEMS, Sungrow, Huawei, Growatt and Eybond/SmartESS. Their exact supported contracts and outstanding work differ; see the [adapter audit](vendor-adapter-audit-2026-09-23.md) and subsequent [Eybond connector](eybond-read-integration.md). Deye remains the only registered intent compiler. Model profiles, native schemas and hardware acceptance are still missing; a read integration does not supply them. Bluesun remains a brand with model-specific transport profiles.
 
 ## Data workspace
 
 Collection policies have optimistic revisions, versions, bounded intervals and per-cycle caps. The 120-second controller tick and stricter adapter cap still apply. They do not change equipment sample configuration.
 
-Mapping drafts pin identity and binding. UI supports observed-channel selection, units, direction, canonical target, evidence IDs, edits, simulation, versions and independent engineering review. Simulation never stores canonical samples or sends commands. Review does not install a profile. Firmware changes and revoked bindings reject simulation. Directional power, units, SOC bounds and signed temperatures are explicit.
+Mapping drafts pin identity and binding. UI supports observed-channel selection, units, direction, canonical target, evidence IDs, edits, simulation, versions and independent engineering review. Simulation never stores canonical samples or sends commands. Review does not install a profile. Firmware changes and revoked bindings reject simulation. Directional power, units, SOC bounds and signed temperatures are explicit. See the [mapping workflow and validation](mapping-validation-2026-09-25.md).
 
 UI separates fresh channels from verified channels. Fresh native telemetry does not become EMS input merely because it arrived recently.
 

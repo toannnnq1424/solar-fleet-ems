@@ -326,7 +326,9 @@ def test_websocket_auth_origin_scope_and_no_command_channel(local):
             pass
     login(local, "viewer")
     with pytest.raises(WebSocketDisconnect):
-        with c.websocket_connect("ws://127.0.0.1:8765/api/stream", headers={"Origin": "https://untrusted.example"}):
+        with c.websocket_connect(
+            "ws://127.0.0.1:8765/api/stream", headers={"Origin": "https://untrusted.example"}
+        ):
             pass
     with c.websocket_connect("ws://127.0.0.1:8765/api/stream", headers={"Origin": ORIGIN}) as ws:
         assert ws.receive_json()["type"] == "ready"

@@ -1,31 +1,36 @@
-# Implementation status — 0.2.0
+# Implementation status — 0.2.0 pilot
 
-Updated 2026-09-20. [26-screen coverage](mockup-coverage.md) is the detailed BE/FE inventory and sidebar specification. This is a local pilot, not the complete v1 product. No live hardware acceptance is claimed.
+Updated **2026-09-25**, based on the source snapshot inspected before commit. This replaces earlier route-count and “completed flow” statements. The repository is **not yet a mature multi-vendor O&M/EMS product**. No customer hardware acceptance was performed in this audit.
 
-| Area | Implemented application behavior | Remaining |
+The [26-screen coverage matrix](mockup-coverage.md) owns the feature inventory, sidebar responsibilities, estimate → existing code → unbuilt scope → completion criteria, and reproducible BE/FE/test LOC. The [multi-vendor contracts](multivendor-contracts.md) index the researched API differences and subsequent Eybond work. The [validation index](validation.md), including the latest [mapping/navigation record](mapping-validation-2026-09-25.md), distinguishes executed checks from pending acceptance. Return to the [documentation index](README.md) or [project README](../README.md).
+
+## Current application boundaries
+
+The subsequent [Eybond read integration](eybond-read-integration.md) and [24 September validation](eybond-validation-2026-09-24.md) extend the original audit with DessMonitor/ShineMonitor account→collector→native telemetry workflows. They do not change the pilot or uncommissioned-hardware conclusion.
+
+| Area | Connected application behavior | Still missing |
 |---|---|---|
-| Shared UI | One shell, 13 sidebar destinations, global app.css, reusable forms/tables/dialogs, VI/EN; account layout follows mockup 21 | Complete visual/usability acceptance, accessibility and translation polish |
-| Plants/devices | Metadata, customers, scoped inventory, manual assets, topology, coordinate map, bindings, readings/history | Real basemap/clusters, full plant dashboard, weather/forecast, hardware identity acceptance |
-| Multi-vendor core | Plugin registry, observation DTOs, credential contracts, native descriptors, compiler; synthetic extra-vendor test | Five other ecosystem adapters; actual OEM/model acceptance |
-| Cloud accounts | Deye/Solis/SOLARMAN read clients, encrypted setup, connection checks, cooldown, suspend, scoped read API keys | Live grants/data validation, other clouds, actual local-agent certificates |
-| Telemetry/mapping | Native provenance, quality, source priority, discrepancy; draft editor/simulation/review/version; exact code-registered profiles | Shipping canonical profiles, cloud backfill, production time-series store |
-| Realtime | Scoped authenticated WebSocket, durable bounded invalidations, cursor/reset/revocation; monitoring refresh | Detailed chart streaming, production fanout/cluster load acceptance |
-| Collection | Per-integration interval/cap policies applied by polling, revision history, status/cursor inspection | Agent service configuration, distributed scheduling |
-| Local Agent | Site/device token ingest, sequence/replay, SQLite outbox, upload CLI; optional SOLARMAN V5 read collector | mTLS/service/update lifecycle, auto discovery, hardware/profile acceptance |
-| Control | Intent preview/diff/confirm, locks, persistent idempotency, fresh read, order/readback, audit; exact per-device/account acceptance registry with expiry, revocation and ambiguity rejection | Shipping hardware acceptance, model-specific native contracts and live readback; new profile code/tests not yet verified |
-| Native UI | Adapter capabilities, nine groups and documentation | Actual native field schemas and model-specific grid/BMS/CT/generator control |
-| TOU | Weekly editor/version/copy; compile API/UI with full-week gaps, timezone/DST, adapter translation, saved explanations, source digest and guarded rollout preparation | Shipping vendor translators, real device schedule acceptance, optimizer and unattended execution; new code/tests not yet run |
-| EMS | Multiple AND conditions/actions, deterministic dry-run, unit/freshness checks; timed hold/notify monitor | Physical dispatch, optimizer, hysteresis/conflict policy, forecast planning |
-| Bulk | Persistent rollout, compatibility, canary then remaining-device confirmation, cancellation, outcomes | Shipping profiles and scalable deployment scheduler |
-| Incident center | BE/FE filters, triage, assignment, notes, append-only timeline, 24/7 SLA snapshots/escalation, versioned playbooks/checklist, linked work; adapter-neutral alarm correlation with duplicate/order/recovery handling | Actual vendor alarm decoders, model-specific playbooks, external notification, evidence uploads; new code/UI tests not yet executed |
-| Maintenance execution | BE/FE plan versioning, checklist/evidence references, work time/overlap/void, independent review, digest/reviewer/evidence revalidation before closing, reopen workflow; observation health and service calendar; append-only execution history | Materials/procurement, service contracts, actual file storage, electrical health methods, firmware compatibility/OTA; new BE/browser tests authored, not executed |
-| Commissioning | Manual checklist, diagnostics, six-check handover gate and report | Electrical tests, signatures, physical acceptance |
-| Reports | CSV/XLSX, coverage/reset-aware counter analytics, printable global-style HTML | PDF templates, verified savings/CO2/yield, distribution |
-| Administration | RBAC/site scope, users/session revoke, vault, scoped API keys, audit hash chain | Hosted multitenancy, SSO/MFA, backup/rotation UI, external checkpoints |
-| Firmware/network | Persisted requests/network drafts with permissions | Firmware/network writes, certificates, recovery/rollback |
+| Shared UI | One shell, 15 sidebar destinations, global app.css, VI/EN, shared forms/tables/dialogs; accounts include Eybond and Bluesun profiles | Full visual/usability/accessibility acceptance of all 26 references; translation, narrow tables, diagram and dashboard polish |
+| Plants/devices | Scoped metadata, customers, inventory, topology records, coordinate view, device bindings | Physical discovery, cross-transport identity reconciliation, basemap, full electrical topology |
+| Overview/history | Stored measurements with quality/time/source, nullable KPIs, counter deltas/reset/coverage, 11 site blocks; GPS-based Open-Meteo weather and forecast | Long-term storage/backfill/rollups, complete energy accounting, rich topology flow and multi-axis charts |
+| Accounts/adapters | Encrypted credentials and eight cloud read paths of different depth: Deye, Solis, SOLARMAN, GoodWe, Sungrow, Huawei, Growatt, Eybond/SmartESS. Eybond has explicit DessMonitor/ShineMonitor platforms, session signing/expiry, collector discovery and native reads | Eybond source timestamps/canonical mapping/history/alarms/control, scalable incremental discovery; Bluesun model-specific acceptance; complete refresh/history/alarm pipelines and native schemas across vendors |
+| Mapping/sources | Native observations, exact profile matching, source priority/discrepancy; VI/EN mapping editor with scoped observed channels, unit/direction selection, simulation, revision history and independent review; identity/binding/account/agent revalidation; collection policy and polling limits | Shipping canonical profiles and activation/commissioning workflow, source failover acceptance across all views |
+| Realtime | Authenticated scoped WebSocket invalidations, durable cursor/reset/revocation, monitoring refresh | Distributed fanout, clustered workers, load/soak acceptance and detailed streaming charts |
+| Local Agent | Token enrollment/ingest, sequence/replay, SQLite outbox and optional SOLARMAN V5 read collector | Service installation/discovery, RTU/TCP protocol suite, mTLS/rotation, managed update, offline operation and diagnostics |
+| Remote control | Capability → preview/diff → confirmation → lock/idempotency → native send/order → readback → journal/quarantine | Deye is the only registered intent compiler; most model-specific write contracts and actual hardware acceptance are absent. Guessed non-Deye mappings were removed |
+| Native configuration | Vendor/OEM capability reasons, groups and documentation | Actual field schemas and supported CT/grid/BMS/generator/ATS/raw read/write per model |
+| TOU/bulk | Versioned weekly drafts, compile artifacts, full-week/timezone/DST checks, source digest revalidation, canary/rollout outcomes | Per-vendor schedule semantics, accepted physical readback and unattended execution |
+| EMS | Conditions/actions evaluator, unit/freshness validation, dry run and monitor-only hold/notify | Physical dispatch, optimizer, hysteresis, conflict arbitration and accepted offline policies |
+| Incidents → maintenance | Correlation/dedup/order/recovery, assignment/notes/timeline/SLA/playbooks, linked jobs; versioned execution plans, time/void, independent review and closure | Actual vendor alarm decoders, channel delivery, evidence uploads, materials/service contracts |
+| Commissioning | Manual checklist/evidence references, diagnostics and six-check handover gate | Electrical procedures, measurement-backed acceptance, uploaded evidence/signatures; manual PASS does not unlock writes |
+| Reports/journal | Scope/date-bound immutable CSV/XLSX/HTML artifacts; actual command state/readback and audit history | PDF/email, verified tariff/CO₂/savings assumptions, scalable history and external audit anchoring |
+| Administration | Local users, five roles/site scope, CSRF/session revoke, encrypted vault, API keys and audit; concurrent-session regression fix | SaaS tenancy, MFA/SSO, key rotation/restore UI and externally anchored audit |
+| Firmware/network | Draft requests/configuration and permission checks | Package signature/compatibility/transfer, actual OTA/network writes, certificates, recovery and rollback |
 
-One controller, SQLite WAL, telemetry retention at most seven days / 200,000 points. Polling uses adapter caps and a 120-second base tick. These are pilot limits, not a fleet-scale SLA. Missing data is not populated with production fixtures.
+## Scale and evidence limits
 
-Vendor logins enable contract verification; they do not complete the independent engineering above. See [core extension contract](core-extension-contract.md).
+One controller process with SQLite WAL; telemetry retention is at most seven days / 200,000 points. The poller uses per-adapter caps and a 120-second base tick. The frontend uses JavaScript ES modules, not the React/TypeScript assumed in the user's mature-product estimate. These constraints are not fleet-scale service guarantees.
 
-The separate estimate → implemented code → unbuilt scope → completion criteria table and reproducible BE/FE/test inventory are in [mockup coverage](mockup-coverage.md). Do not use route count or LOC as a completion percentage. Implementation and test authoring continue; final test/build/QA is deferred as requested.
+Successful authentication, a public endpoint, a community decoder, a rendered route or a passing fixture does not establish hardware support. Native history/alarm helpers still need canonical ingestion, persistence, quality, permissions and UI integration. Unsupported measurements and outcomes remain unknown; production routes must not fill them with simulator values.
+
+The large LOC gap reflects substantial unbuilt engineering, in addition to reuse and the smaller deployment model. Vendor logins can supply contract evidence; they do not build the missing agent, native UI, EMS dispatch, OTA, tenancy, long-term storage or acceptance processes. Track completion using the coverage matrix's acceptance conditions, not line-count percentages.

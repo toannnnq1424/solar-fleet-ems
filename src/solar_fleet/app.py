@@ -117,17 +117,22 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         # FastAPI's normal error includes rejected input; never echo a login password.
         return JSONResponse({"error": "request_validation_failed"}, status_code=422)
 
-    def user(request: Request) -> Principal:
+    async def user(request: Request) -> Principal:
         session = session_user(store, request.cookies.get("solar_session"))
         if not session:
             raise HTTPException(401, "authentication_required")
         return session[0]
 
-    def admin(who: Principal = Depends(user)) -> Principal:
+    async def admin(who: Principal = Depends(user)) -> Principal:
         if who.role != Role.ADMIN:
             raise HTTPException(403, "administrator_required")
         if "*" not in who.site_ids:
             raise HTTPException(403, "organization_administrator_required")
+        return who
+
+    async def operator(who: Principal = Depends(user)) -> Principal:
+        if who.role not in (Role.OPERATOR, Role.ADMIN, Role.INSTALLER, Role.ENGINEER):
+            raise HTTPException(403, "operator_required")
         return who
 
     def authorized_device(id: str, who: Principal):
@@ -286,7 +291,7 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         if category not in ("control", "security"):
             raise HTTPException(404)
         if category == "security":
-            admin(who)
+            await admin(who)
         rows = [
             row
             for row in store.audit_rows(category)
@@ -312,11 +317,20 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     from .schedule_planning import install_schedule_planning
 
     install_schedule_planning(app, controller, user)
-    install_accounts(app, controller, admin)
+    account_services = install_accounts(app, controller, admin)
     install_management(app, controller, user, admin)
     install_agent(app, controller)
     install_analytics(app, controller, user)
+    from .reports_api import install_reports
+
+    install_reports(app, controller, operator, user)
+    from .journal_api import install_journal_api
+
+    install_journal_api(app, controller, user, admin)
     install_administration(app, controller, user, admin)
+    from .admin_api import install_admin_api
+
+    install_admin_api(app, controller, user, admin, account_services)
     runtime = install_runtime(app, controller, user)
     app.state.operations_runtime = runtime
     app.mount("/static", StaticFiles(directory=assets), name="static")

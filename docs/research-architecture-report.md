@@ -1,6 +1,8 @@
+> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 57 unique IDs, including explicitly withdrawn claims.
+
 # Nghiên cứu và kiến trúc Solar Fleet EMS
 
-> 0.2.0 update: see [multi-vendor contracts](multivendor-contracts.md). The current registry has 43 records. Solis now has a documented owner/installer user API and implemented read adapter; SOLARMAN cloud reads are implemented. Older conclusions below are retained as the original research snapshot, not current implementation status.
+> This report preserves the pre-code research baseline. For current read integrations and later contract corrections, use [multi-vendor contracts](multivendor-contracts.md); for feature completion use [implementation status](implementation-status.md). The [source registry](evidence/source-registry.json) now has 57 unique IDs, including withdrawn claims. [Documentation index](README.md).
 
 ## A. Executive summary
 
@@ -8,7 +10,7 @@ Nền tảng được thiết kế cho đơn vị EPC quản lý nhiều khách 
 
 Bản nghiên cứu chốt ngày 13/09/2026, trước khi code. Đây là baseline để triển khai, chưa phải chứng nhận tương thích thiết bị. Tại thời điểm baseline chưa có tài khoản API, model/logger/firmware và thiết bị kiểm thử của dự án; không vendor nào đạt nhãn `Supported` theo tiêu chí end-to-end của MVP. Có thể triển khai transport thật, lưu trữ, domain, kiểm soát truy cập và kiểm thử hợp đồng ngay. Những mapping không đủ bằng chứng phải dừng ở `UNKNOWN`.
 
-Bổ sung sau baseline: người dùng cho phép kiểm tra Deye Cloud đã đăng nhập. Quan sát một hybrid ba pha LV 16 kW xác nhận protocol/firmware hiển thị, module logger và upload/acquisition một phút; config có cache từ tháng trước. Ghi chép đã loại dữ liệu nhận diện tại [Deye account observation](deye-account-observation.md), nguồn E `DEYE_UI_OBS_001`. Tổng nguồn hiện là 38. Exact model và quyền OpenAPI/write-readback vẫn chưa được xác minh; quan sát này không mở khóa control. Tiến độ code thực tế tại [implementation status](implementation-status.md).
+Bổ sung ngày 13/09 sau baseline: người dùng cho phép kiểm tra Deye Cloud đã đăng nhập. Quan sát một hybrid ba pha LV 16 kW xác nhận protocol/firmware hiển thị, module logger và upload/acquisition một phút; config có cache từ tháng trước. Ghi chép đã loại dữ liệu nhận diện tại [Deye account observation](deye-account-observation.md), nguồn E `DEYE_UI_OBS_001`. Tổng nguồn tại thời điểm bổ sung đó là 38. Exact model và quyền OpenAPI/write-readback vẫn chưa được xác minh; quan sát này không mở khóa control. Tiến độ code thực tế tại [implementation status](implementation-status.md).
 
 Deye là adapter đầu tiên. Danh mục công khai và introspection chính thức xác nhận các endpoint OpenAPI v1.0 cho discovery, latest/history, alarms, cấu hình, lệnh và kết quả lệnh. Có schema cho TOU, work mode, solar sell, giới hạn công suất, battery, smart load và dynamic control. Endpoint tồn tại chưa chứng minh một thiết bị cụ thể nhận lệnh hoặc một account có quyền ghi. [DEYE_API_001](https://developer.deyecloud.com/openmcp/docs/deye-open-mcp-tools.html), [DEYE_TRANSPORT_001](https://developer.deyecloud.com/openmcp/docs/deye-open-mcp-guide.html).
 

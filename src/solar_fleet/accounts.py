@@ -38,7 +38,13 @@ def install_accounts(app, controller, admin):
         for config in store.list("integration"):
             try:
                 credential = controller.vault.get(config["id"])
-                identity = credential.get("identity_value") or ""
+                plugin = controller.registry.find(config["vendor"])
+                identity_field = (
+                    plugin.registration.get("account_identity_field", "identity_value")
+                    if plugin
+                    else "identity_value"
+                )
+                identity = credential.get(identity_field) or ""
                 # Account identity is organization-admin-only. Never return API identifiers or secrets.
                 account = identity if isinstance(identity, str) else ""
             except SafetyError:
@@ -236,3 +242,5 @@ def install_accounts(app, controller, admin):
             "generated_at": utcnow().isoformat(),
             "scope": "fleet:read",
         }
+
+    return {"overview": overview, "check": check}

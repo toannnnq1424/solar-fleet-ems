@@ -1,4 +1,22 @@
-# Validation record — 0.1.0
+# Validation records
+
+[README dự án](../README.md) · [Mục lục tài liệu](README.md) · [Trạng thái hiện tại](implementation-status.md)
+
+## Latest recorded validation — 25 September 2026
+
+| Snapshot | Executed evidence | Limits |
+|---|---|---|
+| [Mapping / navigation, 25 September](mapping-validation-2026-09-25.md) | 450 backend tests passed; 13 browser tests before navigation repair; 8 affected browser cases after repair, including one new case; Ruff, 29 JS modules, wheel/sdist and focused visual QA | 14 unique browser cases currently exist; do not add reruns. No live vendor or hardware acceptance, and not full 26-screen QA |
+| [Eybond, 24 September](eybond-validation-2026-09-24.md) | Read connector/workflow, browser, package and QA evidence scoped to that earlier snapshot | Source-time/model mapping/control remain unaccepted |
+| [Adapter/workspace audit, 23 September](audit-validation-2026-09-23.md) | Contract corrections, backend/browser checks and package evidence for the audit snapshot | Superseded for current totals by the later records |
+
+Each linked record owns its actual counts, warnings, reruns and artifact hashes. Logs/screenshots under `work/` and packages under `dist/` are local ignored artifacts, not files available in a fresh checkout. The documentation refresh before commit does not constitute another full test/build run.
+
+See [browser test instructions](browser-test-contract.md) and [current workflow](../.github/workflows/checks.yml). CI currently runs backend/lint/JS/build on Windows/Linux; browser tests and the full format check are local verification steps. A configured workflow is not proof that a remote run passed.
+
+## Historical validation 0.1.0
+
+The record below is retained from 13 September. Its 86-test total and 0.1 package checks are historical, not the current 0.2 result.
 
 Ngày kiểm tra: 13/09/2026. Môi trường local: Windows, Python 3.12; dependencies cố định tại `constraints.txt`. Dữ liệu trong test là fixture SIMULATOR, không phải tài khoản khách hàng.
 
@@ -33,4 +51,4 @@ Test guard chặn HTTP transport thật và các kết nối ngoài loopback; ch
 
 Chưa chạy auth/discovery/telemetry/history/alarms trên credential OpenAPI live. Chưa nghiệm thu unit/sign profile, physical command, range, config freshness, readback tolerance, local protocol, cloud/local coexistence, nhiều nghìn thiết bị hoặc khôi phục thảm họa. UI detail trên dữ liệu phần cứng thật chờ API credentials. Giao diện Deye Cloud được xem riêng để bổ sung evidence E, không phải acceptance của adapter này.
 
-CI Windows/Linux được cấu hình trong `.github/workflows/checks.yml`; trạng thái thực tế xem tab Actions của repository. Kết quả CI được ghi sau khi workflow chạy, không suy ra từ local tests.
+CI Windows/Linux được cấu hình trong [checks.yml](../.github/workflows/checks.yml); trạng thái thực tế xem tab Actions của repository. Kết quả CI được ghi sau khi workflow chạy, không suy ra từ local tests.

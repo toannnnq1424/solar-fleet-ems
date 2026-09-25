@@ -1,20 +1,40 @@
-"""SOLARMAN cloud is a transport ecosystem; it does not establish inverter OEM identity."""
+"""SOLARMAN cloud is a transport ecosystem; it does not establish inverter OEM identity.
+
+Source references:
+- SOLARMAN_CLOUD_002: Solarman OpenAPI (https://globalapi.solarmanpv.com)
+- SOLARMAN_LOCAL_001: pysolarmanv5 for local Modbus frame transport
+Evidence grade: B-C (OpenAPI documented; control via customControl needs platform enablement)
+"""
 
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import time
+from typing import Any
 
 from ..domain import VendorError
 from .cloud import ReadCloud, compact, records
 
 HOSTS = {"global": "https://globalapi.solarmanpv.com", "cn": "https://api.solarmanpv.com"}
-READS = {"/station/v1.0/list", "/station/v1.0/device", "/device/v1.0/currentData"}
+
+# Deliberately explicit: mutations elsewhere are NOT accidentally exposed as reads.
+READS = {
+    "/station/v1.0/list",
+    "/station/v1.0/device",
+    "/station/v1.0/history",
+    "/device/v1.0/currentData",
+    "/device/v1.0/list",
+    "/device/v1.0/historical",
+    "/device/v1.0/alertList",
+}
 
 
 class Solarman(ReadCloud):
-    evidence_ids = ["SOLARMAN_CLOUD_002"]
+    """Solarman OpenAPI adapter with full read coverage and alert/history support."""
+
+    evidence_ids = ["SOLARMAN_CLOUD_002", "SOLARMAN_LOCAL_001"]
+    version = "0.2.0"
 
     def __init__(self, integration, credentials, **kwargs):
         if integration.get("region") not in HOSTS:
@@ -104,3 +124,51 @@ class Solarman(ReadCloud):
             records(row.get("dataList"))
             result.append(row)
         return result
+
+    async def history(
+        self, serial: str, start_time: int, end_time: int, time_type: int = 1
+    ) -> dict[str, Any]:
+        """Query device historical data.
+
+        Args:
+            serial: Device serial number.
+            start_time: Start time as Unix timestamp (seconds).
+            end_time: End time as Unix timestamp (seconds).
+            time_type: 1=day, 2=month, 3=year.
+        """
+        if end_time <= start_time:
+            raise VendorError("history_window_invalid")
+        return await self.read(
+            "/device/v1.0/historical",
+            {
+                "deviceSn": serial,
+                "startTime": start_time,
+                "endTime": end_time,
+                "timeType": time_type,
+            },
+        )
+
+    async def station_history(self, station_id: int, start_time: int, end_time: int) -> dict[str, Any]:
+        """Query station-level historical data."""
+        if end_time <= start_time:
+            raise VendorError("history_window_invalid")
+        return await self.read(
+            "/station/v1.0/history",
+            {
+                "stationId": station_id,
+                "startTime": start_time,
+                "endTime": end_time,
+            },
+        )
+
+    async def alerts(
+        self, serial: str, start_time: int = None, end_time: int = None, page: int = 1, size: int = 100
+    ) -> list[dict[str, Any]]:
+        """Query device alert list."""
+        body: dict[str, Any] = {"deviceSn": serial, "page": page, "size": size}
+        if start_time is not None:
+            body["startTime"] = start_time
+        if end_time is not None:
+            body["endTime"] = end_time
+        payload = await self.read("/device/v1.0/alertList", body)
+        return records(payload.get("alertList", []))

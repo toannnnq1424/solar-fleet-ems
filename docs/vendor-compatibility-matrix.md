@@ -1,6 +1,6 @@
 # Vendor compatibility matrix
 
-> 0.2.0 update: see [multi-vendor contracts](multivendor-contracts.md). The current registry has 43 records. Solis now has a documented owner/installer user API and implemented read adapter; SOLARMAN cloud reads are implemented. Older conclusions below are retained as the original research snapshot, not current implementation status.
+> **Research baseline, not current implementation or hardware acceptance.** Current code has eight cloud read paths plus Bluesun profiles; see [multi-vendor contracts](multivendor-contracts.md), [implementation status](implementation-status.md) and [Eybond's later integration](eybond-read-integration.md). The [source registry](evidence/source-registry.json) has 57 unique records, including withdrawn claims. The per-vendor rows below retain the original research applicability and UNKNOWN device facts; adding a transport does not establish exact model support. [Documentation index](README.md).
 
 Mỗi block là một row đầy đủ, trình bày dọc để đọc được trên màn hình. Không có `yes` không nguồn. “DOCUMENTED” chỉ xác nhận đường giao tiếp, không chứng nhận thiết bị. Các nhóm còn lại có mapping chi tiết riêng.
 

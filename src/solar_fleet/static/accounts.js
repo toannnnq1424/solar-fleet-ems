@@ -92,10 +92,13 @@ export async function accountsView(ui) {
           "SmartESS / Eybond",
           p(
             l(
-              "Một số dòng Bluesun dùng SmartESS. Adapter này còn cần hoàn thiện contract; chưa có nút đăng nhập gửi tới dịch vụ.",
-              "Some Bluesun models use SmartESS. This adapter still needs its contract implemented; login is not yet available.",
+              "Dùng khi thiết bị Bluesun của bạn đã xuất hiện trên SmartESS / DessMonitor. Chọn đúng nền tảng khi đăng nhập; dữ liệu theo model vẫn cần đối chiếu.",
+              "Use when your Bluesun device appears in SmartESS / DessMonitor. Select its actual account platform; model-specific data still needs verification.",
             ),
           ),
+          btn(l("Kết nối SmartESS / Eybond", "Connect SmartESS / Eybond"), () => integrationForm({
+            ...state.providers.find((p) => p.id === "Eybond / SmartESS"), equipment_brand: "Bluesun",
+          }), "primary"),
         ),
       );
       showDialog(l("Thêm Bluesun Solar", "Add Bluesun Solar"), root);
@@ -137,7 +140,7 @@ export async function accountsView(ui) {
             e(
               "span",
               spec.id === "Bluesun"
-                ? l("Qua SOLARMAN / Local Agent", "Via SOLARMAN / Local Agent")
+                ? l("Qua SmartESS / SOLARMAN / Local Agent", "Via SmartESS / SOLARMAN / Local Agent")
                 : spec.implemented
                   ? l("Có kết nối đọc dữ liệu", "Read connector available")
                   : l("Đang nghiên cứu", "Research in progress"),

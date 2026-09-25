@@ -4,10 +4,10 @@ Run from repository root: python tests/ui_fixture.py
 Never installed into the production wheel. Stop the process to discard all data.
 """
 
-from datetime import timedelta
 import os
-import httpx
+from datetime import timedelta
 
+import httpx
 import uvicorn
 from cryptography.fernet import Fernet
 
@@ -103,8 +103,52 @@ def fixture_app(port=8767):
                 "samples": [samples[0].model_dump(mode="json")],
                 "source": "SIMULATOR",
                 "received_at": now.isoformat(),
+                "native": {
+                    "dataList": [
+                        {
+                            "key": "SIMULATOR-state",
+                            "title": "SIMULATOR operating state",
+                            "value": "Charging",
+                            "unit": "",
+                        },
+                        {
+                            "key": "SIMULATOR-energy",
+                            "title": "SIMULATOR energy",
+                            "value": "1.234",
+                            "unit": "kWh",
+                        },
+                    ]
+                },
             },
         )
+    # Dedicated observed source for mapping browser flows; remains UNVERIFIED.
+    store.put(
+        "binding",
+        "SIM-MAPPING-BIND",
+        {
+            "id": "SIM-MAPPING-BIND",
+            "device_id": "SIM-DEVICE-0",
+            "site_id": "SIM-SITE-0",
+            "telemetry_enabled": True,
+            "name": "SIMULATOR meter source",
+        },
+    )
+    mapping_sample = Sample(
+        device_id="SIM-DEVICE-0",
+        metric="deye.lab_power",
+        value=2.5,
+        unit="kW",
+        source=Source.SIMULATOR,
+        source_timestamp=now,
+        quality="UNVERIFIED",
+        binding_id="SIM-MAPPING-BIND",
+    )
+    latest = store.get("latest", "SIM-DEVICE-0")
+    latest["samples"].append(mapping_sample.model_dump(mode="json"))
+    latest["native"]["dataList"].append(
+        {"key": "lab_power", "title": "SIMULATOR AC flow", "value": "2.5", "unit": "kW"}
+    )
+    store.put("latest", "SIM-DEVICE-0", latest)
     original = ctl.capability
 
     def capability(device, intent):
@@ -200,4 +244,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8767)
     args = parser.parse_args()
-    uvicorn.run(fixture_app(args.port), host="127.0.0.1", port=args.port, access_log=False, log_level="warning")
+    uvicorn.run(
+        fixture_app(args.port), host="127.0.0.1", port=args.port, access_log=False, log_level="warning"
+    )

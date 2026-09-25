@@ -1,9 +1,9 @@
 # Quy chuẩn Kiến trúc Sidebar và Toàn bộ Không gian làm việc (Sidebar & Workspace Specification)
 
-Cập nhật: 20/09/2026.  
+Cập nhật mục lục/phân loại: 25/09/2026; thiết kế gốc: 20/09/2026.
 Dự án: **Solar Fleet EMS**
 
-Tài liệu này là **kết luận chuẩn hóa kiến trúc thông tin (Information Architecture)** chốt lại toàn bộ hệ thống điều hướng: danh mục các tab chính trên Sidebar, các tab con (sub-tabs) bên trong từng không gian làm việc (workspace), và chi tiết 11 khối hiển thị bắt buộc tại tab Tổng quan.
+Tài liệu này là **thiết kế đích**, mô tả danh mục sidebar, subtab và 11 khối Tổng quan cần đạt. Các câu “phải có” hoặc mô tả giao diện bên dưới không chứng minh code đã hoàn tất. [Route/subtab chuẩn hiện tại](sidebar-subtabs-architecture.md) xác định nơi sở hữu; [đối chiếu 26 mockup](mockup-coverage.md) ghi BE/FE, phần thiếu và điều kiện hoàn thành. Quay về [mục lục tài liệu](README.md).
 
 ---
 
@@ -17,7 +17,7 @@ Tài liệu này là **kết luận chuẩn hóa kiến trúc thông tin (Inform
 
 ---
 
-## II. Danh mục 14 Tab Chính trên Sidebar
+## II. Danh mục 15 Tab Chính trên Sidebar
 
 Sidebar chia thành các nhóm công việc: **Giám sát**, **Vận hành**, **Quản lý & Hệ thống**, bao gồm các tab chính sau:
 

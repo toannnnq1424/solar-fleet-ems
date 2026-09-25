@@ -72,6 +72,7 @@ class IntentContract(Model):
                 from jsonschema import Draft7Validator
 
                 Draft7Validator.check_schema(constraint.json_schema)
+
                 # References may not resolve arbitrary URLs during command validation.
                 def check(value):
                     if isinstance(value, dict):
@@ -82,6 +83,7 @@ class IntentContract(Model):
                     elif isinstance(value, list):
                         for item in value:
                             check(item)
+
                 check(constraint.json_schema)
             elif constraint.enum is not None:
                 if not constraint.enum:
@@ -105,7 +107,16 @@ class ControlProfile(Model):
 
     @model_validator(mode="after")
     def exact_identity(self):
-        for key in ("vendor", "model", "logger_model", "firmware", "protocol_version", "account_type", "privilege", "region"):
+        for key in (
+            "vendor",
+            "model",
+            "logger_model",
+            "firmware",
+            "protocol_version",
+            "account_type",
+            "privilege",
+            "region",
+        ):
             value = getattr(self.identity, key)
             if not value or value.strip().upper() in {"*", "UNKNOWN", "ANY"}:
                 raise ValueError("exact_profile_identity_required")
@@ -150,8 +161,13 @@ class ProfileRegistry:
         if not matches:
             return None
         if len(matches) != 1:
-            return Capability(intent=intent, identity=device.identity, semantic_match="requires_manual_configuration",
-                              transport="UNKNOWN", reason="ambiguous_control_profile")
+            return Capability(
+                intent=intent,
+                identity=device.identity,
+                semantic_match="requires_manual_configuration",
+                transport="UNKNOWN",
+                reason="ambiguous_control_profile",
+            )
         profile, contract = matches[0]
         acceptance = profile.acceptance
         reason = "commissioned_exact_contract"
@@ -163,15 +179,33 @@ class ProfileRegistry:
         elif contract.semantics != "exact":
             active, reason = False, "non_exact_mapping_requires_explicit_policy"
         return Capability(
-            intent=intent, state="VERIFIED" if active else "UNSUPPORTED" if contract.semantics == "unsupported" else "UNKNOWN",
-            identity=device.identity, semantic_match="exact" if contract.semantics == "exact" else "unsupported" if contract.semantics == "unsupported" else "approximate",
-            evidence_ids=acceptance.evidence_ids, evidence_grade=acceptance.evidence_grade,
-            constraints=contract.constraints, required_role=contract.required_role,
-            required_permission=contract.required_permission, hardware_verified=active,
-            transport=profile.transport, reason=reason, readback_fields=contract.readback_fields,
-            adapter_version=profile.adapter_version, vendor_api_version=profile.vendor_api_version,
+            intent=intent,
+            state="VERIFIED"
+            if active
+            else "UNSUPPORTED"
+            if contract.semantics == "unsupported"
+            else "UNKNOWN",
+            identity=device.identity,
+            semantic_match="exact"
+            if contract.semantics == "exact"
+            else "unsupported"
+            if contract.semantics == "unsupported"
+            else "approximate",
+            evidence_ids=acceptance.evidence_ids,
+            evidence_grade=acceptance.evidence_grade,
+            constraints=contract.constraints,
+            required_role=contract.required_role,
+            required_permission=contract.required_permission,
+            hardware_verified=active,
+            transport=profile.transport,
+            reason=reason,
+            readback_fields=contract.readback_fields,
+            adapter_version=profile.adapter_version,
+            vendor_api_version=profile.vendor_api_version,
             last_verified_date=acceptance.accepted_at.isoformat(),
-            profile_id=profile.id, profile_version=profile.version, acceptance_id=acceptance.id,
+            profile_id=profile.id,
+            profile_version=profile.version,
+            acceptance_id=acceptance.id,
             acceptance_expires_at=acceptance.expires_at,
         )
 
@@ -180,14 +214,19 @@ class ProfileRegistry:
         for profile in self.candidates(device):
             for contract in profile.contracts:
                 cap = self.resolve(device, contract.intent)
-                rows.append({
-                    "profile_id": profile.id, "profile_version": profile.version,
-                    "intent": contract.intent, "group": contract.group,
-                    "semantics": contract.semantics,
-                    "explanation": {"vi": contract.explanation_vi, "en": contract.explanation_en},
-                    "state": cap.state, "reason": cap.reason,
-                    "acceptance_id": profile.acceptance.id,
-                    "expires_at": profile.acceptance.expires_at.isoformat(),
-                    "evidence_ids": profile.acceptance.evidence_ids,
-                })
+                rows.append(
+                    {
+                        "profile_id": profile.id,
+                        "profile_version": profile.version,
+                        "intent": contract.intent,
+                        "group": contract.group,
+                        "semantics": contract.semantics,
+                        "explanation": {"vi": contract.explanation_vi, "en": contract.explanation_en},
+                        "state": cap.state,
+                        "reason": cap.reason,
+                        "acceptance_id": profile.acceptance.id,
+                        "expires_at": profile.acceptance.expires_at.isoformat(),
+                        "evidence_ids": profile.acceptance.evidence_ids,
+                    }
+                )
         return rows

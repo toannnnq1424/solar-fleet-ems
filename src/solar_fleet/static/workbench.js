@@ -1,10 +1,10 @@
-import { createDataWorkspace } from "./data-workspace.js";
+import { createDataWorkspace, ownsDataWorkspaceRoute } from "./data-workspace.js";
 import { createIncidentCenter } from "./incident-center.js";
 import { createSchedulePlanner } from "./schedule-planner.js";
 import { createMaintenanceWorkspace } from "./maintenance-workspace.js";
 import { l, t, date, number } from "./i18n.js";
 
-export const maintenanceSections = new Set(["health", "jobs", "service-calendar", "maintenance_plan", "firmware_request"]);
+export const maintenanceSections = new Set(["health", "jobs", "work_orders", "plans", "service-calendar", "maintenance_plan", "firmware", "firmware_request"]);
 
 // Reuses the shell, authentication, dialogs and site scope of the main workspace.
 export function createWorkbench(ui) {
@@ -75,10 +75,9 @@ export function createWorkbench(ui) {
   });
   const sections = (page) => page === "incidents" && maintenanceSections.has(state.section) ? [
     ["health", l("Sức khỏe hệ thống", "System health")],
-    ["jobs", l("Công việc bảo trì", "Maintenance work")],
-    ["firmware_request", "Firmware"],
-    ["maintenance_plan", labels().maintenance_plan],
-    ["service-calendar", l("Lịch dịch vụ", "Service calendar")],
+    ["jobs", l("Phiếu công tác", "Work orders")],
+    ["plans", l("Kế hoạch định kỳ", "Maintenance plans")],
+    ["firmware", l("Firmware & OTA", "Firmware & OTA")],
   ] :
     ({
       overview: [
@@ -133,12 +132,15 @@ export function createWorkbench(ui) {
     return go(state.page, state.tab, key);
   }
   async function wrap(page, base) {
+    // Data owns its tabs once; legacy /reports/mapping and /reports/sync links
+    // resolve through the same route definition as /reports/main/<tab>.
+    if (ownsDataWorkspaceRoute(state)) return await dataWorkspace.view();
     const options = sections(page),
       key = options.some(([k]) => k === state.section) ? state.section : "main";
     const accountPage =
       page === "settings" &&
       key === "main" &&
-      ["", "connections"].includes(state.tab);
+      ["", "connections", "vendors", "users", "site_config", "device_onboarding", "security", "evidence"].includes(state.tab);
     const root = div(
       "stack",
       accountPage ? null : tabs(options, key, setSection),
@@ -162,10 +164,12 @@ export function createWorkbench(ui) {
       root.append(await incidentCenter.policies());
     } else if (page === "incidents" && key === "health") {
       root.append(await maintenanceWorkspace.health());
-    } else if (page === "incidents" && key === "jobs") {
+    } else if (page === "incidents" && (key === "jobs" || key === "work_orders")) {
       root.append(await maintenanceWorkspace.jobs());
-    } else if (page === "incidents" && key === "service-calendar") {
-      root.append(await maintenanceWorkspace.calendar());
+    } else if (page === "incidents" && (key === "plans" || key === "maintenance_plan" || key === "service-calendar")) {
+      root.append(await maintenanceWorkspace.plans());
+    } else if (page === "incidents" && (key === "firmware" || key === "firmware_request")) {
+      root.append(await maintenanceWorkspace.firmware());
     } else if (["quality", "mapping", "collection", "sync"].includes(key))
       root.append(await dataWorkspace.view(key));
     else if (labels()[key]) root.append(entityView(key));
@@ -192,7 +196,7 @@ export function createWorkbench(ui) {
     else if (key === "rollouts") root.append(rolloutsView());
     else if (key === "schedule-plans") root.append(await schedulePlanner.view());
     else if (key === "handover") root.append(await handoverView());
-    else if (key === "analytics") root.append(analyticsView());
+    else if (key === "analytics") root.append(await base());
     else if (key === "inbox") root.append(inboxView());
     return root;
   }

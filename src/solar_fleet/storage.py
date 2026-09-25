@@ -24,7 +24,11 @@ class Store:
     def __init__(self, path: Path | str):
         if str(path) != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None, timeout=10)
+        # CPython 3.12/3.13 statement-cache reuse can corrupt concurrent read results
+        # on a shared connection (python/cpython#118172). This pilot has one controller.
+        self.db = sqlite3.connect(
+            str(path), check_same_thread=False, isolation_level=None, timeout=10, cached_statements=0
+        )
         self.db.row_factory = sqlite3.Row
         self.lock = threading.RLock()
         self.db.executescript("""

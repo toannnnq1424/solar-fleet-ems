@@ -78,3 +78,35 @@ def capability(device):
         reason="Test fixture only",
         readback_fields=["maxChargeCurrent"],
     )
+
+
+PASSWORD = "SIMULATOR-workspace-password-only"
+ORIGIN = "http://127.0.0.1:8765"
+
+
+@pytest.fixture
+def local(store, device):
+    from cryptography.fernet import Fernet
+    from starlette.testclient import TestClient
+
+    from solar_fleet.app import create_app
+    from solar_fleet.controller import Controller
+    from solar_fleet.security import Vault, create_user
+
+    for id, role, sites in [
+        ("admin", Role.ADMIN, ["*"]),
+        ("scoped-admin", Role.ADMIN, ["sim-site"]),
+        ("operator", Role.OPERATOR, ["sim-site"]),
+        ("viewer", Role.VIEWER, ["sim-site"]),
+        ("engineer", Role.ENGINEER, ["sim-site"]),
+        ("other", Role.OPERATOR, ["other-site"]),
+    ]:
+        create_user(store, id, PASSWORD, role, sites)
+    for id in ["sim-site", "other-site"]:
+        store.put("site", id, {"id": id, "name": id, "vendor": "SIMULATOR", "timezone": "Asia/Ho_Chi_Minh"})
+    store.put("device", device.id, device.model_dump(mode="json"))
+    other = device.model_copy(update={"id": "other-device", "site_id": "other-site"})
+    store.put("device", other.id, other.model_dump(mode="json"))
+    ctl = Controller(store, Vault(store, Fernet.generate_key()))
+    with TestClient(create_app(ctl, poll=False), base_url=ORIGIN) as client:
+        yield client, ctl

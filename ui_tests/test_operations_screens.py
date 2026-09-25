@@ -1,8 +1,7 @@
 """UI + local backend contracts to run in the final consolidated verification phase."""
 
-from playwright.sync_api import expect
-
 from conftest import login
+from playwright.sync_api import expect
 
 
 def test_incident_creation_assignment_and_notes(browser_page):
@@ -17,9 +16,17 @@ def test_incident_creation_assignment_and_notes(browser_page):
     expect(page.get_by_role("heading", name="SIMULATOR browser incident", exact=True)).to_be_visible()
     page.get_by_label("Workflow status", exact=True).select_option("in_progress")
     page.get_by_label("Response note", exact=True).fill("Investigating the synthetic equipment")
-    page.get_by_role("button", name="Save response", exact=True).click()
+    with page.expect_response(
+        lambda r: r.url.endswith("/transition") and r.request.method == "POST"
+    ) as changed:
+        page.get_by_role("button", name="Save response", exact=True).click()
+    assert changed.value.status == 200
+    expect(page.locator("#content")).not_to_have_attribute("aria-busy", "true")
     page.get_by_label("Investigation note", exact=True).fill("The logger simulator recovered")
-    page.get_by_role("button", name="Add note", exact=True).click()
+    with page.expect_response(lambda r: r.url.endswith("/notes") and r.request.method == "POST") as noted:
+        page.get_by_role("button", name="Add note", exact=True).click()
+    assert noted.value.status == 200
+    expect(page.locator("#content")).not_to_have_attribute("aria-busy", "true")
     page.get_by_role("tab", name="Timeline", exact=True).click()
     expect(page.get_by_text("The logger simulator recovered", exact=True)).to_be_visible()
     page.get_by_role("button", name="Create work order", exact=True).click()

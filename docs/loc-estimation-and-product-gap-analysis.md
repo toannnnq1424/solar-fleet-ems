@@ -1,6 +1,6 @@
 # Quy mô dự toán và khoảng cách sản phẩm
 
-Cập nhật 20/09/2026. Báo cáo chi tiết và số dòng có thể đo lại được duy trì tại [đối chiếu 26 mockup](mockup-coverage.md), phần **Phạm vi dự toán → mã hiện có → phần chưa xây → điều kiện hoàn thành**. Manifest từng file nằm trong [code-inventory.json](evidence/code-inventory.json). Tài liệu này không giữ một bảng LOC thứ hai dễ lỗi thời.
+Cập nhật 25/09/2026. Báo cáo chi tiết và số dòng có thể đo lại được duy trì tại [đối chiếu 26 mockup](mockup-coverage.md), phần **Phạm vi dự toán → mã hiện có → phần chưa xây → điều kiện hoàn thành**. Manifest từng file nằm trong [code-inventory.json](evidence/code-inventory.json). Tài liệu này không giữ một bảng LOC thứ hai dễ lỗi thời. Xem [mục lục tài liệu](README.md) và [kết quả kiểm thử theo ngày](validation.md).
 
 ## Vì sao số dòng thực tế thấp hơn dự toán?
 
@@ -12,14 +12,14 @@ Các con số 217 tests, số file/dòng ước chừng và câu “pilot đã h
 
 ## Khoảng thiếu chính
 
-- **Tích hợp hãng:** Deye, Solis, SOLARMAN có read clients; GoodWe, Sungrow, Huawei, Growatt, Eybond vẫn thiếu transport. Bluesun phải xác định OEM/platform/model/logger trước khi viết profile. Public API và OSS là nguồn cần nghiên cứu để tiếp tục triển khai, không phải lý do dừng core và UI.
+- **Tích hợp hãng:** đã có tám read paths, gồm GoodWe Classic SEMS, Sungrow, Huawei, Growatt và Eybond; còn thiếu độ sâu history/alarm ingestion, các biến thể region/family, canonical mapping và native control/readback. Bluesun vẫn phải xác định OEM/platform/model/logger. Xem [contract hiện tại](multivendor-contracts.md); transport đã viết không đồng nghĩa hỗ trợ toàn hệ sinh thái.
 - **Điều khiển/native:** có engine và exact acceptance registry; còn thiếu schema/translation/readback đã kiểm chứng theo model. Đăng nhập hãng không tự hoàn thiện adapter hoặc mở quyền ghi.
 - **EMS/TOU:** có draft, compiler contract, timezone/DST/gap checks, rollout preparation và notify-only monitor; còn thiếu native translators, arbitration/hysteresis, optimizer, unattended dispatch và failsafe được nghiệm thu.
 - **Vận hành production:** còn thiếu tenant lifecycle, migrations/restore, production time-series/backfill, service/mTLS/update lifecycle của agent và các bài kiểm tra scale/recovery.
-- **UI/O&M:** incident và maintenance đã có thêm BE/FE/test code; vẫn thiếu nhiều luồng ở 26 ảnh, gồm đầy đủ overview/chart/forecast/GIS, binary evidence, commissioning orchestration, materials, firmware execution, report jobs/PDF/distribution và final visual/usability QA.
+- **UI/O&M:** incident/maintenance, overview có giới hạn, weather provider và mapping editor đã có BE/FE/test; vẫn thiếu dashboard/chart/GIS đầy đủ, forecast đưa vào EMS, binary evidence, commissioning orchestration, materials, firmware execution, report jobs/PDF/distribution và final visual/usability QA đủ 26 ảnh.
 
 ## Cách đánh giá tiếp theo
 
-Đối chiếu từng chức năng bằng bốn câu hỏi: mã hiện ở đâu; FE nối BE đến bước nào; phần nào chưa xây; điều kiện nào mới cho phép đánh dấu hoàn tất. Viết test cùng implementation nhưng chưa chạy test/build/QA lặp lại trong giai đoạn triển khai theo yêu cầu hiện tại. Chỉ ghi pass khi có kết quả chạy; chỉ ghi live acceptance khi có bằng chứng đúng thiết bị, firmware, logger và tài khoản.
+Đối chiếu từng chức năng bằng bốn câu hỏi: mã hiện ở đâu; FE nối BE đến bước nào; phần nào chưa xây; điều kiện nào mới cho phép đánh dấu hoàn tất. Viết test cùng implementation, chạy tổng hợp cuối đợt và kiểm tra lại phần bị ảnh hưởng sau khi sửa. Đợt 25/09 đã có kết quả tại [validation](mapping-validation-2026-09-25.md); không diễn đạt các ca đã chạy là còn hoãn. Chỉ ghi live acceptance khi có bằng chứng đúng thiết bị, firmware, logger và tài khoản.
 
 Không dùng LOC hoặc số route làm phần trăm hoàn thành, không thêm code lặp để đạt chỉ tiêu, và không coi tất cả phần còn thiếu là “chờ login”.

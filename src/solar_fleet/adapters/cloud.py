@@ -21,7 +21,11 @@ class ReadCloud:
         self.client = client or httpx.AsyncClient(timeout=20, follow_redirects=False, trust_env=False)
         self.budgets = budgets or Budgets()
         # Credentials never enter logs; duplicate accounts share a conservative budget.
-        identity = {k: v for k, v in credentials.items() if k in {"key_id", "identity_value", "org_id"}}
+        identity = {
+            k: v
+            for k, v in credentials.items()
+            if k in {"key_id", "identity_value", "org_id", "account", "user_name", "user_account", "token"}
+        }
         self.account_key = hashlib.sha256(
             json.dumps([self.host, identity], sort_keys=True).encode()
         ).hexdigest()
@@ -30,12 +34,25 @@ class ReadCloud:
     async def close(self):
         await self.client.aclose()
 
-    async def http(self, path, body, *, headers=None, params=None, serial=None):
+    def validate_response(self, payload):
+        if payload.get("success") is not True:
+            raise VendorError("vendor_request_rejected")
+
+    def invalidate_auth(self):
+        for name in ("access_token", "xsrf_token"):
+            if hasattr(self, name):
+                setattr(self, name, None)
+        if hasattr(self, "expires_at"):
+            self.expires_at = 0
+
+    async def http(self, path, body=None, *, headers=None, params=None, serial=None, method="POST"):
         if time.monotonic() < self.cooldown_until:
             raise VendorError("vendor_backoff_active")
         await self.budgets.acquire(self.account_key, [serial] if serial else [])
         try:
-            response = await self.client.post(self.host + path, content=body, headers=headers, params=params)
+            response = await self.client.request(
+                method, self.host + path, content=body, headers=headers, params=params
+            )
         except httpx.HTTPError:
             raise VendorError("vendor_network_outcome_unknown") from None
         if response.status_code == 429:
@@ -46,8 +63,7 @@ class ReadCloud:
             self.cooldown_until = time.monotonic() + delay
             raise VendorError("vendor_rate_limited")
         if response.status_code in (401, 403):
-            if hasattr(self, "access_token"):
-                self.access_token = None
+            self.invalidate_auth()
             raise VendorError("vendor_auth_or_permission_denied")
         if response.status_code != 200:
             raise VendorError("vendor_http_error")
@@ -57,8 +73,10 @@ class ReadCloud:
             payload = response.json()
         except ValueError:
             raise VendorError("vendor_invalid_json") from None
-        if not isinstance(payload, dict) or payload.get("success") is not True:
+        if not isinstance(payload, dict):
             raise VendorError("vendor_request_rejected")
+        self.validate_response(payload)
+        self.response_headers = response.headers
         return payload
 
     async def configuration(self, device):

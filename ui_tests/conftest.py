@@ -26,9 +26,14 @@ def fixture_server(tmp_path):
     run_id = uuid.uuid4().hex
     origin = f"http://127.0.0.1:{port}"
     log = (tmp_path / "fixture.log").open("w", encoding="utf-8")
-    process = subprocess.Popen([sys.executable, "-X", "utf8", str(ROOT / "tests" / "ui_fixture.py"), "--port", str(port)],
-        cwd=ROOT, env={**os.environ, "SOLAR_UI_FIXTURE_RUN_ID": run_id}, stdout=log, stderr=subprocess.STDOUT,
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+    process = subprocess.Popen(
+        [sys.executable, "-X", "utf8", str(ROOT / "tests" / "ui_fixture.py"), "--port", str(port)],
+        cwd=ROOT,
+        env={**os.environ, "SOLAR_UI_FIXTURE_RUN_ID": run_id},
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+    )
     try:
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
@@ -56,10 +61,12 @@ def fixture_server(tmp_path):
 
 
 @pytest.fixture
-def browser_page(fixture_server):
+def browser_page(fixture_server, request):
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
-        context = browser.new_context(viewport={"width": 1600, "height": 1000}, locale="en-GB", service_workers="block")
+        context = browser.new_context(
+            viewport={"width": 1600, "height": 1000}, locale="en-GB", service_workers="block"
+        )
         context.add_init_script("localStorage.setItem('solar-fleet-language', 'en');")
         origin = urlsplit(fixture_server)
 
@@ -73,8 +80,31 @@ def browser_page(fixture_server):
         context.route("**/*", guard)
         page = context.new_page()
         errors = []
+        failures = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        yield page, fixture_server
+
+        def record_failure(response):
+            if response.status >= 400:
+                failures.append(
+                    {
+                        "path": urlsplit(response.url).path,
+                        "status": response.status,
+                        "has_cookie": bool(response.request.header_value("cookie")),
+                        "page": page.url,
+                    }
+                )
+
+        page.on("response", record_failure)
+        try:
+            yield page, fixture_server
+        finally:
+            output = ROOT / "work" / "qa-audit"
+            output.mkdir(parents=True, exist_ok=True)
+            name = request.node.name
+            (output / (name + ".html")).write_text(page.content(), encoding="utf-8")
+            (output / (name + ".txt")).write_text(page.locator("body").inner_text(), encoding="utf-8")
+            (output / (name + "-http.json")).write_text(json.dumps(failures), encoding="utf-8")
+            page.screenshot(path=str(output / (name + ".png")), full_page=True)
         context.close()
         browser.close()
         assert not errors, "Browser exceptions: " + " | ".join(errors)

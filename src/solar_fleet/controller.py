@@ -50,6 +50,9 @@ class Controller:
             raise SafetyError("device_not_found")
         return Device.model_validate(row)
 
+    def devices(self) -> list[Device]:
+        return [Device.model_validate(d) for d in self.store.list("device")]
+
     def adapter(self, device: Device) -> ReadAdapter:
         return self.integration_adapter(device.integration_id)
 
@@ -184,6 +187,10 @@ class Controller:
                 old["metadata"]["discovery_missing"] = True
                 self.store.put("device", old["id"], old)
         self.store.put("discovery", config["id"], {"last_success": utcnow().isoformat()})
+        # Some cloud APIs require an in-memory collector route for each device.
+        # Persistent inventory alone cannot restore that session after a restart.
+        if hasattr(adapter, "inventory_ready"):
+            adapter.inventory_ready = True
 
     async def poll(self):
         if self.poll_lock.locked():
@@ -193,7 +200,11 @@ class Controller:
         async with self.poll_lock:
             self.last_poll = time.monotonic()
             for config in self.store.list("integration"):
-                if not config.get("enabled") or not collection_due(self.store, config):
+                plugin = self.registry.find(config["vendor"])
+                minimum = plugin.registration.get("minimum_poll_seconds", 120) if plugin else 120
+                if not config.get("enabled") or not collection_due(
+                    self.store, config, minimum_interval=minimum
+                ):
                     continue
                 state = {"id": config["id"], "last_attempt": utcnow().isoformat(), "state": "CONNECTING"}
                 try:
@@ -202,6 +213,7 @@ class Controller:
                     discovery = self.store.get("discovery", config["id"])
                     if (
                         not discovery
+                        or not getattr(adapter, "inventory_ready", True)
                         or (utcnow() - datetime.fromisoformat(discovery["last_success"])).total_seconds()
                         > 900
                     ):
@@ -301,11 +313,15 @@ class Controller:
         # Validate the whole response before changing the incident store. An empty
         # response is never evidence that previously active alarms recovered.
         observations = [AlarmObservation.model_validate(plugin.decode_alarm(row)) for row in rows]
-        if any(o.namespace != plugin.namespace or not set(o.evidence_ids) <= set(plugin.evidence_ids)
-               for o in observations):
+        if any(
+            o.namespace != plugin.namespace or not set(o.evidence_ids) <= set(plugin.evidence_ids)
+            for o in observations
+        ):
             raise SafetyError("alarm_mapping_provenance_invalid")
         binding_id = entity_id(device.integration_id, "binding", device.vendor_id)
         with self.store.transaction():
-            results = [self.incidents.apply_alarm(device, binding_id, o)
-                       for o in sorted(observations, key=lambda o: o.source_timestamp)]
+            results = [
+                self.incidents.apply_alarm(device, binding_id, o)
+                for o in sorted(observations, key=lambda o: o.source_timestamp)
+            ]
         return {"state": "CORRELATED", "correlated": len(results), "results": results}

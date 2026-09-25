@@ -24,6 +24,7 @@ SECRET_KEYS = {
     "token",
     "secret",
     "systemcode",
+    "companykey",
 }
 
 

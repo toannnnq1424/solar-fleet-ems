@@ -11,10 +11,15 @@ from ..integration import (
     PlantObservation,
 )
 from ..providers import provider
+from .dessmonitor import Dessmonitor
 from .deye import CONTRACTS, Deye, source_time
 from .deye_control import compile_deye
+from .goodwe import GoodWe
+from .growatt import Growatt
+from .huawei import Huawei
 from .solarman import Solarman
 from .solis import Solis
+from .sungrow import Sungrow
 
 
 def plant(raw):
@@ -112,13 +117,82 @@ def credential_contract(spec, *, organization=False, brands=()):
     return prepare
 
 
+# Advertised features must match the shared controller contract.
+_VENDOR_CONFIG = (
+    {
+        "id": "Eybond / SmartESS",
+        "factory": Dessmonitor,
+        "states": (),
+        "auth": "SIGNED_SESSION",
+        "features": {"discovery", "latest"},
+        "namespace": "eybond",
+        "brands": ("Bluesun",),
+        "compile_intent": None,
+    },
+    {
+        "id": "Deye",
+        "factory": Deye,
+        "states": (1,),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest", "history", "configuration", "alarms"},
+        "compile_intent": compile_deye,
+    },
+    {
+        "id": "Solis",
+        "factory": Solis,
+        "states": (1,),
+        "auth": "API_KEY",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,
+    },
+    {
+        "id": "SOLARMAN",
+        "factory": Solarman,
+        "states": (1, 2),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,  # Transport-only; OEM identification required
+    },
+    {
+        "id": "GoodWe",
+        "factory": GoodWe,
+        "states": (1,),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,
+    },
+    {
+        "id": "Sungrow",
+        "factory": Sungrow,
+        "states": (1,),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,
+    },
+    {
+        "id": "Huawei",
+        "factory": Huawei,
+        "states": (1,),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,  # No accepted cloud or local write mapping is packaged.
+    },
+    {
+        "id": "Growatt",
+        "factory": Growatt,
+        "states": (1,),
+        "auth": "TOKEN",
+        "features": {"discovery", "latest"},
+        "compile_intent": None,
+    },
+)
+
+
 def builtins() -> IntegrationRegistry:
     registry = IntegrationRegistry()
-    for id, factory, states, auth, features in (
-        ("Deye", Deye, (1,), "TOKEN", {"discovery", "latest", "history", "configuration", "alarms"}),
-        ("Solis", Solis, (1,), "API_KEY", {"discovery", "latest"}),
-        ("SOLARMAN", Solarman, (1, 2), "TOKEN", {"discovery", "latest"}),
-    ):
+    for cfg in _VENDOR_CONFIG:
+        id = cfg["id"]
+        factory = cfg["factory"]
         spec = provider(id)
         groups = tuple(
             {
@@ -131,29 +205,34 @@ def builtins() -> IntegrationRegistry:
             }
             for key, vi, en, intents in GROUPS
         )
+        plugin_kwargs = {}
+        if cfg.get("compile_intent") is not None:
+            plugin_kwargs["compile_intent"] = cfg["compile_intent"]
         registry.register(
             IntegrationPlugin(
                 id=id,
                 version=factory.version,
                 factory=factory,
                 plant=plant,
-                device=device_decoder(states),
-                measurement=measurement_decoder(states),
-                namespace=id.lower(),
+                device=device_decoder(cfg["states"]),
+                measurement=measurement_decoder(cfg["states"]),
+                namespace=cfg.get("namespace", id.lower()),
                 evidence_ids=tuple(spec["evidence"]),
-                authentication=auth,
-                features=frozenset(features),
+                authentication=cfg["auth"],
+                features=frozenset(cfg["features"]),
                 native_groups=groups,
                 registration=dict(
                     spec,
                     organization=id == "SOLARMAN",
-                    equipment_brands=["Bluesun"] if id == "SOLARMAN" else [],
+                    equipment_brands=list(cfg.get("brands", ("Bluesun",) if id == "SOLARMAN" else ())),
                 ),
                 prepare_credentials=credential_contract(
-                    spec, organization=id == "SOLARMAN", brands=("Bluesun",) if id == "SOLARMAN" else ()
+                    spec,
+                    organization=id == "SOLARMAN",
+                    brands=cfg.get("brands", ("Bluesun",) if id == "SOLARMAN" else ()),
                 ),
                 documentation=({"title": id + " developer documentation", "url": spec["url"]},),
-                **({"compile_intent": compile_deye} if id == "Deye" else {}),
+                **plugin_kwargs,
             )
         )
     return registry

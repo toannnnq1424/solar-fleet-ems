@@ -1,5 +1,7 @@
 # Vendor research questions
 
+This is the original model/account research checklist, not the current adapter inventory. Some software contracts have since been implemented; see [multi-vendor contracts](multivendor-contracts.md) and [Eybond](eybond-read-integration.md). Exact hardware questions remain open until accepted. [Documentation index](README.md).
+
 Các câu chưa đủ evidence được giữ UNKNOWN và có hành động tiếp theo; không bỏ qua câu hỏi. Mỗi vendor dùng cùng checklist để tránh suy diễn giữa các hãng.
 
 ## deye

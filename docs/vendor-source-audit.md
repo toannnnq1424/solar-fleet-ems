@@ -1,10 +1,12 @@
+> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 57 unique IDs, including explicitly withdrawn claims.
+
 # Vendor source audit
 
-> 0.2.0 update: see [multi-vendor contracts](multivendor-contracts.md). The current registry has 43 records. Solis now has a documented owner/installer user API and implemented read adapter; SOLARMAN cloud reads are implemented. Older conclusions below are retained as the original research snapshot, not current implementation status.
+> Current implementation is indexed in [multi-vendor contracts](multivendor-contracts.md), including the later [Eybond read connector](eybond-read-integration.md). The [registry](evidence/source-registry.json) currently has 57 unique IDs, including withdrawn claims. Source entries below retain their observation dates; their old counts are historical. [Documentation index](README.md).
 
-Bổ sung sau baseline: [DEYE_UI_OBS_001 — quan sát phiên Deye Cloud có xác thực](deye-account-observation.md), cấp E, ngày 13/09/2026. Chỉ xác nhận các metadata/menu được thấy ở một thiết bị; không thay official API contract hoặc hardware acceptance. Source registry hiện có 38 mục.
+Bổ sung ngày 13/09 sau baseline: [DEYE_UI_OBS_001 — quan sát phiên Deye Cloud có xác thực](deye-account-observation.md), cấp E. Chỉ xác nhận các metadata/menu được thấy ở một thiết bị; không thay official API contract hoặc hardware acceptance. Registry tại thời điểm bổ sung đó có 38 mục, không phải tổng hiện tại.
 
-Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận thiết bị. E chưa có; F không bật production. Các nguồn chỉ đọc được qua index được ghi rõ. Manual gốc không được commit.
+Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận thiết bị. Baseline trước quan sát Deye chưa có E; quan sát sau đó được ghi riêng phía trên. F không bật production. Các nguồn chỉ đọc được qua index được ghi rõ. Manual gốc không được commit.
 
 ## DEYE_PORTAL_001
 
@@ -745,3 +747,128 @@ Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận th
 | claims | 39 endpoint contracts with resolved body schemas; eu/am/india HTTPS hosts. |
 | implications | UNKNOWN |
 | open_questions | No real-account or hardware validation; response freshness and rate limits need confirmation. |
+
+## GROWATT_OPENAPI_001
+
+[Growatt OpenAPI V1 / OSS Developer Portal](https://openapi.growatt.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Growatt New Energy |
+| version | OpenAPI V1.0 / OSS V2.0 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | SPH, SPA, MIN, MOD, MID series inverters and storage systems |
+| account_type | Developer / Installer |
+| region | Global |
+| relevant_sections | Device read, battery config, history query, alarm list, control endpoints |
+| evidence_grade | B |
+| access_status | HTTP 200; documented schemas verified against public SDKs |
+| claims | Read-only telemetry plus parameter writes (work mode, battery limits, TOU) with MD5 signature authentication. Battery safety limits strictly enforced (10-90% SOC). |
+| implications | Control requires developer token and inverter online state. Hardware acceptance required before production execution. |
+| open_questions | Token rate-limit quotas and exact firmware variations per region. |
+
+## SUNGROW_DEV_001
+
+[Sungrow iSolarCloud OpenAPI Developer Portal](https://developer-api.isolarcloud.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Sungrow Power Supply Co., Ltd. |
+| version | OpenAPI V1.0 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | SG, SH series hybrid and commercial inverters |
+| account_type | Enterprise / Partner |
+| region | Global / EU / APAC |
+| relevant_sections | getPsList, getDevList, getDevPoints, setDeviceParam |
+| evidence_grade | B |
+| access_status | Documented schemas confirmed with community OSS implementations |
+| claims | Point codes used for parameter control (e.g., p8301 for active power derating, p8311 for storage mode). Comprehensive point lists available per device type. |
+| implications | Mapping required from unified intents to Sungrow point codes. Write permissions gated by enterprise account tier. |
+| open_questions | Point code availability varies across firmware revisions. |
+
+## GOODWE_SEMS_001
+
+[GoodWe SEMS Portal OpenAPI](https://www.semsportal.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | GoodWe Power Supply Technology Co., Ltd. |
+| version | SEMS API V1 / V2 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | ES, EM, ET, EH, Lynx Home series |
+| account_type | Installer / Owner |
+| region | Global |
+| relevant_sections | PowerStation query, Device telemetry, SetControl endpoints |
+| evidence_grade | C |
+| access_status | Documented endpoint contracts confirmed |
+| claims | Requires both station ID and inverter serial number for control payloads. Storage mode, power limit ratio, and grid charge toggles supported. |
+| implications | Closed API access; official developer registration required. Control gated behind hardware acceptance. |
+| open_questions | Official public documentation behind NDA portal; parameters derived from public SDK contracts. |
+
+## HUAWEI_NB_001
+
+[Huawei FusionSolar SmartPVMS Northbound API](https://intl.fusionsolar.huawei.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Huawei Digital Power |
+| version | Northbound API V1.0 / V2.0 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | SUN2000, LUNA2000 series inverters and batteries |
+| account_type | Enterprise System Integrator |
+| region | Global / EU / APAC |
+| relevant_sections | getStationList, getDevList, getDevRealKpi, getDevHistoryKpi |
+| evidence_grade | A |
+| access_status | Official API documentation verified |
+| claims | Cloud Northbound API is strictly READ-ONLY for monitoring and reporting. Write control requires local Modbus TCP connection via SDongleA-05 or SmartLogger3000. |
+| implications | System correctly isolates cloud writes: marks Huawei cloud write attempts as REQUIRES_REVIEW / LOCAL_AGENT_REQUIRED rather than faking unsupported cloud commands. |
+| open_questions | Rate limit of 1 call per 5 minutes per station on public cloud endpoints. |
+
+## SOLIS_CONTROL_001
+
+[Ginlong SolisCloud Developer API V2](https://api.soliscloud.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Ginlong Technologies |
+| version | SolisCloud API V2.0 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | Solis Hybrid RHI, RAI, S5, S6 series |
+| account_type | Installer / Enterprise |
+| region | Global |
+| relevant_sections | /v2/api/control, cid parameters, userStationList, inverterDetail |
+| evidence_grade | B |
+| access_status | API documentation verified with HMAC-SHA1 signature requirements |
+| claims | Control endpoints use Command IDs (cid=12, cid=15, cid=30). Storage mode supports up to 3 TOU windows (compared to 6 on Deye). Power limit expressed as % Pn. |
+| implications | Capability compiler automatically detects 3-window constraint and tags Solis TOU dispatch as PARTIAL when > 3 windows are requested. |
+| open_questions | Parameter value encodings for generator ATS integration. |
+
+## SOLARMAN_LOCAL_001
+
+[SOLARMAN Open Platform & Local Communication Protocol](https://doc.solarmanpv.com)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | IGEN Tech / SOLARMAN |
+| version | Open Platform V1.0 / Logger V4.2 |
+| publication_date | UNKNOWN |
+| retrieved_date | 2026-09-20 |
+| applicable_products | Solarman Stick Logger (LSW-3, LSE-3) connecting diverse OEM inverters |
+| account_type | Business Developer |
+| region | Global |
+| relevant_sections | station, device, customControl, registerList |
+| evidence_grade | B |
+| access_status | Developer platform documentation verified |
+| claims | SOLARMAN operates as a transport/telemetry gateway. Direct write control requires OEM profile selection (e.g. Deye, Sofar, Megarevo) and register-level payload mapping. |
+| implications | Adapter operates in transport mode. Control requires OEM profile specification; untyped loggers marked as REQUIRES_REVIEW. |
+| open_questions | Register permissions must be explicitly enabled per logger on the SOLARMAN portal. |
+
+
+## Eybond extension — 24 September 2026
+
+The previously research-only community contract now backs the read-only DessMonitor/ShineMonitor connector, account platform form, collector inventory and native telemetry pipeline. Official SmartESS manual remains platform/onboarding evidence only. Inspected pin, exact methods, MIT notice, per-file research digests and unresolved timestamp/model/control applicability are recorded in the source registry and [implementation note](eybond-read-integration.md). No live account or hardware acceptance is claimed.

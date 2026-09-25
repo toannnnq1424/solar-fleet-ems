@@ -270,7 +270,7 @@ def install_runtime(app, controller, user):
     def scoped(row, who):
         if not row:
             raise HTTPException(404)
-        if not all(who.can_access(id) for id in row.get("site_ids", [row["site_id"]])):
+        if not all(who.can_access(id) for id in (row.get("site_ids") or [row.get("site_id")])):
             raise HTTPException(403, "site_access_denied")
 
     @app.post("/api/rules/{id}/monitor")
@@ -297,12 +297,13 @@ def install_runtime(app, controller, user):
         return row
 
     @app.get("/api/schedules/{id}/timeline")
-    async def timeline(id: str, day: str, who=Depends(user)):
+    async def timeline(id: str, day: str | None = None, who=Depends(user)):
         row = store.get("schedule", id)
         scoped(row, who)
         try:
-            local_day = datetime.strptime(day, "%Y-%m-%d").date()
-            tz = ZoneInfo(row["timezone"])
+            day_str = day or utcnow().strftime("%Y-%m-%d")
+            local_day = datetime.strptime(day_str, "%Y-%m-%d").date()
+            tz = ZoneInfo(row.get("timezone", "Asia/Ho_Chi_Minh"))
         except (ValueError, KeyError):
             raise SafetyError("invalid_schedule_date_or_timezone") from None
         output = []
@@ -458,4 +459,62 @@ def install_runtime(app, controller, user):
                 )
             return row
 
+    @app.post("/api/schedules/{id}/detect-conflicts")
+    async def detect_conflicts(id: str, who=Depends(user)):
+        sched = store.get("schedule", id)
+        if sched is None:
+            raise HTTPException(404, "schedule_not_found")
+        scoped(sched, who)
+        rules = [r for r in store.list("rule") if r.get("site_id") == sched["site_id"]]
+        conflicts = detect_schedule_rule_conflicts(sched.get("slots", []), rules)
+        return {"schedule_id": id, "conflicts": conflicts, "total_conflicts": len(conflicts)}
+
     return runtime
+
+
+def detect_schedule_rule_conflicts(slots: list[dict], rules: list[dict]) -> list[dict]:
+    conflicts = []
+    for s_idx, slot in enumerate(slots):
+        slot_mode = slot.get("mode")
+        slot_day = slot.get("day")
+        slot_start = slot.get("start", "")
+        slot_end = slot.get("end", "")
+        target_soc = slot.get("target_soc")
+
+        for rule in rules:
+            rule_id = rule.get("id") or rule.get("name", "rule")
+            for action in rule.get("actions", []):
+                intent = (
+                    action.get("intent", "") if isinstance(action, dict) else getattr(action, "intent", "")
+                )
+                if (
+                    slot_mode == "discharge"
+                    and "charge" in intent.lower()
+                    and "discharge" not in intent.lower()
+                ):
+                    conflicts.append(
+                        {
+                            "slot_index": s_idx,
+                            "slot_day": slot_day,
+                            "time_window": f"{slot_start}-{slot_end}",
+                            "rule_id": rule_id,
+                            "conflict_type": "MODE_CONTRADICTION",
+                            "severity": "WARNING",
+                            "description_vi": f"Xung đột chế độ: Khung giờ ({slot_start}-{slot_end}) yêu cầu xả pin, nhưng quy tắc '{rule.get('name', rule_id)}' lại kích hoạt nạp ({intent}).",
+                            "description_en": f"Mode contradiction: Slot mandates discharge ({slot_start}-{slot_end}), but rule '{rule.get('name', rule_id)}' triggers charge ({intent}).",
+                        }
+                    )
+                elif slot_mode == "charge" and target_soc is not None and target_soc < 30:
+                    conflicts.append(
+                        {
+                            "slot_index": s_idx,
+                            "slot_day": slot_day,
+                            "time_window": f"{slot_start}-{slot_end}",
+                            "rule_id": rule_id,
+                            "conflict_type": "LOW_TARGET_SOC_WARNING",
+                            "severity": "INFO",
+                            "description_vi": f"Cảnh báo SOC: Khung sạc pin đặt mức đích thấp ({target_soc}%), có thể không tích đủ năng lượng cho giờ cao điểm.",
+                            "description_en": f"SOC advisory: Charge slot has low target ({target_soc}%), which may deplete backup reserve.",
+                        }
+                    )
+    return conflicts

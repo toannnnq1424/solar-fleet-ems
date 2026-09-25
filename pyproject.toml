@@ -26,6 +26,9 @@ solar-fleet-agent = "solar_fleet.agent:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/solar_fleet"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["/images"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

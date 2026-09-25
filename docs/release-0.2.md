@@ -1,25 +1,26 @@
-# Solar Fleet 0.2 — core backend and bilingual workspace
+# Solar Fleet 0.2 — trạng thái pilot ngày 25/09/2026
+
+[README dự án](../README.md) · [Mục lục](README.md) · [Bao phủ 26 mockup](mockup-coverage.md) · [Validation](validation.md)
 
 ## Tiếng Việt
 
-Sidebar được thống nhất thành **Tổng quan · Nhà máy · Thiết bị · Vận hành · Sự cố & bảo trì · Dữ liệu & báo cáo · Cài đặt**. Một bộ lọc nhà máy dùng xuyên suốt các màn hình. Các ảnh mockup được quy về nhóm công việc, không dùng số liệu và trạng thái tương thích trong ảnh làm dữ liệu thật.
+Bản 0.2 hiện dùng một shell, **15 mục sidebar**, site scope và style global. Đây là mốc phát triển local controller, chưa phải release production đã nghiệm thu.
 
-- Nhà máy: thêm và sửa hồ sơ, khách hàng, địa chỉ, công suất, múi giờ và tọa độ; tách metadata người dùng khỏi discovery cloud.
-- Thiết bị: danh mục nhiều hãng, nguồn và độ mới của mẫu đo, dữ liệu gốc, lịch sử, khả năng điều khiển; Deye có đọc cấu hình và cảnh báo hãng.
-- Vận hành: lưu lịch tuần/TOU nháp, kiểm tra chồng giờ, sao chép khung giờ; soạn quy tắc EMS và chạy thử; đánh giá tương thích nhiều thiết bị; nhật ký lệnh và checklist nghiệm thu.
-- Sự cố/bảo trì: tạo, phân công, tiếp nhận, xử lý, đóng/mở lại; liên kết phiếu bảo trì với sự cố, chống ghi đè khi có cập nhật đồng thời, nhật ký và xuất CSV.
-- Dữ liệu: lọc thiết bị/thông số/thời gian, biểu đồ điểm đo có timestamp, min/max cùng đơn vị, CSV và in báo cáo. Không cộng công suất thưa thành sản lượng hoặc tự tạo chỉ số tiết kiệm.
-- Cài đặt: form kết nối Deye/Solis/SOLARMAN, vùng dữ liệu, trạng thái đồng bộ, tạm dừng kết nối, người dùng/phạm vi site, khóa tài khoản và thu hồi phiên, nghiên cứu và nhật ký bảo mật.
-- Ngôn ngữ: tiếng Việt/English, định dạng số/ngày theo ngôn ngữ, bố cục desktop và màn hình nhỏ.
+- Tám luồng đọc cloud: Deye, Solis, SOLARMAN, GoodWe Classic SEMS, Sungrow, Huawei, Growatt và Eybond/SmartESS. Mỗi adapter có contract/field/auth riêng; Bluesun chọn transport theo hệ thực, không giả định một API chung.
+- Nhà máy/thiết bị/nguồn dùng dữ liệu được lưu và quyền theo site. Thời tiết Open-Meteo có khi có tọa độ; telemetry chưa xác minh không thành canonical KPI.
+- Data → Mapping đã nối chọn field quan sát, unit/direction, edit/version, simulate và review độc lập. Review chưa cài profile hay bật điều khiển. Data workspace sở hữu một hàng tab, giữ alias route cũ.
+- Điều khiển dùng cùng preview/diff/confirm, idempotency, khóa, order/readback và journal. Deye là compiler intent duy nhất hiện đăng ký; các compiler phỏng đoán ngoài Deye đã bị loại bỏ.
+- TOU có nháp/version/compiler; bulk có assessment/canary/rollout được kiểm soát. EMS có dry-run và monitor-only, chưa autonomous hardware dispatch.
+- Trung tâm cảnh báo nối correlation/dedup, phân công, ghi chú, timeline/SLA/playbook với phiếu bảo trì. Bảo trì có kế hoạch phiên bản, checklist, time entries và review độc lập.
+- Báo cáo xuất artifact CSV/XLSX/HTML theo scope/kỳ. Quản trị có local RBAC, vault, API keys, session revoke và audit.
+- Local Agent có enrollment/ingest/outbox và optional SOLARMAN V5 read collector; chưa phải service/driver suite/mTLS/OTA đầy đủ.
 
-**Đây là bản nền có các workflow thực thi và lưu trữ được; chưa phải toàn bộ sản phẩm production trong mockup.** Chưa có driver phần cứng/Site Agent, lịch thực thi tự động, bulk dispatch, OTA firmware, cấu hình mạng/logger, bản đồ nền, thông báo email/Zalo/SMS, dự báo/giá điện hoặc báo cáo tài chính. Những mục này không được giả lập là đã hoạt động. Xem [trạng thái chi tiết](implementation-status.md).
+Đợt [25/09](mapping-validation-2026-09-25.md) ghi 450 BE pass, 13 browser pass trước QA sửa navigation và 8 ca rerun sau sửa, gồm một ca mới. Các lần chạy có trùng ca; không cộng thành 21 test duy nhất. Build/QA áp dụng snapshot và luồng được ghi trong báo cáo.
 
-Đăng nhập web của hãng giúp nghiên cứu và đối chiếu. Kết nối API chính thức còn cần app/key và quyền truy cập tương ứng. Hiện chưa có adapter nào được nghiệm thu live với credential của khách hàng; không có lệnh ghi xuống thiết bị thật trong đợt này.
+Chưa có live account/hardware acceptance của các adapter trong các đợt này. Native schemas và mapping theo model, EMS dispatch, scheduler thực, agent lifecycle, OTA/network writes, dữ liệu dài hạn, tenancy/MFA/SSO, đầy đủ chart/GIS/report delivery và QA đủ 26 ảnh vẫn còn thiếu. [Implementation status](implementation-status.md) và [bảng phạm vi](mockup-coverage.md) sở hữu chi tiết.
 
 ## English
 
-The shared workspace groups 26 mockups into seven stable areas. Backend workflows cover plant metadata, scoped device inventory, encrypted connector setup, incidents and linked maintenance work, schedule drafts, deterministic EMS dry runs, compatibility assessment, commissioning notes, access management, telemetry exports and audit records.
+The 0.2 pilot has eight cloud read paths of varying depth, a shared bilingual shell with fifteen sidebar destinations, connected mapping/review and incident-to-maintenance workflows, stored-data reports and a guarded command engine.
 
-Deye, Solis and SOLARMAN have concrete read transports with synthetic contract tests. Other vendor cards explicitly require a contract or authorized observation. Connector implementation is separate from live account acceptance and model-specific control commissioning. No production hardware has been actuated.
-
-The controller is a local single-process pilot. Schedule/rule drafts are not executed, manual commissioning notes do not unlock control, and unknown data is not converted to zero. Missing local drivers, dispatch, map/weather/notification providers, firmware workflows and production infrastructure are tracked separately from the delivered workflows.
+Connector code and synthetic tests do not establish complete vendor support or live hardware acceptance. Mapping review does not activate a canonical profile. The controller remains single-process with bounded SQLite retention. Native model schemas, accepted controls, autonomous EMS, agent lifecycle, production infrastructure and full reference-screen acceptance remain unfinished.
