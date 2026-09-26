@@ -361,14 +361,9 @@ def install_workspaces(app, controller, user, admin):
         return views.series(id, metric, period)
 
     @app.get("/api/vendor-registers/{brand}")
-    async def get_vendor_registers(brand: str, who=Depends(user)):
-        return {
-            "brand": brand,
-            "registers": [],
-            "alarms": [],
-            "status": "UNKNOWN",
-            "reason": "exact_model_protocol_evidence_required",
-        }
+    async def get_vendor_registers_endpoint(brand: str, model: str | None = None, who=Depends(user)):
+        from .vendor_registers import get_vendor_registers as fetch_registers
+        return fetch_registers(brand, model=model)
 
     @app.get("/api/sites/{id}/diagnostics-checklist")
     async def get_site_diagnostics(id: str, who=Depends(user)):
@@ -1282,11 +1277,11 @@ def install_workspaces(app, controller, user, admin):
     # G12: Multi-vendor Alarm Decoder API
     # ==================================================================
     @app.get("/api/alarms/decode/{vendor}/{code}")
-    async def decode_alarm_endpoint(vendor: str, code: int, who=Depends(user)):
+    async def decode_alarm_endpoint(vendor: str, code: int, model: str | None = None, who=Depends(user)):
         """Decode a vendor-specific fault code into structured alarm with SOP."""
         from .vendor_registers import decode_vendor_alarm
 
-        result = decode_vendor_alarm(vendor, code)
+        result = decode_vendor_alarm(vendor, code, model=model)
         return result
 
     @app.get("/api/alarms/decoder-summary")

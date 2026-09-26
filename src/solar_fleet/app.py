@@ -326,6 +326,10 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     from .forecast_baseline import install_forecast_baseline
 
     install_forecast_baseline(app, controller, user)
+    from .battery_health import install_battery_health
+    install_battery_health(app, controller, user)
+    from .tariff_engine import install_tariff_engine
+    install_tariff_engine(app, controller, user)
     install_analytics(app, controller, user)
     from .reports_api import install_reports
 

@@ -67,7 +67,7 @@ def test_topology_three_phase_balance():
 
 def test_fleet_map_data_endpoint(local):
     """Verify GET /api/fleet/map-data returns plants with GPS coordinates, weather, and clusters."""
-    from tests.test_workspaces import login
+    from test_workspaces import login
 
     client, _ = local
     headers = login(local, "admin")
@@ -100,7 +100,7 @@ def test_fleet_map_data_endpoint(local):
 
 def test_fleet_topology_summary_and_site_detail(local):
     """Verify fleet topology summary and site-level detailed SLD electrical endpoints."""
-    from tests.test_workspaces import login
+    from test_workspaces import login
 
     client, _ = local
     headers = login(local, "admin")

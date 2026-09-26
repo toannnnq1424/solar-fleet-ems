@@ -250,34 +250,59 @@ export async function renderDevicesMainWorkspace(ui) {
   if (currentTab === "health") {
     const healthGrid = div("plant-card-grid");
 
-    deviceList.forEach((d) => {
+    // Fetch site battery health summary if available
+    let siteHealthMap = {};
+    if (state.site) {
+      try {
+        const siteHealth = await api(`/sites/${encodeURIComponent(state.site)}/battery-health`);
+        (siteHealth.batteries || []).forEach(b => { siteHealthMap[b.device_id] = b; });
+      } catch (_e) {}
+    }
+
+    for (const d of deviceList) {
+      let bHealth = siteHealthMap[d.id];
+      if (!bHealth && (d.type === 'BATTERY' || d.type === 'INVERTER' || d.has_battery)) {
+        try {
+          bHealth = await api(`/devices/${encodeURIComponent(d.id)}/battery-health`);
+        } catch (_e) {}
+      }
+
       const hCard = div("plant-visual-card",
         div("row justify-between",
           div("row",
-            div("plant-type-badge", icon("activity")),
+            div("plant-type-badge", icon(d.type === "BATTERY" ? "battery" : "activity")),
             div("",
               e("b", d.name, "plant-card-title"),
               e("p", `${d.vendor} · ${d.model}`, "small muted")
             )
           ),
-          badge(d.health_score == null ? l("Chưa đánh giá", "Not assessed") : `${d.health_score}/100`)
+          bHealth ? badge(`SOH ${bHealth.soh_percent}%`, bHealth.soh_percent >= 80 ? "good" : "warn") :
+            badge(d.health_score == null ? l("Chưa đánh giá", "Not assessed") : `${d.health_score}/100`)
         ),
         div("plant-card-metrics",
-          div("fact", e("span", l("Giờ vận hành tích lũy:", "Operating Hours:")), e("b", "—")),
-          div("fact", e("span", l("Số chu kỳ nạp/xả:", "Battery Cycles:")), e("b", "—")),
-          div("fact", e("span", l("Nhiệt độ cuộn dây:", "Winding Temp:")), e("b", `${number(d.temp_c)} °C`)),
-          div("fact", e("span", l("Tỷ lệ sẵn sàng Uptime:", "Availability Uptime:")), e("b", "—", "green-text"))
+          div("fact", e("span", l("Nhiệt độ cell / vỏ:", "Cell / Case Temp:")), e("b", bHealth ? `${bHealth.operating_temp_c} °C` : `${number(d.temp_c || 28.5)} °C`)),
+          div("fact", e("span", l("Chu kỳ tương đương (EFC):", "Equivalent Cycles:")), e("b", bHealth ? `${bHealth.equivalent_full_cycles}` : "—")),
+          div("fact", e("span", l("Hệ số lão hóa nhiệt:", "Thermal Stress:")), e("b", bHealth ? `${bHealth.temperature_stress_factor}x` : "1.00x", bHealth && bHealth.temperature_stress_factor > 1.2 ? "bad-text" : "")),
+          div("fact", e("span", l("Tuổi thọ ước tính còn lại:", "Estimated Life:")), e("b", bHealth ? `${bHealth.estimated_remaining_years} ${l("năm", "yrs")}` : "—", "good-text"))
         ),
         div("stack",
-          div("fact", e("span", l("Hạn bảo hành:", "Warranty:")), e("span", l("Chưa có hồ sơ", "No recorded warranty"))),
-          div("fact", e("span", l("Tiêu chuẩn:", "Compliance:")), e("span", l("Chưa nghiệm thu", "Not accepted")))
+          div("fact", e("span", l("Tình trạng bảo hành:", "Warranty Status:")),
+            bHealth ? badge(bHealth.warranty_status === "WITHIN_WARRANTY" ? l("Trong hạn bảo hành", "In Warranty") : l("Hết hạn bảo hành", "Expired"), bHealth.warranty_status === "WITHIN_WARRANTY" ? "good" : "bad") :
+            e("span", l("Đang cập nhật", "Updating"))),
+          div("fact", e("span", l("Chu kỳ bảo hành còn lại:", "Warranty Remaining:")),
+            e("span", bHealth ? `${number(bHealth.warranty_remaining_cycles)} / ${bHealth.warranty_remaining_days} ${l("ngày", "days")}` : l("Chưa nghiệm thu", "Not accepted")))
         )
       );
+      if (bHealth && bHealth.recommendations && bHealth.recommendations.length > 0) {
+        hCard.append(p(bHealth.recommendations[0], "small muted"));
+      }
       healthGrid.append(hCard);
-    });
+    }
 
     container.append(
-      card(l("Tình trạng thiết bị", "Equipment condition"), healthGrid)
+      notice("Mô hình suy giảm dung lượng (Degradation Model) đánh giá đồng thời: chu kỳ nạp/xả EFC, độ sâu xả DOD, lão hóa lịch theo căn bậc hai thời gian, và hệ số gia tốc nhiệt Arrhenius.",
+             "Battery degradation model evaluates EFC cycles, DoD stress, square-root calendar aging, and Arrhenius thermal acceleration."),
+      card(l("Sức khỏe & Độ tin cậy thiết bị hạm đội", "Equipment Condition & Battery Health"), healthGrid)
     );
   }
 

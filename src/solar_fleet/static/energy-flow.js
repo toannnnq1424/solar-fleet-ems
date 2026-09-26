@@ -93,9 +93,11 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
       count += val !== null ? 1 : 0;
       entry.wire.classList.toggle('is-active', state.active);
       entry.wire.classList.toggle('is-reversed', state.reverse);
+      const absVal = Math.abs(val || 0);
       entry.wire.dataset.direction = !state.active ? 'stopped' : state.reverse ? 'reverse' : 'forward';
+      entry.wire.dataset.power = !state.active ? 'none' : absVal >= 5000 ? 'high' : absVal >= 1000 ? 'medium' : 'low';
       entry.node.classList.toggle('is-unavailable', val === null);
-      entry.reading.textContent = val === null ? '—' : Math.abs(val) >= 1000 ? `${number(Math.abs(val) / 1000, 2)} kW` : `${number(Math.abs(val), 0)} W`;
+      entry.reading.textContent = val === null ? '—' : absVal >= 1000 ? `${number(absVal / 1000, 2)} kW` : `${number(absVal, 0)} W`;
       let direction = state.status === 'STALE' ? l('Số đo đã cũ', 'Reading expired') : l('Chưa có số đo hợp lệ', 'No accepted measurement');
       if (val !== null) {
         if (entry.metric === 'battery_w') direction = val > 0 ? l('Đang sạc ↓', 'Charging ↓') : val < 0 ? l('Đang xả ↑', 'Discharging ↑') : l('Chờ', 'Idle');
@@ -106,7 +108,12 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
       const meta = snapshot.channels?.[entry.metric];
       const origins = [...new Set((meta?.sources || []).map(s => s.source))];
       const soc = flowState('battery_soc', snapshot).value;
-      entry.source.textContent = entry.metric === 'battery_w' && soc != null ? `SOC ${number(soc, 0)}%` : origins.join(' · ');
+      if (entry.metric === 'battery_w' && soc != null) {
+        entry.source.textContent = `SOC ${number(soc, 0)}%`;
+        entry.node.dataset.soc = String(Math.round(Math.min(100, Math.max(0, soc))));
+      } else {
+        entry.source.textContent = origins.join(' · ');
+      }
       entry.node.title = `${entry.label} · ${state.status}\n${(meta?.sources || []).map(s => `${s.device_id} · ${s.metric} · ${s.source_timestamp}`).join('\n')}`;
     }
     summary.textContent = `${count}/${nodes.length} ${l('nhánh có số đo', 'measured branches')}`;

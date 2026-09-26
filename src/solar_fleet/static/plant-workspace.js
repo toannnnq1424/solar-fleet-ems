@@ -303,8 +303,8 @@ export function openPlantWizard(ui, onComplete) {
           )
         ),
         div("row justify-between",
-          btn(l("← Quay lại", "← Back"), () => { currentStep = 3; renderStep(); }),
-          btn(l("✓ Hoàn tất & Tạo nhà máy", "✓ Finish & Create"), async () => {
+          btn(l("Quay lại", "Back"), () => { currentStep = 3; renderStep(); }),
+          btn(l("Hoàn tất & Tạo nhà máy", "Finish & Create"), async () => {
             try {
               const resp = await api("/sites", {
                 name: wizardData.name,
