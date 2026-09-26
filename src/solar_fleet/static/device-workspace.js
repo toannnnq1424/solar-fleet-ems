@@ -1,5 +1,6 @@
 import { l, t, date, number } from "./i18n.js";
 import { icon } from "./icons.js";
+import { renderModelLibrary } from "./model-workspace.js";
 
 export async function renderDevicesMainWorkspace(ui) {
   const { state, e, div, p, btn, badge, card, table, select, input, field, fact, notice, showDialog, closeDialog, api, go, sites, deviceDetail } = ui;
@@ -128,7 +129,7 @@ export async function renderDevicesMainWorkspace(ui) {
                 state.selectedRealtimeDevice = d.id;
                 ui.render();
               }, "primary"),
-              btn(l("Quét Modbus", "Modbus Inspector"), () => {
+              btn(l("Profile / thanh ghi", "Profiles / registers"), () => {
                 state.deviceTab = "inspector";
                 state.selectedInspectorDevice = d.id;
                 ui.render();
@@ -176,7 +177,7 @@ export async function renderDevicesMainWorkspace(ui) {
                   state.selectedRealtimeDevice = d.id;
                   ui.render();
                 }, "primary"),
-                btn(l("Quét Modbus", "Modbus"), () => {
+                btn(l("Profile / thanh ghi", "Profiles / registers"), () => {
                   state.deviceTab = "inspector";
                   state.selectedInspectorDevice = d.id;
                   ui.render();
@@ -205,114 +206,9 @@ export async function renderDevicesMainWorkspace(ui) {
     renderFilteredDevices();
   }
 
-  // SUB-TAB 2: MODBUS REGISTER INSPECTOR
+  // Versioned model candidates; no brand-only presets or automatic network reads.
   if (currentTab === "inspector") {
-    let targetDeviceId = state.selectedInspectorDevice || (deviceList[0] ? deviceList[0].id : "inv_demo");
-
-    const selDev = e("select", "", "select-filter");
-    deviceList.forEach((d) => {
-      selDev.append(new Option(`${d.name} (${d.vendor} - ${d.model})`, d.id));
-    });
-    selDev.value = targetDeviceId;
-    selDev.onchange = () => { targetDeviceId = selDev.value; };
-
-    const inStartReg = e("input", "", "input-search");
-    inStartReg.value = "0x8800";
-    inStartReg.placeholder = "0x8800 hoặc 34816";
-
-    const inQty = e("input", "", "select-filter");
-    inQty.type = "number";
-    inQty.value = "10";
-    inQty.min = "1";
-    inQty.max = "100";
-
-    const inSlave = e("input", "", "select-filter");
-    inSlave.type = "number";
-    inSlave.value = "1";
-
-    const resultsArea = div("stack");
-
-    async function runInspect() {
-      resultsArea.replaceChildren(p(l("Đang kết nối và đọc thanh ghi Modbus RTU/TCP...", "Reading Modbus registers..."), "small muted"));
-      let addrStr = inStartReg.value.trim();
-      let startReg = addrStr.startsWith("0x") || addrStr.startsWith("0X") ? parseInt(addrStr, 16) : parseInt(addrStr, 10);
-      if (isNaN(startReg) || startReg < 0) {
-        alert(l("Địa chỉ thanh ghi không hợp lệ!", "Invalid register address!"));
-        return;
-      }
-
-      try {
-        const resp = await api(`/devices/${targetDeviceId}/modbus-inspect`, {
-          start_register: startReg,
-          quantity: parseInt(inQty.value, 10) || 10,
-          slave_id: parseInt(inSlave.value, 10) || 1,
-        });
-
-        const rows = (resp.registers || []).map((r) => [
-          badge(r.address_hex, "blue"),
-          r.address_dec.toString(),
-          e("span", r.hex_val, "monospace"),
-          r.uint16.toString(),
-          r.int16.toString(),
-          e("b", r.scaled_val),
-          div("",
-            e("b", r.parameter_name),
-            r.mapped ? badge(l("Khớp thanh ghi hãng", "Vendor Mapped"), "good") : badge(l("Chưa gán", "Raw"), "gray")
-          ),
-        ]);
-
-        resultsArea.replaceChildren(
-          div("row justify-between",
-            div("row",
-              badge(`Thiết bị: ${targetDeviceId}`, "blue"),
-              badge(`Slave ID: ${inSlave.value}`, "gray"),
-              badge(`Số thanh ghi: ${rows.length}`, "good")
-            ),
-            btn(l("Xuất JSON", "Export JSON"), () => {
-              const blob = new Blob([JSON.stringify(resp, null, 2)], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `modbus_dump_${targetDeviceId}.json`;
-              a.click();
-            }, "secondary")
-          ),
-          table(
-            [l("Địa chỉ (Hex)", "Hex Addr"), l("Địa chỉ (Dec)", "Dec Addr"), l("Raw Hex", "Raw Hex"), "UInt16", "Int16", l("Giá trị quy đổi", "Scaled Value"), l("Tên thông số kỹ thuật (Vendor Mapping)", "Parameter Description")],
-            rows
-          )
-        );
-      } catch (err) {
-        resultsArea.replaceChildren(p(`${l("Lỗi đọc thanh ghi:", "Inspection error:")} ${err.message}`, "bad small"));
-      }
-    }
-
-    const inspectorBar = div("gis-controls-bar",
-      div("row",
-        div("field-inline", e("label", l("Thiết bị:", "Device:")), selDev),
-        div("field-inline", e("label", l("Địa chỉ bắt đầu:", "Start Reg:")), inStartReg),
-        div("field-inline", e("label", l("Số lượng:", "Qty:")), inQty),
-        div("field-inline", e("label", l("Slave ID:", "Slave:")), inSlave),
-        btn(l("Đọc thanh ghi Modbus", "Read Registers"), runInspect, "primary")
-      )
-    );
-
-    const presetsBar = div("row",
-      e("span", l("Dải thanh ghi mẫu:", "Presets:"), "small muted"),
-      btn("GoodWe Telemetry (0x8800)", () => { inStartReg.value = "0x8800"; inQty.value = "16"; runInspect(); }, "secondary small"),
-      btn("Deye Hybrid (0x0200)", () => { inStartReg.value = "0x0200"; inQty.value = "16"; runInspect(); }, "secondary small"),
-      btn("Sungrow Inverter (0x1300)", () => { inStartReg.value = "0x1300"; inQty.value = "12"; runInspect(); }, "secondary small"),
-      btn("Huawei SUN2000 (0x7500)", () => { inStartReg.value = "0x7500"; inQty.value = "10"; runInspect(); }, "secondary small")
-    );
-
-    container.append(
-      notice(l("Chế độ kiểm tra thanh ghi Modbus RTU/TCP trực tiếp (Chỉ đọc). Dữ liệu được đối chiếu với từ điển thanh ghi chuẩn hóa vendor_registers.py.", "Direct Modbus RTU/TCP Register Inspector (Read-only). Data cross-referenced with vendor_registers.py.")),
-      inspectorBar,
-      presetsBar,
-      resultsArea
-    );
-
-    runInspect();
+    container.append(await renderModelLibrary(ui, deviceList));
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -345,7 +241,7 @@ export async function renderDevicesMainWorkspace(ui) {
     });
 
     container.append(
-      notice(l("9 Nhóm tham số Native của thiết bị được bảo vệ bởi cơ chế an toàn cấp công nghiệp. Toàn bộ lệnh cấu hình phần cứng đều cần fresh readback và chữ ký nghiệm thu.", "9 Native parameter groups are protected by industrial hardware safety gates. All hardware modifications require fresh readback and commissioned sign-off.")),
+      notice("9 Nhóm tham số Native của thiết bị được bảo vệ bởi cơ chế an toàn cấp công nghiệp. Toàn bộ lệnh cấu hình phần cứng đều cần fresh readback và chữ ký nghiệm thu.", "9 Native parameter groups are protected by industrial hardware safety gates. All hardware modifications require fresh readback and commissioned sign-off."),
       groupsList
     );
   }
@@ -367,13 +263,13 @@ export async function renderDevicesMainWorkspace(ui) {
           badge(d.health_score == null ? l("Chưa đánh giá", "Not assessed") : `${d.health_score}/100`)
         ),
         div("plant-card-metrics",
-          div("fact", e("span", l("Giờ vận hành tích lũy:", "Operating Hours:")), e("b", "14,280 h")),
-          div("fact", e("span", l("Số chu kỳ nạp/xả:", "Battery Cycles:")), e("b", d.type === "BATTERY" ? "642 cycles (SOH 98%)" : "N/A")),
+          div("fact", e("span", l("Giờ vận hành tích lũy:", "Operating Hours:")), e("b", "—")),
+          div("fact", e("span", l("Số chu kỳ nạp/xả:", "Battery Cycles:")), e("b", "—")),
           div("fact", e("span", l("Nhiệt độ cuộn dây:", "Winding Temp:")), e("b", `${number(d.temp_c)} °C`)),
           div("fact", e("span", l("Tỷ lệ sẵn sàng Uptime:", "Availability Uptime:")), e("b", "—", "green-text"))
         ),
         div("stack",
-          div("fact", e("span", l("Hạn bảo hành:", "Warranty:")), e("span", "2031-12-31 (Còn 5 năm)")),
+          div("fact", e("span", l("Hạn bảo hành:", "Warranty:")), e("span", l("Chưa có hồ sơ", "No recorded warranty"))),
           div("fact", e("span", l("Tiêu chuẩn:", "Compliance:")), e("span", l("Chưa nghiệm thu", "Not accepted")))
         )
       );
@@ -402,17 +298,15 @@ export async function renderDevicesMainWorkspace(ui) {
         r.model,
         badge(r.installed_version, "blue"),
         e("b", r.latest_release),
-        badge(r.compliance_status === "COMPLIANT" ? l("Đạt chuẩn", "Compliant") : l("Có bản cập nhật", "Update Available"), r.compliance_status === "COMPLIANT" ? "good" : "warn"),
+        badge(r.compliance_status === "COMPLIANT" ? l("Đạt chuẩn", "Compliant") : l("Chưa xác minh", "Unverified"), r.compliance_status === "COMPLIANT" ? "good" : "warn"),
         r.release_date,
-        e("span", r.sha256_hash.slice(0, 16) + "…", "monospace small"),
-        btn(r.compliance_status === "COMPLIANT" ? l("Kiểm tra lại", "Verify") : l("Nạp hàng đợi OTA", "Queue OTA"), () => {
-          alert(l(`Đã lên lịch kiểm tra / hàng đợi OTA cho ${r.device_name}.`, `Scheduled for ${r.device_name}.`));
-        }, "secondary")
+        e("span", r.sha256_hash ? r.sha256_hash.slice(0, 16) + "…" : "—", "monospace small"),
+        btn(l("Mở hồ sơ bảo trì", "Open maintenance records"), () => go('incidents', 'health'), "secondary")
       ])
     );
 
     container.append(
-      notice(l("Ma trận tuân thủ firmware toàn hạm đội. Mọi gói cập nhật OTA đều bắt buộc xác minh mã băm SHA-256 của nhà sản xuất trước khi nạp vào hàng đợi.", "Fleet firmware compliance matrix. All OTA packages must verify manufacturer SHA-256 hash before entering deployment queue.")),
+      notice("Ma trận tuân thủ firmware toàn hạm đội. Mọi gói cập nhật OTA đều bắt buộc xác minh mã băm SHA-256 của nhà sản xuất trước khi nạp vào hàng đợi.", "Fleet firmware compliance matrix. All OTA packages must verify manufacturer SHA-256 hash before entering deployment queue."),
       card(l("Bảng ma trận firmware & kiểm định an toàn phần mềm nhúng", "Firmware Compliance Matrix & Safety Verification"), fwTable)
     );
   }

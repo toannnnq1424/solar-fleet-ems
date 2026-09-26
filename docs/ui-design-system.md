@@ -19,6 +19,10 @@ Do not reproduce example account emails, plant counts, successful diagnostics, t
 
 Printed reports reuse `app.css` with `.report-document` content and the global `@media print` rules. Print is an output mode of the shared design system, not a separately branded route.
 
+## Shared energy flow
+
+Site overview and device monitoring both use [energy-flow.js](../src/solar_fleet/static/energy-flow.js). SVG geometry is code; motion/colors/layout remain in global app.css. Flow direction requires fresh accepted measurements; stale/unknown values stop motion. Table view, pause/fullscreen, reduced-motion preference and narrow layouts share the same component. Source-to-load allocation and electrical topology are not inferred from total power readings.
+
 ## Change process
 
 Implement reusable styles in `app.css`; reuse an existing primitive before introducing another. New pages must not add `<style>`, stylesheet links or `element.style` declarations. Geometry of plots may use SVG attributes; styling still belongs to the global system. Final QA checks multiple routes and viewport widths in one consolidated pass.

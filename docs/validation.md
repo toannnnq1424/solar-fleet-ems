@@ -2,11 +2,12 @@
 
 [README dự án](../README.md) · [Mục lục tài liệu](README.md) · [Trạng thái hiện tại](implementation-status.md)
 
-## Latest recorded validation — 25 September 2026
+## Latest recorded validation — 27 September 2026
 
 | Snapshot | Executed evidence | Limits |
 |---|---|---|
-| [Mapping / navigation, 25 September](mapping-validation-2026-09-25.md) | 450 backend tests passed; 13 browser tests before navigation repair; 8 affected browser cases after repair, including one new case; Ruff, 29 JS modules, wheel/sdist and focused visual QA | 14 unique browser cases currently exist; do not add reruns. No live vendor or hardware acceptance, and not full 26-screen QA |
+| [Legacy reuse / flow, 27 September](legacy-validation-2026-09-27.md) | 535 unique backend cases across full run and affected rerun; 17 browser cases after shared CSS repair, with focused flow layout follow-up; package and provenance checks | No customer/vendor/hardware acceptance; visual QA remains selected workflows |
+| [Mapping / navigation, 25 September](mapping-validation-2026-09-25.md) | 450 backend tests passed; 13 browser tests before navigation repair; 8 affected browser cases after repair, including one new case; Ruff, 29 JS modules, wheel/sdist and focused visual QA | 14 unique browser cases existed at that snapshot; do not add reruns. No live vendor or hardware acceptance, and not full 26-screen QA |
 | [Eybond, 24 September](eybond-validation-2026-09-24.md) | Read connector/workflow, browser, package and QA evidence scoped to that earlier snapshot | Source-time/model mapping/control remain unaccepted |
 | [Adapter/workspace audit, 23 September](audit-validation-2026-09-23.md) | Contract corrections, backend/browser checks and package evidence for the audit snapshot | Superseded for current totals by the later records |
 

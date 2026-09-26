@@ -2,10 +2,11 @@
 
 Nền tảng O&M/EMS đa hãng cho quản lý nhà máy điện mặt trời, viết bằng Python/FastAPI và JavaScript ES modules. Giao diện tiếng Việt/English dùng chung sidebar và một hệ thống style toàn cục.
 
-**Trạng thái ngày 25/09/2026: bản pilot 0.2.0, chưa phải sản phẩm trưởng thành theo đủ 26 mockup.** Đã có tám luồng đọc cloud với mức độ khác nhau; chưa có profile phần cứng khách hàng được nghiệm thu để bật điều khiển. Thiếu dữ liệu được hiển thị là chưa xác định, không thay bằng số liệu mẫu.
+**Trạng thái ngày 27/09/2026: bản pilot 0.2.0, chưa phải sản phẩm trưởng thành theo đủ 26 mockup.** Đã có tám luồng đọc cloud với mức độ khác nhau; chưa có profile phần cứng khách hàng được nghiệm thu để bật điều khiển. Thiếu dữ liệu được hiển thị là chưa xác định, không thay bằng số liệu mẫu.
 
 - [Trạng thái triển khai](docs/implementation-status.md): luồng đã nối BE/FE và giới hạn hiện tại.
 - [Đối chiếu 26 mockup](docs/mockup-coverage.md): từng màn hình, phạm vi dự toán → mã hiện có → phần chưa xây → điều kiện hoàn thành, số dòng BE/FE/test đo được.
+- [Tái sử dụng 30 dự án cũ](docs/legacy-project-audit.md) và [model / Home Assistant / energy flow](docs/model-library-and-home-assistant.md).
 - [Mục lục tài liệu](docs/README.md): tài liệu hiện hành, thiết kế đích, nghiên cứu và các bản kiểm thử theo ngày.
 - [Kết quả kiểm thử](docs/validation.md) và [thay đổi bản 0.2](docs/release-0.2.md).
 
@@ -46,6 +47,8 @@ Vào **Cài đặt & Hãng → Kết nối hãng**. Chọn đúng platform/vùng
 
 Polling dùng nhịp controller cơ sở 120 giây, giới hạn batch và ngân sách theo adapter. Eybond có khoảng tối thiểu 300 giây; nhịp thực tế có thể lâu hơn do tick/quota. Không coi đây là telemetry realtime ở cấp thiết bị hoặc SLA fleet lớn. WebSocket chỉ báo dữ liệu trong controller đã thay đổi.
 
+Thư viện model và kết nối Home Assistant dùng [hướng dẫn collector](docs/model-library-and-home-assistant.md). Model catalogue là bằng chứng cộng đồng, không tự mở quyền điều khiển.
+
 ### Kết nối Deye bằng CLI, nếu cần
 
 Dừng controller bằng Ctrl+C trước khi dùng lệnh quản trị:
@@ -66,10 +69,11 @@ Dừng controller bằng Ctrl+C trước khi dùng lệnh quản trị:
 | Giao diện chung | 15 mục sidebar, một site scope, VI/EN, shared form/table/dialog và `app.css`; [route và subtab chuẩn](docs/sidebar-subtabs-architecture.md) |
 | Nhà máy / thiết bị / dữ liệu | Hồ sơ, khách hàng, topology records, inventory/binding, native telemetry, nguồn/độ mới, lịch sử có giới hạn, weather khi có GPS |
 | Ánh xạ dữ liệu | Chọn trường đã quan sát → đơn vị/chiều đo → mô phỏng → phiên bản → duyệt độc lập; duyệt chưa kích hoạt canonical profile |
-| Điều khiển / TOU / EMS | Capability, preview/diff/confirm, khóa/idempotency, order/readback/journal; lịch nháp và compile, canary/rollout; EMS dry-run và monitor-only |
+| Thư viện model / sơ đồ | 41 profile cộng đồng, 913 decoder trong 3.145 field; energy flow dùng chung site/device, animation theo chiều và độ mới; đây chưa phải nghiệm thu model |
+| Điều khiển / TOU / EMS | Capability, preview/diff/confirm, khóa/idempotency, order/readback/journal; lịch nháp và compile, canary/rollout; EMS dry-run, monitor-only và baseline EWMA 24h từ lịch sử đủ điều kiện |
 | Cảnh báo / bảo trì | Correlation, lọc/phân công/ghi chú/timeline/SLA/playbook → phiếu bảo trì → kế hoạch/checklist/time → review độc lập |
 | Báo cáo / quản trị | Artifacts CSV/XLSX/HTML theo scope/kỳ, local users/site RBAC, session revoke, vault/API keys và audit |
-| Local Agent | Enrollment/ingest, sequence/replay, SQLite outbox; collector SOLARMAN V5 đọc theo profile được chỉ định |
+| Local Agent | Enrollment/ingest, sequence/replay, SQLite outbox; collector Modbus TCP/SOLARMAN V5 theo model digest; cầu sensor Home Assistant cùng pipeline; CLI chạy từng lần |
 
 Mọi lệnh vật lý đi qua cùng command engine. Form chỉ có thể gửi khi có quyền, exact identity/profile, constraints và readback đạt yêu cầu; bật `SOLAR_WRITES_ENABLED=true` một mình không mở khóa. Deye là compiler intent duy nhất được đăng ký hiện tại, cũng chưa được nghiệm thu trên phần cứng khách hàng.
 
@@ -78,7 +82,7 @@ Mọi lệnh vật lý đi qua cùng command engine. Form chỉ có thể gửi 
 - Canonical model profiles, native schemas/enum/unit/sign và control/readback được nghiệm thu cho từng inverter/logger/firmware/tài khoản; các getter config cached chưa chứng minh dữ liệu mới từ thiết bị.
 - History/backfill/alarm ingestion xuyên suốt mọi hãng; mapping profile activation và failover được kiểm tra trên mọi màn hình.
 - EMS dispatch/optimizer, lịch chạy tự động theo model, điều khiển fleet thực và offline policies.
-- Agent service, bộ driver RTU/TCP, mTLS/rotation, discovery, managed update; OTA firmware và cấu hình mạng thực.
+- Agent service, bộ driver RTU và coverage TCP theo model đầy đủ, mTLS/rotation, discovery, managed update; OTA firmware và cấu hình mạng thực.
 - Time-series dài hạn, multi-tenant/SSO/MFA, scale/recovery, audit checkpoint ngoài máy. Pilot giữ tối đa 7 ngày / 200.000 điểm telemetry.
 - Toàn bộ chart/topology/GIS, native UI, PDF/email/notification, commissioning điện/chữ ký/evidence upload, visual/usability/accessibility QA đủ 26 mockup.
 
@@ -118,6 +122,6 @@ node --experimental-vm-modules scripts/check-ui.cjs
 
 Node chỉ dùng cho kiểm tra module JS. Lệnh `pytest -q` mặc định chạy BE; browser suite cần lệnh riêng. [Browser contract](docs/browser-test-contract.md) mô tả isolation và phạm vi. [CI hiện tại](.github/workflows/checks.yml) chạy BE/lint/JS/build trên Windows/Linux, **chưa chạy browser suite hoặc toàn bộ kiểm tra format**.
 
-[Đợt kiểm thử 25/09](docs/mapping-validation-2026-09-25.md): 450 test BE pass; 13 test browser pass trước sửa navigation, sau đó 8 ca bị ảnh hưởng pass, gồm một ca mới. Không cộng 13+8 thành số test duy nhất. Wheel/sdist và QA của luồng sửa đã được kiểm tra; đây không phải nghiệm thu toàn sản phẩm hoặc thiết bị.
+[Đợt kiểm thử 27/09](docs/legacy-validation-2026-09-27.md) ghi kết quả BE, browser, sửa lỗi CSS/global layout, wheel/sdist và QA có giới hạn. Không cộng các lần rerun thành số test duy nhất; đây không phải nghiệm thu toàn sản phẩm hoặc thiết bị.
 
 Đo lại LOC bằng `python scripts/measure_code.py --update-doc`; số hiện tại chỉ duy trì tại [bảng bao phủ](docs/mockup-coverage.md) và [manifest từng file](docs/evidence/code-inventory.json). Xem [quy trình đóng góp](AGENTS.md), [hệ thống UI chung](docs/ui-design-system.md), [điều kiện hardware acceptance](docs/hardware-acceptance.md) và [thông báo nguồn mở](THIRD_PARTY_NOTICES.md) trước khi mở rộng.

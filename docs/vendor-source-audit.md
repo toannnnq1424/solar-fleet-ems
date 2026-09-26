@@ -1,8 +1,10 @@
-> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 57 unique IDs, including explicitly withdrawn claims.
+> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 61 unique IDs, including explicitly withdrawn claims.
 
 # Vendor source audit
 
-> Current implementation is indexed in [multi-vendor contracts](multivendor-contracts.md), including the later [Eybond read connector](eybond-read-integration.md). The [registry](evidence/source-registry.json) currently has 57 unique IDs, including withdrawn claims. Source entries below retain their observation dates; their old counts are historical. [Documentation index](README.md).
+Current 27 September addition: [30-project review](legacy-project-audit.md), [model/HA implementation](model-library-and-home-assistant.md), four pinned MIT source bundles in the [source lock](../src/solar_fleet/data/model-source-lock.json). Registry IDs ha-solarman-models, glance-modbus-models, sungrow-ha-models and sem-hourly-baseline are community evidence, not hardware acceptance.
+
+> Current implementation is indexed in [multi-vendor contracts](multivendor-contracts.md), including the later [Eybond read connector](eybond-read-integration.md). The [registry](evidence/source-registry.json) currently has 61 unique IDs, including withdrawn claims. Source entries below retain their observation dates; their old counts are historical. [Documentation index](README.md).
 
 Bổ sung ngày 13/09 sau baseline: [DEYE_UI_OBS_001 — quan sát phiên Deye Cloud có xác thực](deye-account-observation.md), cấp E. Chỉ xác nhận các metadata/menu được thấy ở một thiết bị; không thay official API contract hoặc hardware acceptance. Registry tại thời điểm bổ sung đó có 38 mục, không phải tổng hiện tại.
 

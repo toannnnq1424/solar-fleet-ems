@@ -49,3 +49,4 @@ websockets==16.1.1
 pysolarmanv5==3.0.6
 umodbus==1.0.4
 pyserial==3.5
+PyYAML==6.0.3

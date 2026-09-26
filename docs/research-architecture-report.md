@@ -1,4 +1,4 @@
-> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 57 unique IDs, including explicitly withdrawn claims.
+> **Historical snapshot — superseded for current implementation.** See [23 September adapter audit](vendor-adapter-audit-2026-09-23.md) and [26-screen coverage](mockup-coverage.md). Counts and completion claims below describe an older state; they are not current acceptance. Current registries are synchronized with 61 unique IDs, including explicitly withdrawn claims.
 
 # Nghiên cứu và kiến trúc Solar Fleet EMS
 

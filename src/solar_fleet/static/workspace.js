@@ -1,3 +1,4 @@
+import { energyFlowCard } from './energy-flow.js';
 import { nativeDevice } from "./native-device.js";
 import { createLiveFeed } from "./live.js";
 import {
@@ -669,6 +670,7 @@ async function updateLive() {
   if (!livePending || !state.me || liveBusy) return;
   if (
     document.hidden ||
+    document.fullscreenElement ||
     document.querySelector("dialog[open]") ||
     document.activeElement?.matches("input,select,textarea") ||
     !["overview", "devices"].includes(state.page) ||
@@ -680,6 +682,12 @@ async function updateLive() {
   liveBusy = true;
   try {
     await load();
+    // A fullscreen diagram is a reading snapshot. Keep its DOM and freshness
+    // timer intact if a stream refresh started just before entering fullscreen.
+    if (document.fullscreenElement) {
+      livePending = true;
+      return;
+    }
     await render();
   } catch {
     /* Existing API handler owns session errors. */
@@ -689,6 +697,9 @@ async function updateLive() {
 }
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) updateLive();
+});
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) updateLive();
 });
 window.addEventListener("beforeunload", () => live.stop());
 async function load() {
@@ -1413,6 +1424,11 @@ async function deviceDetail(id, tab = "data") {
     ),
   );
   if (tab === "data") {
+    const monitoring = await api('/journal/realtime/' + encodeURIComponent(id));
+    root.append(energyFlowCard({ e, div, p, btn, card, badge }, monitoring.energy_flow, target => {
+      if (target === 'control') deviceDetail(id, 'control');
+      else { closeDialog(); state.site = d.site_id; go('overview', target, 'main'); }
+    }));
     root.append(
       div(
         "grid",

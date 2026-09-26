@@ -329,6 +329,8 @@ def install_data_workspace(app, controller, user, admin):
             if namespace:
                 native_labels.setdefault(f"{namespace}.{key}", []).append(point.get("title") or key)
         channels = []
+        from .model_library import native_label
+
         for sample in latest["samples"]:
             if sample["binding_id"] not in binding_ids:
                 continue
@@ -353,7 +355,9 @@ def install_data_workspace(app, controller, user, admin):
                             "binding_id",
                         )
                     },
-                    "label": labels[0] if len(labels) == 1 else sample["metric"],
+                    "label": labels[0]
+                    if len(labels) == 1
+                    else native_label(sample["metric"]) or sample["metric"],
                     "selectable": sample["unit"] in UNITS
                     and bool(re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", sample["metric"])),
                 }

@@ -2,7 +2,7 @@
 
 [README dự án](../README.md) · [Trạng thái code](implementation-status.md) · [Bao phủ 26 mockup và LOC](mockup-coverage.md) · [Kiểm thử](validation.md)
 
-Cập nhật 25/09/2026. Mục lục này phân biệt **code hiện có**, **thiết kế cần đạt**, **nghiên cứu theo thời điểm** và **kết quả đã chạy**. Một quyết định kiến trúc hoặc endpoint có tài liệu không chứng minh chức năng đã hoàn thành.
+Cập nhật 27/09/2026. Mục lục này phân biệt **code hiện có**, **thiết kế cần đạt**, **nghiên cứu theo thời điểm** và **kết quả đã chạy**. Một quyết định kiến trúc hoặc endpoint có tài liệu không chứng minh chức năng đã hoàn thành.
 
 ## Sản phẩm và tiến độ hiện tại
 
@@ -36,7 +36,9 @@ Bắt đầu ở [hợp đồng đa hãng hiện tại](multivendor-contracts.md
 | [Eybond / SmartESS](eybond-read-integration.md) | DessMonitor/ShineMonitor, session signing, inventory/native data, phần chưa xây |
 | [Bluesun](bluesun-integration.md) | Tách brand/model/OEM/logger/platform; cloud routing và optional local collector |
 | [Source audit](vendor-source-audit.md) | Nguồn theo ngày, applicability và các kết luận đã thu hồi |
-| [Source registry](evidence/source-registry.json) | 57 ID nguồn, gồm record đã thu hồi; đồng bộ với [registry đóng gói](../src/solar_fleet/data/source-registry.json) |
+| [Rà soát 30 dự án cũ](legacy-project-audit.md) | Quyết định từng dự án, license, nguồn ghim, phần đã port và phần chưa xây |
+| [Model / Home Assistant](model-library-and-home-assistant.md) | Collector TCP/V5, sensor bridge, forecast baseline và energy flow chung |
+| [Source registry](evidence/source-registry.json) | 61 ID nguồn, gồm record đã thu hồi; đồng bộ với [registry đóng gói](../src/solar_fleet/data/source-registry.json) |
 | [Compatibility matrix](vendor-compatibility-matrix.md) | Baseline nghiên cứu 10 phạm vi; không phải danh sách adapter đã nghiệm thu |
 | [Vendor matrix JSON](evidence/vendor-matrix.json) | Dữ liệu nghiên cứu baseline, không phải runtime support registry |
 | [Universal control mapping](universal-control-mapping.md) | Candidate Deye và khoảng semantic chưa xác minh |
@@ -49,7 +51,8 @@ Bắt đầu ở [hợp đồng đa hãng hiện tại](multivendor-contracts.md
 
 [Validation index](validation.md) là điểm vào kết quả thực thi. [Browser contract](browser-test-contract.md) mô tả cách chạy và isolation.
 
-- [25/09 — Mapping và navigation](mapping-validation-2026-09-25.md): đợt mới nhất, 450 BE; 13 browser trước sửa UI, 8 ca rerun gồm một ca mới; build và QA có giới hạn.
+- [27/09 — Legacy reuse và energy flow](legacy-validation-2026-09-27.md): đợt mới nhất; model/agent/HA/baseline, CSS global và browser QA.
+- [25/09 — Mapping và navigation](mapping-validation-2026-09-25.md): snapshot trước, 450 BE; 13 browser trước sửa UI, 8 ca rerun gồm một ca mới; build và QA có giới hạn.
 - [24/09 — Eybond](eybond-validation-2026-09-24.md): contract/workflow và package của snapshot trước đó.
 - [23/09 — Adapter/workspace audit](audit-validation-2026-09-23.md): kết quả snapshot theo ngày.
 - [13/09 — Baseline 0.1](validation.md#historical-validation-010): giữ số liệu lịch sử, không dùng làm kết quả bản hiện tại.

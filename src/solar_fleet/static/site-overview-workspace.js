@@ -1,3 +1,5 @@
+import { energyFlowCard } from './energy-flow.js';
+import { renderModelLibrary } from './model-workspace.js';
 import { measurementChart } from './measurement-chart.js';
 import { renderControlMainWorkspace } from './control-workspace.js';
 import { renderReportWorkspace } from './report-workspace.js';
@@ -12,24 +14,7 @@ export function renderSubtabOverview(ctx, siteId, data) {
   const fact=(label,v)=>div('fact',e('span',label),e('b',v??'—'));
   const stateLabel=s=>({UNKNOWN:l('Chưa xác định','Unknown'),ENROLLED:l('Đã đăng ký; chưa xác minh online','Enrolled; online unverified'),NOT_ENROLLED:l('Chưa đăng ký','Not enrolled'),ONLINE:l('Có dữ liệu mới','Fresh data'),OFFLINE:l('Ngoại tuyến','Offline')})[s]||s||l('Chưa xác định','Unknown');
   const ef=data.energy_flow||{}, ps=data.plant_status||{};
-  const flow=card(l('Sơ đồ năng lượng realtime','Realtime energy flow'));
-  const diagram=div('flow-diagram');
-  const direction=(v,positive,negative)=>v==null?l('Chưa có số đo','No measurement'):v>0?positive:v<0?negative:l('Không có dòng công suất','No power flow');
-  for(const [type,label,reading,sub,tab] of [
-    ['pv',l('Điện mặt trời','Solar PV'),ef.pv_w,'PV','data'],
-    ['bat',l('Pin / BMS','Battery / BMS'),ef.battery_w,`${direction(ef.battery_w,l('Sạc','Charging'),l('Xả','Discharging'))} · SOC ${value(ef.battery_soc,'%')}`,'control'],
-    ['grid',l('Lưới điện','Grid'),ef.grid_w,direction(ef.grid_w,l('Nhập lưới','Import'),l('Xuất lưới','Export')),'data'],
-    ['load',l('Tải tiêu thụ','Load'),ef.load_w,l('Tại công trình','At site'),'data'],
-    ['gen','EPS / Backup',ef.eps_w,l('Chưa xác minh sẵn sàng dự phòng','Backup readiness unverified'),'devices'],
-  ]) {
-    const node=btn('',()=>to(tab),`flow-node ${type}`);
-    node.append(div('flow-node-title',label),div('flow-node-val',value(reading==null?null:Math.abs(reading),'W')),div('flow-node-sub',sub));
-    diagram.append(node);
-  }
-  flow.append(div('toolbar',p(l('Chỉ hiển thị số đo đạt yêu cầu về nguồn, đơn vị và độ mới.','Only observations with accepted source, unit and freshness are shown.')),
-    btn(l('Đổi chế độ hiển thị','Change display mode'),()=>diagram.classList.toggle('overview-kpis')),
-    btn(l('Toàn màn hình','Fullscreen'),()=>flow.classList.toggle('is-fullscreen'))),diagram,btn(l('Xem số đo và nguồn','Inspect readings and sources'),()=>to('data'),'link'));
-  root.append(flow);
+  root.append(energyFlowCard(ctx, ef, to));
   const presets={self_consumption:l('Tự tiêu thụ','Self consumption'),zero_export:l('Không phát lưới','Zero export'),battery_first:l('Ưu tiên pin','Battery first'),backup_eps:l('Dự phòng EPS','EPS backup')};
   root.append(card(l('Điều khiển nhanh','Quick control'),p(l('Chọn thiết bị và xem khả năng hỗ trợ trước khi xác nhận lệnh.','Select equipment and review its capabilities before confirming a command.')),
     div('preset-grid',...(data.quick_presets||[]).map(item=>div('preset-item',e('b',presets[item.id]||item.id),badge(l('Cần cấu hình theo thiết bị','Device configuration required'),'warn'),btn(l('Cấu hình chi tiết','Detailed configuration'),()=>to('control')))))),
@@ -146,43 +131,10 @@ export async function renderSubtabDevices(ctx, siteId) {
   const inspectorCard = div("stack");
   container.append(inspectorCard);
 
-  async function inspectVendorRegisters(brand) {
-    inspectorCard.replaceChildren(e("p", l("Đang giải mã bản đồ thanh ghi Modbus hãng…", "Decoding vendor Modbus registers…"), "small muted"));
-    try {
-      const res = await api(`/vendor-registers/${encodeURIComponent(brand)}`);
-      const brandsList = ["GoodWe", "Sungrow", "Huawei", "Growatt", "Solis", "Deye"];
-      const brandPills = div("brand-pills-row",
-        ...brandsList.map((bName) => {
-          const pBtn = e("button", bName, "brand-pill" + (res.brand.toLowerCase().includes(bName.toLowerCase()) ? " active" : ""));
-          pBtn.onclick = () => inspectVendorRegisters(bName);
-          return pBtn;
-        })
-      );
-
-      inspectorCard.replaceChildren(
-        card(
-          `${l("Trình tra cứu thanh ghi Modbus hãng:", "Modbus Register Map:")} ${res.brand}`,
-          brandPills,
-          e("p", l(
-            "Địa chỉ thanh ghi holding registers 0x03/0x10, kiểu dữ liệu, hệ số tỉ lệ (scale factor) và bảng giải mã lỗi tiếng Việt.",
-            "Holding register offsets, data types, scales, and Vietnamese fault decoders."
-          ), "small muted"),
-          table(
-            [l("Địa chỉ", "Address"), l("Tên biến", "Variable"), l("Mô tả kỹ thuật", "Description"), l("Đơn vị", "Unit"), l("Hệ số", "Scale"), l("Kiểu", "Type")],
-            (res.registers || []).slice(0, 12).map((r) => [
-              e("code", r.address),
-              e("b", r.name),
-              r.desc,
-              r.unit || "—",
-              r.scale || "1.0",
-              badge(r.type || "uint16"),
-            ])
-          )
-        )
-      );
-    } catch (err) {
-      inspectorCard.replaceChildren(e("p", `${l("Lỗi:", "Error:")} ${err.message}`, "small bad"));
-    }
+  async function inspectVendorRegisters() {
+    inspectorCard.replaceChildren(e('p', l('Đang tải thư viện model…', 'Loading model library…')));
+    try { inspectorCard.replaceChildren(await renderModelLibrary(ctx, siteDevices)); }
+    catch (err) { inspectorCard.replaceChildren(e('p', err.message, 'bad')); }
   }
 
   return container;

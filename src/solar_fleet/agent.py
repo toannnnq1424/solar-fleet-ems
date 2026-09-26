@@ -245,6 +245,10 @@ def main():
         "collect-solarman", help="Read explicit reviewed register blocks and queue raw values"
     )
     local.add_argument("--profile", type=Path, required=True)
+    model = sub.add_parser("collect-model", help="Read selected fields from a pinned community model profile")
+    model.add_argument("--profile", type=Path, required=True)
+    ha = sub.add_parser("collect-home-assistant", help="Read selected HA sensors; token from SOLAR_HA_TOKEN")
+    ha.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args()
     args.spool.parent.mkdir(parents=True, exist_ok=True)
     outbox = Outbox(args.spool)
@@ -259,6 +263,17 @@ def main():
 
             profile = CollectionProfile.model_validate_json(args.profile.read_text(encoding="utf-8"))
             points = collect(profile)
+            print("Queued sequence", outbox.enqueue(profile.agent_id, points))
+        elif args.command == "collect-model":
+            from .local_models import ModelCollectionProfile, collect_model
+
+            profile = ModelCollectionProfile.model_validate_json(args.profile.read_text(encoding="utf-8"))
+            print("Queued sequence", outbox.enqueue(profile.agent_id, collect_model(profile)))
+        elif args.command == "collect-home-assistant":
+            from .home_assistant_bridge import HomeAssistantProfile, collect_home_assistant
+
+            profile = HomeAssistantProfile.model_validate_json(args.profile.read_text(encoding="utf-8"))
+            points = collect_home_assistant(profile, os.environ.get("SOLAR_HA_TOKEN", ""))
             print("Queued sequence", outbox.enqueue(profile.agent_id, points))
         else:
             token = os.environ.get("SOLAR_AGENT_TOKEN")

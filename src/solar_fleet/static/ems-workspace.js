@@ -32,5 +32,22 @@ export async function renderEmsWorkspace(ui) {
       s.name,s.status,s.targets.map(d=>d.device_id+': '+d.state+' · '+d.reason).join('; ')||l('Chưa có thiết bị','No devices')])));
   });
   root.append(card(l("Tương thích đa hãng","Multi-vendor compatibility"),field(l("Chức năng","Intent"),intent),assess,result));
+  const forecastDevices=(state.fleet.devices||[]).filter(d=>!state.site||d.site_id===state.site);
+  const forecastDevice=select(forecastDevices.map(d=>[d.id,d.name||d.id]));
+  const forecastResult=div("stack");
+  root.append(card(l("Dự báo theo lịch sử", "Historical baseline forecast"),
+    p(l("Học theo ngày trong tuần và giờ từ dữ liệu W đã xác minh. Cần tối thiểu 3 ngày, 24 giờ đủ mẫu. Kết quả để tham khảo; không tự gửi lệnh.",
+      "Learn weekday/hour patterns from verified W observations. Requires at least 3 dates and 24 sufficiently sampled hours. Advisory results do not dispatch commands.")),
+    field(l("Thiết bị dự báo", "Forecast device"),forecastDevice),
+    btn(l("Tính dự báo 24 giờ", "Calculate 24-hour baseline"),async()=>{
+      if(!forecastDevice.value) {forecastResult.replaceChildren(p(l("Chọn thiết bị trước.","Choose a device first.")));return;}
+      try {
+        const value=await api(`/devices/${encodeURIComponent(forecastDevice.value)}/forecast-baseline`);
+        forecastResult.replaceChildren(...Object.entries(value.metrics).map(([metric,data])=>card(metric,
+          p(`${data.status} · ${data.training_days} ${l("ngày", "dates")} · ${data.training_hours} h`),
+          table([l("Giờ địa phương","Local time"),"W",l("Cơ sở dự báo","Basis")],data.points.map(point=>[
+            date(point.local_time),point.value_w===null?"—":Math.round(point.value_w).toString(),point.method])))));
+      } catch(err) {forecastResult.replaceChildren(p(err.message,"bad"));}
+    }),forecastResult));
   return root;
 }

@@ -1,0 +1,290 @@
+{
+  "review_date": "2026-09-27",
+  "root_label": "before_project",
+  "scope": "30 local projects; file/hash inventory and README review; deep semantic review only for selected implementation files",
+  "excluded_directory_names": [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    "venv"
+  ],
+  "license_and_reuse_decisions": "../legacy-project-audit.md",
+  "files": 16348,
+  "text_lines": 4052594,
+  "projects": [
+    {
+      "project": "batpred-main",
+      "files": 590,
+      "text_lines": 1173563,
+      "tree_sha256": "b50ccb65e1ca6d685632cf9b3521ab13e7abc112b645d79073f69d6b87bac780",
+      "license_files": [
+        "License.md"
+      ]
+    },
+    {
+      "project": "deye-inverter-mqtt-main",
+      "files": 120,
+      "text_lines": 14829,
+      "tree_sha256": "d1365b402dcafb9204e7f129061daaaa584f70d77408707461de87f37f9491f1",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "deye-modbus-ha-main",
+      "files": 26,
+      "text_lines": 3121,
+      "tree_sha256": "9e8cb99739f17461a6572735f7592ce34cee0de454c1fe8357753e65f349b770",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "emhass-master",
+      "files": 256,
+      "text_lines": 118964,
+      "tree_sha256": "0b122e93ccb157044472ef7bef66cc752cad705f8da7e5eb98bc500f8f6da785",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "esp-eybond-collector-main",
+      "files": 65,
+      "text_lines": 10019,
+      "tree_sha256": "4bcdd25e309103e0caa55813cef0957211e0e0a698ad09661a7a0b8d7a2912ba",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "evcc-master",
+      "files": 2708,
+      "text_lines": 401508,
+      "tree_sha256": "c27d69fccbda673101caf465b3ce8445def4ae79cfc4d8df68c6b46e60b52841",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "goodwe-master",
+      "files": 98,
+      "text_lines": 9991,
+      "tree_sha256": "b3d8743c5796cf693f511a7595b6ec2c456457ed0180d5a892d91ebd7652fb98",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "growatt_modbus-main",
+      "files": 30,
+      "text_lines": 4601,
+      "tree_sha256": "71a9bb2264f60fd1d33299903fa269fef2ac4e462183969dea22d9ea19a1103a",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "Growatt_ModbusTCP-main",
+      "files": 277,
+      "text_lines": 86642,
+      "tree_sha256": "9182d2da4aaee797aa0af2fb450a7ed8e42219927e412a69576e9dee75b40b13",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ha-dessmonitor-3b530bf34d91eef43ec2474d971019fa48c5ae16",
+      "files": 129,
+      "text_lines": 22935,
+      "tree_sha256": "2c784725a5e61d765608ebf844e740b79d9df7bb9b095664ec204b53ed5930d9",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ha-eybond-local-main",
+      "files": 855,
+      "text_lines": 337997,
+      "tree_sha256": "5b2534a14ae1c8c506c69512c9f49a639640040197e1900d2cdc02b390bd1e97",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ha-growatt-modbus-main",
+      "files": 37,
+      "text_lines": 4207,
+      "tree_sha256": "b36e1016d194893267e1a869bfd61ab22416840efa2cd95e251f15ecc6a9526d",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ha-smartess-local-master",
+      "files": 30,
+      "text_lines": 3455,
+      "tree_sha256": "0fd1f7766d4ab76cb94cd0d040e5c847092a697278e6d9fd8504d677a7d02538",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ha-solarman-main",
+      "files": 94,
+      "text_lines": 41585,
+      "tree_sha256": "f3129c9f615efa8de096bc14adfeba573ab800fddf203dfebb108cd3ba54e992",
+      "license_files": [
+        "license"
+      ]
+    },
+    {
+      "project": "home_assistant_solarman-main",
+      "files": 53,
+      "text_lines": 12932,
+      "tree_sha256": "b8a07a1685d0ff34dd66cd6b4e07e0a24c8b2c734c3f09cff0144e95d235811e",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "homeassistant-growatt-modbus-main",
+      "files": 111,
+      "text_lines": 16771,
+      "tree_sha256": "ede54ee321bb3297ebefa8fbc51b01c0521d8aa4f4103020ad2407a5d8d01357",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "huawei-solar-lib-develop",
+      "files": 58,
+      "text_lines": 12054,
+      "tree_sha256": "c111cd94c32c0f86902765eef3377ab68169ca0ab424b8a4bc55cb0ca365cb83",
+      "license_files": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "project": "huawei_solar-main",
+      "files": 64,
+      "text_lines": 34429,
+      "tree_sha256": "dc80a345247f71c5eccd7aa86cc91e5d2dd1a469923197ecbb22fc801f601a7a",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "ioBroker.goodwe-sems-main",
+      "files": 45,
+      "text_lines": 14646,
+      "tree_sha256": "e8af46f3876aab47c6e660e3b40457dd40f6733534578274b0d008b38deb5c71",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "openems-develop",
+      "files": 9161,
+      "text_lines": 996331,
+      "tree_sha256": "4a26735cc6dd41cd9dbc5aa46413bd266934d5179e94be240cc02f2c74d0edef",
+      "license_files": [
+        "LICENSE-AGPL-3.0",
+        "LICENSE-EPL-2.0"
+      ]
+    },
+    {
+      "project": "pygoodwe-main",
+      "files": 29,
+      "text_lines": 2782,
+      "tree_sha256": "ccb2d7202d74d877e2bed287052fcceb64c438ff5f5c64d899b924b8c5f0e118",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5",
+      "files": 46,
+      "text_lines": 5813,
+      "tree_sha256": "03f5fe934ac8f48bf2cf478e5be2ef24719724e4ce2bda7a12ea79c3329c554b",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "pysolarmanv5-8cfe84650f48f0803c32b3c4ca061364abd9cf49",
+      "files": 40,
+      "text_lines": 4144,
+      "tree_sha256": "b0b6a6b076a3e60f812b657c9f2471727676cbac0f11635fb1eea6a4ab9d09ea",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "sem-community-main",
+      "files": 891,
+      "text_lines": 328791,
+      "tree_sha256": "6f61e86e76c43783fd602379bea9f984b4595c088dedeccdcbbc0210b4f9f3ec",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "solar-inverter-modbus-registers-main",
+      "files": 5,
+      "text_lines": 681,
+      "tree_sha256": "ffa510f501dd60f50c110af32ea51fe4c69e495a0eae334935b91b14e03eb1a2",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "solis-modbus-ha-main",
+      "files": 12,
+      "text_lines": 2682,
+      "tree_sha256": "889b8101100437338cd604d72ca36a3de24c232f1fee1a7ef89bbfce3089a87f",
+      "license_files": []
+    },
+    {
+      "project": "solis2mqtt-main",
+      "files": 17,
+      "text_lines": 1547,
+      "tree_sha256": "732e5d9ccfb198189fe5e33575065ed15084935bf45eeaab367e242d75d7e469",
+      "license_files": [
+        "LICENSE.md"
+      ]
+    },
+    {
+      "project": "Sungrow-SHx-Inverter-Modbus-Home-Assistant-main",
+      "files": 67,
+      "text_lines": 13924,
+      "tree_sha256": "1d26a53694d8b45a88c491c751cf1fa071e40c57526a191969bcd6b9b9e74720",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "virtual-power-plant-main",
+      "files": 317,
+      "text_lines": 54379,
+      "tree_sha256": "5f2044953c2761202b3b9533a1f54fb382450b6f827efb662a41b3ddc3be70d4",
+      "license_files": [
+        "LICENSE"
+      ]
+    },
+    {
+      "project": "vpplib-dev",
+      "files": 117,
+      "text_lines": 317271,
+      "tree_sha256": "4204c2fce269ebdb777f28e82fce4272368fac463b52b2cfd3ce3b0dc95c77e5",
+      "license_files": [
+        "LICENSE.txt"
+      ]
+    }
+  ]
+}

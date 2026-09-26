@@ -5,7 +5,7 @@ is null, never an estimate based on nameplate capacity or a fabricated zero.
 """
 
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from .analytics import counter_delta
@@ -70,6 +70,82 @@ def difference(left, right):
     return left - right if left is not None and right is not None else None
 
 
+def flow_snapshot(channels, max_age_seconds=300, now=None):
+    """Attach source/freshness to each branch; net pairs must share a boundary.
+
+    Separate inverter and PCC meters may overlap: no site summation or invented
+    PV-to-load allocation. Five-second pairing tolerance matches discrepancy().
+    """
+    now = now or utcnow()
+    result, metadata = {}, {}
+
+    def select(metric, unit):
+        candidates = [c[metric] for c in channels if value(c, metric, unit) is not None]
+        if len(candidates) != 1:
+            return None, "AMBIGUOUS" if candidates else "MISSING"
+        row = candidates[0]
+        stamp = datetime.fromisoformat(row["source_timestamp"]) if row.get("source_timestamp") else None
+        if not stamp or stamp.tzinfo is None or row.get("quality") != "GOOD":
+            return None, "UNVERIFIED"
+        age = (now - stamp).total_seconds()
+        if age < -5 or age > max_age_seconds:
+            return None, "STALE"
+        if row["value"] < 0:
+            return None, "INVALID"
+        return row, "GOOD"
+
+    def record(key, rows, reason, reading):
+        result[key] = reading
+        metadata[key] = {
+            "quality": reason,
+            "sources": [
+                {k: row.get(k) for k in ("device_id", "binding_id", "source", "metric", "source_timestamp")}
+                for row in rows
+            ],
+            "valid_until": min(
+                (datetime.fromisoformat(row["source_timestamp"]) + timedelta(seconds=max_age_seconds))
+                for row in rows
+            ).isoformat()
+            if rows
+            else None,
+        }
+
+    for key, metric in POWER_FIELDS.items():
+        row, reason = select(metric, "%" if key == "battery_soc" else "W")
+        record(key, [row] if row else [], reason, row["value"] if row else None)
+    for key, left, right in (
+        ("grid_w", "grid_import_w", "grid_export_w"),
+        ("battery_w", "battery_charge_w", "battery_discharge_w"),
+    ):
+        a, ar = select(left, "W")
+        b, br = select(right, "W")
+        reason = ar if not a else br
+        if a and b:
+            if any(a.get(k) != b.get(k) for k in ("device_id", "binding_id", "source")):
+                reason = "SOURCE_MISMATCH"
+            elif (
+                abs(
+                    (
+                        datetime.fromisoformat(a["source_timestamp"])
+                        - datetime.fromisoformat(b["source_timestamp"])
+                    ).total_seconds()
+                )
+                > 5
+            ):
+                reason = "TIME_SKEW"
+            else:
+                reason = "GOOD"
+        record(
+            key,
+            [a, b] if reason == "GOOD" else [],
+            reason,
+            a["value"] - b["value"] if reason == "GOOD" else None,
+        )
+    result["has_readings"] = any(v is not None for v in result.values())
+    result["quality"] = "PARTIAL" if result["has_readings"] else "MISSING"
+    return result | {"channels": metadata, "generated_at": now.isoformat(), "topology_verified": False}
+
+
 class OperationalViews:
     def __init__(self, controller):
         self.controller, self.store = controller, controller.store
@@ -95,17 +171,15 @@ class OperationalViews:
             if device_id is None or d.id == device_id
         ]
 
-        def single(metric, unit):
-            values = [value(c, metric, unit) for c in channels]
-            present = [v for v in values if v is not None]
-            return present[0] if len(present) == 1 else None
-
-        result = {k: single(m, "%" if k == "battery_soc" else "W") for k, m in POWER_FIELDS.items()}
-        result["grid_w"] = difference(single("grid_import_w", "W"), single("grid_export_w", "W"))
-        result["battery_w"] = difference(single("battery_charge_w", "W"), single("battery_discharge_w", "W"))
-        result["has_readings"] = any(v is not None for v in result.values())
-        result["quality"] = "PARTIAL" if result["has_readings"] else "MISSING"
-        return result
+        policy = next(
+            (
+                p
+                for p in self.store.list("source_policy")
+                if p["site_id"] == site_id and not p.get("archived")
+            ),
+            {},
+        )
+        return flow_snapshot(channels, policy.get("max_age_seconds", 300))
 
     def energy(self, site_id, start, end):
         result = {}

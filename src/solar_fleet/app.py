@@ -320,6 +320,12 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     account_services = install_accounts(app, controller, admin)
     install_management(app, controller, user, admin)
     install_agent(app, controller)
+    from .model_api import install_model_library
+
+    install_model_library(app, controller, user)
+    from .forecast_baseline import install_forecast_baseline
+
+    install_forecast_baseline(app, controller, user)
     install_analytics(app, controller, user)
     from .reports_api import install_reports
 

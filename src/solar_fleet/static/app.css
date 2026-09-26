@@ -1713,6 +1713,7 @@ dialog::backdrop {
   .breadcrumb {
     margin-bottom: var(--space-4);
   }
+}
 .clickable {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -2176,6 +2177,7 @@ dialog::backdrop {
   border-radius: 50%;
   background: #10b981;
   box-shadow: 0 0 8px #10b981;
+}
 /* Plant Workspace: Portfolio, Cards, Regions, Wizard, Benchmarking */
 .plant-card-grid {
   display: grid;
@@ -5833,3 +5835,56 @@ dialog::backdrop {
 
 .topology-node { fill: var(--surface, #fff); stroke: var(--border, #cbd5e1); }
 .topology-link { stroke: var(--primary, #4266ff); stroke-width: 2; }
+
+/* Shared live energy diagram: site and device views consume the same component. */
+:root { --energy-solar: #3a9859; --energy-grid: #8055c3; --energy-battery: #3e68df; --energy-load: #cd6b24; }
+solar-energy-flow { display: block; }
+.power-flow-stage { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 132px 132px; gap: 48px 28px; margin: var(--space-5) 0; }
+.power-flow-stage.has-generator { grid-template-rows: 132px 132px 132px; }
+.power-flow-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.power-node { position: relative; z-index: 1; align-self: center; justify-self: center; width: min(100%, 225px); height: 132px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; padding: 8px; border-color: var(--line); background: var(--surface); box-shadow: var(--shadow-card); text-align: center; }
+.power-node > * { flex-shrink: 0; }
+.power-node:hover { border-color: currentColor; }
+.power-node-heading { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.power-node .ui-icon { width: 27px; height: 27px; }
+.power-value { font-size: 27px; line-height: 1.2; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+.power-direction, .power-source { margin: 0; font-size: 12px; }
+.power-source { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.power-source:empty { display: none; }
+.power-hub { grid-area: 1 / 2; background: var(--primary-soft); color: var(--blue); }
+.power-hub > svg { width: 34px; height: 34px; }
+.node-solar { grid-area: 1 / 1; }.node-grid { grid-area: 1 / 3; }
+.node-battery { grid-area: 2 / 1; }.node-load { grid-area: 2 / 2; }.node-backup { grid-area: 2 / 3; }.node-generator { grid-area: 3 / 1; }
+.tone-solar { color: var(--energy-solar); }.tone-grid { color: var(--energy-grid); }
+.tone-battery { color: var(--energy-battery); }.tone-load { color: var(--energy-load); }
+.tone-backup { color: var(--blue); }.tone-generator { color: var(--muted); }
+.power-wire-track { fill: none; stroke: var(--line); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.power-wire-motion { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 3 13; opacity: 0; vector-effect: non-scaling-stroke; }
+.power-branch.is-active .power-wire-motion { opacity: 1; animation: energy-transfer 1.4s linear infinite; }
+.power-branch.is-reversed .power-wire-motion { animation-direction: reverse; }
+.power-flow.is-paused .power-wire-motion, .power-flow.is-hidden .power-wire-motion { animation-play-state: paused; }
+.power-node.is-unavailable { color: var(--muted); background: var(--canvas); }
+.power-flow-legend { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; margin-bottom: var(--space-4); }
+.power-flow-legend .row { gap: 5px; }
+.power-flow.is-table .power-flow-stage { display: flex; flex-direction: column; gap: 8px; }
+.power-flow.is-table .power-node { flex-direction: row; justify-content: space-between; width: 100%; max-width: none; height: auto; min-height: 64px; }
+.power-flow.is-table .power-flow-wires, .power-flow.is-table .power-hub, .power-flow.is-table .power-flow-legend { display: none; }
+.energy-flow-card:fullscreen { overflow: auto; background: var(--canvas); padding: 32px; }
+.energy-flow-card:fullscreen .power-flow-stage { max-width: 1200px; margin: 48px auto; }
+.energy-flow-card.is-expanded { grid-column: 1 / -1; }
+.power-flow .toolbar { justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+@keyframes energy-transfer { to { stroke-dashoffset: -32; } }
+@media (prefers-reduced-motion: reduce) { .power-branch.is-active .power-wire-motion { animation: none; } }
+@media (max-width: 700px) {
+  .power-flow-stage { gap: 32px 8px; grid-template-rows: 140px 140px; }
+  .power-flow-stage.has-generator { grid-template-rows: 140px 140px 140px; }
+  .power-node { height: 140px; padding: 8px 4px; gap: 4px; }
+  .power-node-heading { flex-direction: column; gap: 3px; font-size: 11px; }
+  .power-node .ui-icon { width: 22px; height: 22px; }
+  .power-value { font-size: 19px; }
+  .power-direction, .power-source { font-size: 10px; }
+  .power-hub { font-size: 11px; }
+  .power-hub > svg { width: 26px; height: 26px; }
+  .power-flow-legend { font-size: 11px; gap: 7px 12px; }
+  .power-flow.is-table .power-node { flex-wrap: wrap; gap: 10px; }
+}

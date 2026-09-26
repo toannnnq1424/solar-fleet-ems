@@ -1,0 +1,294 @@
+[
+  {
+    "repository": "davidrapan/ha-solarman",
+    "local_directory": "ha-solarman-main",
+    "files": [
+      {
+        "path": "custom_components/solarman/inverter_definitions/afore_2mppt.yaml",
+        "sha256": "1f1069a1108f94d7ea778cb08f0d1ed45549d50e5fa6800c9c2a243dbdd4d79e",
+        "git_blob": "fd01517d57d2ed27c058e16512b88ca48ac274b5",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/afore_BNTxxxKTL-2mppt.yaml",
+        "sha256": "b03c3baf698684a5c43bfd5422501eee6a2e0bbcdbe94745af2b7491f46354f4",
+        "git_blob": "c31c5227b6252fe6d6a26edac3dc3d6ad941cc08",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/afore_hybrid.yaml",
+        "sha256": "47da9b8084224d9ea23d899c8af99ecfb1d06a31ba66d99e7e95a9f2d92340ba",
+        "git_blob": "13dea24df8a980757a4017db8992de0572aa049b",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/anenji_hybrid.yaml",
+        "sha256": "0478a591a276090278236fad7db13184dbbfa17fbcebce2ee7f9a074cfb70d13",
+        "git_blob": "cc9b7c54524478e1ac784ee1b39770cbcd68e390",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/astro-energy_micro.yaml",
+        "sha256": "d410665e50885de32e4b3c4f771cffb544f4beb1a61c1db96888c11652c61a46",
+        "git_blob": "d2940e7bc4cc41c81ad9ea78279d009dbc3defea",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/chint_cps-scetl.yaml",
+        "sha256": "8b4442e71d7f6fd90a21c07ebc92e9293ac5ddd1f7041220c37587312eee104c",
+        "git_blob": "172a49d79f0489a70028dc940b396c6e18d98ecc",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/deye_hybrid.yaml",
+        "sha256": "5ec40445fdb66cc2389f92c190eec0be40a970ef3ac0acdfd651af207716a51b",
+        "git_blob": "90405c13d11abb1586a35f9b803786cc278bd6b3",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/deye_micro.yaml",
+        "sha256": "18d11190205f0af5c9b99dde05a0e57173743563a47e819ed52d156a8c84d816",
+        "git_blob": "525997ec166e99e89962885549adcb4c4f1f385c",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/deye_p3.yaml",
+        "sha256": "2b10a4ef79f65bed1447bc1be5553dc4d73495464b2ebbdfedf21763aba4cecd",
+        "git_blob": "34832c51bf1b6f577f0893a88029345199c73cdc",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/deye_string.yaml",
+        "sha256": "b9d37f508e0457e5f80855cfa84b446323104d5812788af0824520d0c75725ce",
+        "git_blob": "cdccd9178f1ce6439c5c9b4c47954f42cc9a4aa6",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/hinen_hybrid.yaml",
+        "sha256": "5639881e2a10afb8a431d7d9f726c982e2017d6367d29d89e366082264d1138a",
+        "git_blob": "ee85fa2a74c966350eb06d80388db56f44bd351d",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/invt_xd-tl.yaml",
+        "sha256": "6b7b9262a5d442fc835544372e63feb736f95fdf3ff22ca9fa5ceceaab730a48",
+        "git_blob": "e090e0de3be88a7b41701c303b01d7d214b51ba6",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/kstar_hybrid.yaml",
+        "sha256": "63acaaf5c85a1ce727e1afb235a8cf9001c567f91700e2bdf74208012c041d52",
+        "git_blob": "aa71452bae23d23f941b2b67221d49a54565c131",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/maxge_string.yaml",
+        "sha256": "3900150dbbc0caaea926f771a73cd73e6a2c302d4ff8e8eb8935be8888b145ac",
+        "git_blob": "42cb5a8616d53914c4cf17ba5631fd5faf184a8f",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/megarevo_r-3h.yaml",
+        "sha256": "d761b4e51b0d679130650fbb986e8a3dc7a95f9801785808081dd4700ae4411e",
+        "git_blob": "6765d28924eccd1105a6894babd058acfa7cc7c3",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/pylontech_force.yaml",
+        "sha256": "db9af000655f4ff17e3aff69592b78c155476000049a38b67a894c7ac0f91c9a",
+        "git_blob": "e52cfc899be33a08024825abf1d00c977c0c0bf3",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/renon_ifl.yaml",
+        "sha256": "9e8558a2bb797cf14bde5c03cd2cf2ef5e12290f480f349d581b0b9bba646726",
+        "git_blob": "23512d8254f7c473d5bae8d54caec7d4eaa1c8b3",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/sofar_g3.yaml",
+        "sha256": "d110b83849f489fe3310dbf4b9c6bb57ddeee695e03162f04d565c2f937c902f",
+        "git_blob": "f3cae6d25d046de128274a6b8218ea08f72f9e3f",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/sofar_g3hyd.yaml",
+        "sha256": "2cd6105df7d273261a67290fd018d9d4bc8672824e656e78c284a28db92d0e27",
+        "git_blob": "c98009a09d0ae847c1b950d62ed70b6a8b377f1b",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/sofar_hybrid.yaml",
+        "sha256": "d9d1a0d49b6e65981ceb73f73e11b81cbfa3a4014447329cc650be394682124e",
+        "git_blob": "3d8c306427c2c5d0e542b6f1d9cb319173cbb8a0",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/sofar_string.yaml",
+        "sha256": "a5c2eef3b8c6a1550d512824517a3199f0ba6565742aab4044f5542a22498c40",
+        "git_blob": "0b0b0cfc340e8a0761cbe21253c9fa4af7502826",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solarman_dtsd422-d3.yaml",
+        "sha256": "3614243ebf4855611ba92bccbec018bca511739464350dd07e089a0807fb5024",
+        "git_blob": "55b421b6f2a585a4e780d95333fc68b321687550",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solis_1p-5g.yaml",
+        "sha256": "33e7f095f9d2530fa599d50da8548b6af1a6c8173645026a3f638d480783f6aa",
+        "git_blob": "a8d3f708137698499d06150c70b93e6f11d6e697",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solis_3p-4g.yaml",
+        "sha256": "a9cd8703d3d4c211ef7355a59d7c7c68458b69ec2be7fcf866e399390df753fe",
+        "git_blob": "21e44e591f6a25e358d0c91f4125df083f6b38f4",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solis_3p-5g.yaml",
+        "sha256": "06138a87a06c37c32de3daba082c89ea7e45dcc0cdc23cfb74f10404b9843988",
+        "git_blob": "b5d153db5dfba6a0f9ce81315b782b53210ca3d4",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solis_hybrid.yaml",
+        "sha256": "c4e3eb3324ebd690026b0c2f0890469ef26b268863896316e6270b74ebf1b1c2",
+        "git_blob": "795a54a4f70038f374f93a7da4f3e097888f3527",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/solis_s6-gr1p.yaml",
+        "sha256": "deda5f3596b80460a41fbdebaea73b9c9223afca7beacf982d9d3af22105f47e",
+        "git_blob": "2c0bbda590e3517f2af2b15df112989e2500cd79",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/srne_asf.yaml",
+        "sha256": "4026ca5454b6fce80d71508314c7911ebf275f3eae7c0af87eeb86971fba15b6",
+        "git_blob": "2279ae559310458a512519af332e51a5d73bb2ea",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/swatten_sih-th.yaml",
+        "sha256": "6d47d1e4aedbc3ada8b2564bd34b11b3cd89dc63d8ebbb527d4bf61989c3fdf6",
+        "git_blob": "6e0b3a8417d1752c0388d4cacdb3184910ea39b8",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/inverter_definitions/tsun_tsol-ms.yaml",
+        "sha256": "721a35e9ed72f4e00c92a6301ba84c8a7e0a7aa384fc316e2fd27d0b6605a542",
+        "git_blob": "49c8a02d0579474f11fbe9e6f2af485129f26c97",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/parser.py",
+        "sha256": "41fa6e1eaebd14bc999119f8fbdb483cd235c497707a9684ab44b5e0605935c0",
+        "git_blob": "1dfa75602106a02909fa13e03c6801304a3d33ec",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/common.py",
+        "sha256": "85a5f116572c7953f2eb3da9100ae4df0a6e0ba7ce30020ceb7374da40a85184",
+        "git_blob": "cd0835b53c33d3a91e079071695207f39d6699cd",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "custom_components/solarman/const.py",
+        "sha256": "e674449c7fd8852981aa224cc86cdcb20481a5a8522fa0022256445dda1b0c12",
+        "git_blob": "25b140d2b067723c3d0dd781c0c5bad51ffe13a1",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "license",
+        "sha256": "97042f338a3225d0b2c20f1e40ba9dbc340a1ae508d1fa1032a03c52f94ddb97",
+        "git_blob": "d77a7173881d4bffcd09fcf84cc90a8952941813",
+        "matches_checked_commit": true
+      }
+    ],
+    "upstream_commit_checked": "ac1d88b83268beeb0511b8a1b7fc8e17deddc044",
+    "all_selected_files_match": true
+  },
+  {
+    "repository": "szlaskidaniel/solar-inverter-modbus-registers",
+    "local_directory": "solar-inverter-modbus-registers-main",
+    "files": [
+      {
+        "path": "supported_inverters.json",
+        "sha256": "e97cc4a0bd441ba9d0c143c367644a580e7d3c189391f1a61ebc2d035e1d3d32",
+        "git_blob": "b470538047485763d26723bdc3d51847c42ac449",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "56630322aa13503b75ee5eb69ac90785442d076d6900e126327861ddbae1da98",
+        "git_blob": "ad86a06a519592bd595f0302f7626875623c3748",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "README.md",
+        "sha256": "b6ee5a98c4e702150abc2823a3e1c853a8d4e4ef3b24a74783027dd4b571946c",
+        "git_blob": "716d3fa9f001ab085d0f9037e256c28f4af53a3a",
+        "matches_checked_commit": true
+      }
+    ],
+    "upstream_commit_checked": "9fa04b0d4a8e8ed2e578302469a445938a0f34f0",
+    "all_selected_files_match": true
+  },
+  {
+    "repository": "mkaiser/Sungrow-SHx-Inverter-Modbus-Home-Assistant",
+    "local_directory": "Sungrow-SHx-Inverter-Modbus-Home-Assistant-main",
+    "files": [
+      {
+        "path": "modbus_sungrow.yaml",
+        "sha256": "4c1580bb02cd2e6213ea5f600b0b593231841e4991b066ba08476554f50ea0b6",
+        "git_blob": "9046a73c1c074def91b0e7e92f99e87ff24caef6",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "fd35b3f247fc7f2d61943071ad0285fbd7c1083672929d530b7f83fb029ec55f",
+        "git_blob": "3934649511864782dbcf1605bb9519da802d56a6",
+        "matches_checked_commit": true
+      }
+    ],
+    "upstream_commit_checked": "310635c6e2c1122f5adb54fba7fdf33a7cb85142",
+    "all_selected_files_match": true
+  },
+  {
+    "repository": "traktore-org/sem-community",
+    "local_directory": "sem-community-main",
+    "files": [
+      {
+        "path": "analytics/consumption_predictor.py",
+        "sha256": "3fa0e43e4e58b5b06318d905d25d2ef95e50bbcbca091f81dbd385123fdbefb2",
+        "git_blob": "e663b47f07ff6bb2fd44f2f70cd621db18123545",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "LICENSE",
+        "sha256": "05bea3fef21fcfa4fd20f315a7f0ff00ad392147daa3db3c8d4dcd1fa214addb",
+        "git_blob": "17894add3c831917cce4840c3b809302ae1b65ef",
+        "matches_checked_commit": true
+      },
+      {
+        "path": "dashboard/card/src/cards/sem-flow-card.js",
+        "sha256": "6173cd291c6618ad285d1ef399aa70e838fd7ce153cf7e775eb75cc1299e1287",
+        "git_blob": "e65d16496727b7b62ae822c7ca8307cc00b79c7f",
+        "matches_checked_commit": true,
+        "usage": "UI design research; no copied card runtime"
+      },
+      {
+        "path": "dashboard/card/src/base/sem-shared.js",
+        "sha256": "50660a1d4f2242840c15691727d4ed37cf7c0c75d4f4a0f8f6461f959dd480e2",
+        "git_blob": "23c20c852a32459f41e985a55c857eaf0fc9ad58",
+        "matches_checked_commit": true,
+        "usage": "UI design research; no copied card runtime"
+      }
+    ],
+    "upstream_commit_checked": "45438efcb382f065927713ae44f4878b62b694f7",
+    "all_selected_files_match": true
+  }
+]
