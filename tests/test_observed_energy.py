@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -25,6 +26,31 @@ def test_missing_is_not_zero_and_signed_channels_are_rejected():
     assert integrate_directional_power([], "grid_import_w", now - timedelta(days=1), now)["energy_kwh"] is None
     with pytest.raises(ValueError, match="directional"):
         integrate_directional_power([], "battery_w", now - timedelta(days=1), now)
+
+
+@pytest.mark.parametrize("month,day,start_hour,end_hour,elapsed", [
+    (3, 8, 1, 3, 3600), (11, 1, 0, 3, 14400),
+])
+def test_coverage_uses_elapsed_time_across_dst(month, day, start_hour, end_hour, elapsed):
+    zone = ZoneInfo("America/New_York")
+    start = datetime(2026, month, day, start_hour, tzinfo=zone)
+    end = datetime(2026, month, day, end_hour, tzinfo=zone)
+    rows = [point(start, 1000), point(end, 1000)]
+    result = integrate_directional_power(rows, "battery_discharge_w", start, end, elapsed)
+    assert result["covered_seconds"] == elapsed
+    assert result["coverage"] == 1
+    assert result["energy_kwh"] == elapsed / 3600
+
+
+def test_repeated_wall_clock_hour_is_a_valid_elapsed_window():
+    zone = ZoneInfo("America/New_York")
+    start = datetime(2026, 11, 1, 1, 30, tzinfo=zone, fold=0)
+    end = datetime(2026, 11, 1, 1, 30, tzinfo=zone, fold=1)
+    result = integrate_directional_power(
+        [point(start, 1000), point(end, 1000)], "battery_discharge_w", start, end, 3600,
+    )
+    assert result["energy_kwh"] == 1
+    assert result["coverage"] == 1
 
 
 def test_source_conflicts_and_unverified_samples_fail_closed():

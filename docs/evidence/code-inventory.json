@@ -1,5 +1,5 @@
 {
-  "measured_at_utc": "2026-09-27T08:08:37.857197+00:00",
+  "measured_at_utc": "2026-09-27T08:22:23.239122+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
@@ -7,8 +7,8 @@
       "key": "backend",
       "label": "Backend Python",
       "files": 115,
-      "lines": 41575,
-      "nonblank": 36297,
+      "lines": 41585,
+      "nonblank": 36307,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -412,8 +412,8 @@
         },
         {
           "path": "src/solar_fleet/observed_energy.py",
-          "lines": 85,
-          "nonblank": 79
+          "lines": 95,
+          "nonblank": 89
         },
         {
           "path": "src/solar_fleet/operational_views.py",
@@ -591,8 +591,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 33,
-      "lines": 16979,
-      "nonblank": 16044,
+      "lines": 16985,
+      "nonblank": 16050,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -636,8 +636,8 @@
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
-          "lines": 251,
-          "nonblank": 225
+          "lines": 257,
+          "nonblank": 231
         },
         {
           "path": "src/solar_fleet/static/energy-flow.js",
@@ -784,8 +784,8 @@
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
       "files": 89,
-      "lines": 18344,
-      "nonblank": 15558,
+      "lines": 18370,
+      "nonblank": 15580,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -1049,8 +1049,8 @@
         },
         {
           "path": "tests/test_observed_energy.py",
-          "lines": 66,
-          "nonblank": 52
+          "lines": 92,
+          "nonblank": 74
         },
         {
           "path": "tests/test_overview_and_conflicts.py",
@@ -1237,9 +1237,9 @@
     {
       "key": "browser_tests",
       "label": "Test UI / browser fixture",
-      "files": 9,
-      "lines": 928,
-      "nonblank": 842,
+      "files": 10,
+      "lines": 960,
+      "nonblank": 871,
       "entries": [
         {
           "path": "ui_tests/conftest.py",
@@ -1250,6 +1250,11 @@
           "path": "ui_tests/test_audit_workflows.py",
           "lines": 158,
           "nonblank": 143
+        },
+        {
+          "path": "ui_tests/test_ems_observation_contract.py",
+          "lines": 32,
+          "nonblank": 29
         },
         {
           "path": "ui_tests/test_explicit_calculations.py",

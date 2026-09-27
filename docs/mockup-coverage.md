@@ -1,3 +1,13 @@
+# Verified continuation — shared observation time and EMS VI/EN
+
+See [continuation evidence](continuation-observations-2026-09-27.md): shared
+observed-energy arithmetic now uses UTC elapsed time across DST; the existing
+EMS billing-meter card localizes known statuses/explanations and prevents
+overlapping button submissions. No sidebar responsibilities changed. Bills
+remain unknown without effective tariffs and aligned measurements. Verified:
+1198 Python and 31 isolated browser tests; not live/hardware acceptance.
+Additional legacy reuse and full vendor-form/visual coverage remain unbuilt.
+
 # Consolidated sidebar continuation — 27 September 2026
 
 Post-merge safety review: see [default-branch and legacy-source review](master-merge-review-2026-09-27.md).
@@ -254,20 +264,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T08:08:37.857197+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T08:22:23.239122+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 115 | 41,575 | 36,297 |
-| Frontend JavaScript | 33 | 16,979 | 16,044 |
+| Backend Python | 115 | 41,585 | 36,307 |
+| Frontend JavaScript | 33 | 16,985 | 16,050 |
 | Frontend CSS / HTML | 2 | 6,020 | 5,509 |
-| Test BE / simulator / fixture | 89 | 18,344 | 15,558 |
-| Test UI / browser fixture | 9 | 928 | 842 |
+| Test BE / simulator / fixture | 89 | 18,370 | 15,580 |
+| Test UI / browser fixture | 10 | 960 | 871 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **35** | **22,999** | **21,553** |
-| **Tổng code ứng dụng BE + FE** | **150** | **64,574** | **57,850** |
-| **Tổng test / simulator / fixture** | **98** | **19,272** | **16,400** |
-| **Tổng code ứng dụng + test + scripts** | **251** | **84,364** | **74,728** |
+| **Tổng FE (JS + CSS/HTML)** | **35** | **23,005** | **21,559** |
+| **Tổng code ứng dụng BE + FE** | **150** | **64,590** | **57,866** |
+| **Tổng test / simulator / fixture** | **99** | **19,330** | **16,451** |
+| **Tổng code ứng dụng + test + scripts** | **252** | **84,438** | **74,795** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

@@ -2,10 +2,13 @@
 
 import math
 from bisect import bisect_left, bisect_right
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 def accepted_points(rows, metric, unit, start, end):
+    if start.tzinfo is None or end.tzinfo is None:
+        raise ValueError("timezone_aware_window_required")
+    start, end = start.astimezone(UTC), end.astimezone(UTC)
     points = {}
     bindings = set()
     for row in rows:
@@ -19,7 +22,10 @@ def accepted_points(rows, metric, unit, start, end):
             stamp = datetime.fromisoformat(row["source_timestamp"])
         except (KeyError, TypeError, ValueError):
             continue
-        if stamp.tzinfo is None or not start <= stamp <= end:
+        if stamp.tzinfo is None:
+            continue
+        stamp = stamp.astimezone(UTC)
+        if not start <= stamp <= end:
             continue
         bindings.add(row["binding_id"])
         if stamp in points and points[stamp] != value:
@@ -38,7 +44,10 @@ def integrate_directional_power(rows, metric, start, end, max_gap_seconds=900):
     """
     if metric not in {"grid_import_w", "grid_export_w", "battery_discharge_w", "battery_charge_w"}:
         raise ValueError("explicit_directional_metric_required")
-    if (start.tzinfo is None or end.tzinfo is None or end <= start
+    if start.tzinfo is None or end.tzinfo is None:
+        raise ValueError("valid_window_and_gap_required")
+    start, end = start.astimezone(UTC), end.astimezone(UTC)
+    if (end <= start
             or not math.isfinite(max_gap_seconds) or max_gap_seconds <= 0):
         raise ValueError("valid_window_and_gap_required")
     # Rejected observations are barriers, not permission to interpolate across
@@ -52,6 +61,7 @@ def integrate_directional_power(rows, metric, start, end, max_gap_seconds=900):
             stamp = datetime.fromisoformat(row["source_timestamp"])
             if stamp.tzinfo is None:
                 raise ValueError("timezone_required")
+            stamp = stamp.astimezone(UTC)
         except (KeyError, TypeError, ValueError):
             invalid_timestamp = True
             continue

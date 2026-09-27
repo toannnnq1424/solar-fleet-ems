@@ -40,20 +40,26 @@ export async function renderEmsWorkspace(ui) {
   const loadTariffBtn = btn(l("Đọc điện nhập và độ phủ dữ liệu", "Read import energy and coverage"), async () => {
     const currentSiteId = state.site;
     if (!currentSiteId) return;
-    tariffContainer.replaceChildren(p(l("Đang tải dữ liệu biểu giá...", "Loading tariff analysis...")));
+    loadTariffBtn.disabled = true;
+    tariffContainer.replaceChildren(p(l("Đang tải dữ liệu điện nhập...", "Loading import observations...")));
     try {
       const data = await api(`/sites/${encodeURIComponent(currentSiteId)}/tariff-analysis`);
       tariffContainer.replaceChildren(
-        p(data.reason),
+        p(l("Cần biểu giá có hiệu lực tại nhà máy và số đo phản kháng cùng kỳ; không giả định giá điện hoặc công suất phản kháng.",
+          "Effective site tariffs and aligned reactive-energy measurements are required; no assumed rates or reactive power.")),
         table([l("Chỉ số", "Metric"), l("Giá trị", "Value")], [
           [l("Điện nhập đo được (kWh)", "Observed import (kWh)"), number(data.observed_import_kwh)],
           [l("Độ phủ dữ liệu", "Observation coverage"), `${number(data.coverage * 100)}%`],
           [l("Tiền điện", "Bill"), number(data.total_active_bill_vnd)],
-          [l("Trạng thái", "Status"), data.status]
+          [l("Trạng thái", "Status"), data.status === "PARTIAL_OBSERVATIONS"
+            ? l("Số đo chưa đầy đủ", "Partial observations")
+            : data.status === "INSUFFICIENT_DATA" ? l("Chưa đủ dữ liệu", "Insufficient data") : t("unknown")]
         ])
       );
     } catch (err) {
       tariffContainer.replaceChildren(p(err.message, "bad"));
+    } finally {
+      loadTariffBtn.disabled = false;
     }
   });
 
