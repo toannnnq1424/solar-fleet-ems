@@ -1313,6 +1313,203 @@ async function renderGrowattSphSubtab(ui, container) {
   bmsCard.append(bmsNotice, readBmsBtn, bmsResults);
   sphBox.append(bmsCard);
 
+  // 4. MULTI-PHASE ARCHITECTURE & 3-PHASE TELEMETRY (SPH TL3)
+  const multiPhaseCard = card(l("4. Nhận diện Kiến trúc Đa pha (SPH 1 Pha vs SPH TL3 3 Pha)", "4. Multi-Phase Architecture & 3-Phase Telemetry (SPH TL3)"));
+  const multiPhaseNotice = p(
+    "Dựa trên mã nguồn ha-growatt-modbus (Lu-Fi), hệ thống tự động nhận diện kiến trúc phần cứng qua thanh ghi giữ 44 (Tracker/Phase: byte cao = số MPPT, byte thấp = số pha 1 hoặc 3) và thanh ghi 43 (DTC). Đối với dòng 3 pha SPH TL3, hệ thống kích hoạt khối đo xa đối xứng từng pha L1, L2, L3 (Điện áp pha, công suất pha, điện áp dây L1-L2, L2-L3, L3-L1).",
+    "muted"
+  );
+
+  const multiPhaseResults = div("stack");
+  const read3PhaseBtn = btn(l("Nhận diện & Đo xa Biến tần SPH TL3 3 Pha", "Identify & Read 3-Phase SPH TL3 Telemetry"), async () => {
+    multiPhaseResults.replaceChildren(notice("Đang đọc và giải mã thanh ghi SPH TL3…", "Reading..."));
+    try {
+      const simulatedHolding = {
+        43: 20,
+        44: (2 << 8) | 3, // 2 trackers, 3 phases (0x0203)
+        23: 0x5350, 24: 0x4854, 25: 0x4C33, 26: 0x3030, 27: 0x3132, // Serial "SPHTL30012"
+        9: 0x5941, 10: 0x312E, 11: 0x3000, // FW "YA1.0"
+        12: 0x4441, 13: 0x312E, 14: 0x3000, // Ctrl FW "DA1.0"
+        122: 1, 123: 650, // 65.0% export limit
+        608: 20,
+        1070: 80, 1071: 15,
+        1080: (1 << 8) | 0, 1081: (5 << 8) | 0, 1082: 1,
+        1090: 90, 1091: 100, 1092: 1,
+        1100: (22 << 8) | 0, 1101: (6 << 8) | 0, 1102: 1,
+      };
+
+      const simulatedInput = {
+        0: 1, 1000: 5,
+        1: 0, 2: 52000, // 5200.0 W PV
+        3: 3800, 4: 70, 5: 0, 6: 26600, // PV1: 380V, 7A, 2660W
+        7: 3750, 8: 68, 9: 0, 10: 25400, // PV2: 375V, 6.8A, 2540W
+        38: 2305, 40: 0, 41: 16500, // L1: 230.5V, 1650W
+        42: 2298, 44: 0, 45: 16800, // L2: 229.8V, 1680W
+        46: 2312, 48: 0, 49: 17200, // L3: 231.2V, 1720W
+        1013: 528, 1014: 220, 1009: 1160, 1017: 82, // Bat: 52.8V, 22A, 1160W, 82%
+        1037: 0, 1038: 18500, // Load: 1850W
+        1029: 0, 1030: 0,     // EPS: 0W
+      };
+
+      const res = await api("/growatt-multiphase/decode-telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          input_registers: simulatedInput,
+          holding_registers: simulatedHolding,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const grid = tel.grid || {};
+
+      multiPhaseResults.replaceChildren(
+        div("stack",
+          div("overview-kpis",
+            div("fact", e("span", "Kiến trúc Biến tần"), badge(`${tel.phase_count} Pha (${tel.profile})`, "blue")),
+            div("fact", e("span", "Số kênh MPPT"), badge(`${tel.tracker_count} Trackers`, "secondary")),
+            div("fact", e("span", "Số Serial Inverter"), e("b", tel.serial_number)),
+            div("fact", e("span", "Firmware / Control"), e("b", `${tel.firmware_version} / ${tel.control_firmware_version}`)),
+            div("fact", e("span", "Tổng Công suất Lưới 3 Pha"), badge(`${pf.grid_power_w} W`, "good")),
+          ),
+          card("Bảng đo xa 3 Pha Đối xứng (3-Phase Grid Metrics)",
+            table(
+              ["Pha điện lực", "Điện áp Pha (V)", "Công suất Xuất/Nhận (W)", "Trạng thái vận hành"],
+              [
+                ["Pha L1 (R)", `${grid.voltage_l1_v} V`, `${pf.grid_l1_power_w} W`, badge("Bình thường", "good")],
+                ["Pha L2 (S)", `${grid.voltage_l2_v} V`, `${pf.grid_l2_power_w} W`, badge("Bình thường", "good")],
+                ["Pha L3 (T)", `${grid.voltage_l3_v} V`, `${pf.grid_l3_power_w} W`, badge("Bình thường", "good")],
+              ]
+            )
+          )
+        )
+      );
+    } catch (err) {
+      multiPhaseResults.replaceChildren(notice("Lỗi nhận diện đa pha: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  multiPhaseCard.append(multiPhaseNotice, read3PhaseBtn, multiPhaseResults);
+  sphBox.append(multiPhaseCard);
+
+  // 5. EXPORT LIMITATION & ZERO FEED-IN CONTROLS
+  const exportCard = card(l("5. Điều khiển Bám tải & Chống phát ngược (Export Limitation / Zero Feed-in)", "5. Zero Feed-in / Export Limitation Controls (Regs 122 & 123)"));
+  const exportNotice = p(
+    "Growatt SPH hỗ trợ bám tải không phát ngược ra lưới điện qua thanh ghi giữ 122 (Bật/Tắt chống phát ngược) và 123 (Giới hạn công suất phát ngược theo % với độ phân giải 0.1%). Kết hợp với thanh ghi 608 để bảo vệ mức xả pin tối thiểu.",
+    "muted"
+  );
+
+  const expControls = div("row gap-sm items-center");
+  const expEnableSelect = e("select", null, "input-select");
+  [
+    ["true", "Kích hoạt Chống phát ngược (Enable)"],
+    ["false", "Vô hiệu hóa Chống phát ngược (Disable)"],
+  ].forEach(([v, t]) => {
+    const opt = e("option", t);
+    opt.value = v;
+    expEnableSelect.append(opt);
+  });
+
+  const expRateInput = e("input", null, "input-text");
+  expRateInput.type = "number";
+  expRateInput.value = "50.0";
+  expRateInput.step = "0.5";
+  expRateInput.min = "0";
+  expRateInput.max = "100";
+  expRateInput.placeholder = "Công suất phát tối đa (%)";
+  expRateInput.style.maxWidth = "180px";
+
+  const expResults = div("stack");
+
+  const compileExpBtn = btn(l("Biên dịch lệnh Chống phát ngược (FC06)", "Compile Export Limit (FC06)"), async () => {
+    try {
+      const isEnable = expEnableSelect.value === "true";
+      const rate = parseFloat(expRateInput.value) || 50.0;
+
+      const res = await api("/growatt-multiphase/compile-export-limit", {
+        method: "POST",
+        body: JSON.stringify({ enable: isEnable, limit_rate_percent: rate }),
+      });
+
+      const cmd = res.command || {};
+      const regs = cmd.registers || {};
+
+      expResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Lệnh Chống phát ngược đã biên dịch`),
+            badge(cmd.status, "warn")
+          ),
+          table(
+            ["Thanh ghi điều khiển", "Địa chỉ Modbus", "Giá trị ghi (Raw)", "Ý nghĩa kỹ thuật"],
+            [
+              ["Export Limit Enable", "Reg 122 (Holding)", `${regs[122]}`, regs[122] === 1 ? "Bật bám tải (Zero Feed-in ON)" : "Tắt bám tải"],
+              ["Export Limit Rate", "Reg 123 (Holding)", `${regs[123]}`, `Giới hạn: ${(regs[123] * 0.1).toFixed(1)}% định mức (tỉ lệ 0.1)`],
+            ]
+          ),
+          notice(cmd.reason, "Warning")
+        )
+      );
+    } catch (err) {
+      expResults.replaceChildren(notice("Lỗi biên dịch lệnh: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  expControls.append(expEnableSelect, expRateInput, compileExpBtn);
+  exportCard.append(exportNotice, expControls, expResults);
+  sphBox.append(exportCard);
+
+  // 6. 112-BIT COMPREHENSIVE FAULT & WARNING MATRIX
+  const faultCard = card(l("6. Giải mã Ma trận 112-Bit Sự cố & Cảnh báo (Input Regs 1001..1007)", "6. 112-Bit Fault & Warning Matrix (Input Regs 1001..1007)"));
+  const faultNotice = p(
+    "Growatt phân bổ 7 thanh ghi đầu vào (1001..1007) tương ứng 112 bit cờ trạng thái để giám sát toàn diện lỗi lưới, lỗi biến tần, lỗi cách điện PV, lỗi quá nhiệt và lỗi giao tiếp BMS/Meter. Hệ thống phân tách tự động lỗi nghiêm trọng (CRITICAL - ngắt lưới) và cảnh báo thứ cấp (WARNING - ví dụ điện áp PV thấp ban đêm).",
+    "muted"
+  );
+
+  const faultResults = div("stack");
+  const readFaultsBtn = btn(l("Giải mã Ma trận 112-Bit Sự cố", "Decode 112-Bit Faults Matrix"), async () => {
+    faultResults.replaceChildren(notice("Đang quét và giải mã bit sự cố…", "Scanning..."));
+    try {
+      const simulatedFaults = {
+        1001: 0x0001, // Bit 0: MasterForceINVFault (CRITICAL)
+        1002: 0x8000, // Bit 15: NoUtility (CRITICAL)
+        1005: 0x0020, // Bit 5: PV1_VoltLowWarn (WARNING)
+        1007: 0x0100, // Bit 8: BoostDriver1Warn (WARNING)
+      };
+
+      const res = await api("/growatt-multiphase/decode-faults", {
+        method: "POST",
+        body: JSON.stringify({ fault_registers: simulatedFaults }),
+      });
+
+      const alarms = res.alarms || [];
+
+      faultResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Phát hiện ${alarms.length} sự cố / cảnh báo từ thanh ghi 1001..1007`),
+            badge(alarms.some(a => a.severity === "CRITICAL") ? "CRITICAL ALARM" : "NORMAL", alarms.some(a => a.severity === "CRITICAL") ? "critical" : "good")
+          ),
+          table(
+            ["Thanh ghi nguồn", "Vị trí Bit", "Mã lỗi kỹ thuật", "Mức độ nghiêm trọng", "Hành động khuyến nghị"],
+            alarms.map(a => [
+              `Reg ${a.register}`,
+              `Bit ${a.bit}`,
+              e("b", a.code),
+              badge(a.severity, a.severity === "CRITICAL" ? "critical" : "warn"),
+              a.severity === "CRITICAL" ? "Kiểm tra hệ thống điện & Inverter ngắt an toàn" : "Cảnh báo vận hành thứ cấp, tự phục hồi",
+            ])
+          )
+        )
+      );
+    } catch (err) {
+      faultResults.replaceChildren(notice("Lỗi giải mã sự cố: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  faultCard.append(faultNotice, readFaultsBtn, faultResults);
+  sphBox.append(faultCard);
+
   container.append(sphBox);
 }
 

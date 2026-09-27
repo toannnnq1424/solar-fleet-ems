@@ -306,6 +306,40 @@ class SmartEssParseFrameRequest(BaseModel):
     raw_frame_hex: str = Field(..., description="Hex string of raw Eybond Modbus binary frame")
 
 
+class GrowattMultiphaseDecodeTelemetryRequest(BaseModel):
+    """Request for decoding Growatt 1-phase or 3-phase SPH registers."""
+
+    input_registers: dict[int, int] = Field(default_factory=dict, description="Map of input register address to raw value")
+    holding_registers: dict[int, int] = Field(default_factory=dict, description="Map of holding register address to raw value")
+
+
+class GrowattCompileExportLimitRequest(BaseModel):
+    """Request for compiling Growatt export limitation (zero feed-in) registers 122 & 123."""
+
+    enable: bool = Field(default=True, description="Enable or disable export limitation")
+    limit_rate_percent: float = Field(default=100.0, ge=0.0, le=100.0, description="Export limit rate in % (0.1% resolution)")
+
+
+class GrowattCompileWindowRequest(BaseModel):
+    """Request for compiling Growatt Grid First or Battery First time window."""
+
+    window_type: str = Field(default="battery_first", description="'grid_first' or 'battery_first'")
+    window_index: int = Field(default=1, ge=1, le=3, description="Window index (1..3)")
+    start_time: str = Field(default="02:00", description="Start time 'HH:MM'")
+    stop_time: str = Field(default="06:00", description="Stop time 'HH:MM'")
+    enable: bool = Field(default=True, description="Enable or disable this time window")
+    rate_percent: int = Field(default=100, ge=0, le=100, description="Charge or discharge rate in %")
+    stop_soc_percent: int = Field(default=100, ge=0, le=100, description="Target stop SOC in %")
+    ac_charge_enable: bool = Field(default=True, description="Enable AC grid charging (Battery First only)")
+
+
+class GrowattDecodeFaultsRequest(BaseModel):
+    """Request for decoding Growatt 112-bit fault registers 1001..1007."""
+
+    fault_registers: dict[int, int] = Field(default_factory=dict, description="Map of fault input register addresses to raw words")
+
+
+
 
 
 
@@ -2027,6 +2061,97 @@ def install_phase_d_apis(app, controller, user, admin=None):
             }
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Failed to parse frame: {exc}")
+
+    # -----------------------------------------------------------------------
+    # Growatt Multi-Phase & Export Limitation Endpoints (Project #9)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/growatt-multiphase/decode-telemetry")
+    async def growatt_multiphase_decode_telemetry(req: GrowattMultiphaseDecodeTelemetryRequest, principal=Depends(user)):
+        """Decode Growatt 1-phase or 3-phase SPH telemetry, DTC, and normalized EMS payload."""
+        from .growatt_multiphase_modbus import decode_growatt_multiphase_telemetry
+
+        try:
+            in_regs = {int(k): int(v) for k, v in req.input_registers.items()}
+            hold_regs = {int(k): int(v) for k, v in req.holding_registers.items()}
+            tel = decode_growatt_multiphase_telemetry(in_regs, hold_regs)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Telemetry decode failed: {exc}")
+
+    @app.post("/api/growatt-multiphase/compile-export-limit")
+    async def growatt_multiphase_compile_export_limit(req: GrowattCompileExportLimitRequest, principal=Depends(user)):
+        """Compile Growatt export limitation / zero feed-in registers 122 & 123."""
+        from .growatt_multiphase_modbus import compile_export_limitation_command
+
+        try:
+            res = compile_export_limitation_command(enable=req.enable, limit_rate_pct=req.limit_rate_percent)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "command": res,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/growatt-multiphase/compile-window")
+    async def growatt_multiphase_compile_window(req: GrowattCompileWindowRequest, principal=Depends(user)):
+        """Compile Growatt Grid First or Battery First time window registers."""
+        from .growatt_multiphase_modbus import (
+            compile_battery_first_window_command,
+            compile_grid_first_window_command,
+        )
+
+        try:
+            if req.window_type == "grid_first":
+                res = compile_grid_first_window_command(
+                    window_index=req.window_index,
+                    start_time=req.start_time,
+                    stop_time=req.stop_time,
+                    enable=req.enable,
+                    discharge_rate_pct=req.rate_percent,
+                    stop_soc_pct=req.stop_soc_percent,
+                )
+            elif req.window_type == "battery_first":
+                res = compile_battery_first_window_command(
+                    window_index=req.window_index,
+                    start_time=req.start_time,
+                    stop_time=req.stop_time,
+                    enable=req.enable,
+                    ac_charge_enable=req.ac_charge_enable,
+                    charge_rate_pct=req.rate_percent,
+                    stop_soc_pct=req.stop_soc_percent,
+                )
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported window type '{req.window_type}'. Expected 'grid_first' or 'battery_first'")
+
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "command": res,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/growatt-multiphase/decode-faults")
+    async def growatt_multiphase_decode_faults(req: GrowattDecodeFaultsRequest, principal=Depends(user)):
+        """Decode Growatt 112-bit fault and warning registers 1001..1007."""
+        from .growatt_multiphase_modbus import decode_fault_registers
+
+        try:
+            f_regs = {int(k): int(v) for k, v in req.fault_registers.items()}
+            alarms = decode_fault_registers(f_regs)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "alarms": [
+                    {"register": a.register, "bit": a.bit, "code": a.code, "severity": a.severity}
+                    for a in alarms
+                ],
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Fault decode failed: {exc}")
+
 
 
 

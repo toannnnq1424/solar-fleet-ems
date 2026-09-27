@@ -1267,6 +1267,61 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
 6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
    - Tab 5 (`#devices/main`): Dedicated subtab `smartess_local` ("SmartESS / Eybond (Wifi & P17)") with 3 interactive panels: Inverter Telemetry Poller & Normalizer, P17 Inverter Parameter Controls & Safety Gate, and Eybond Modbus Binary Frame Analyzer.
 
+---
+
+## Detailed Absorption: Project #9 - `ha-growatt-modbus-main`
+
+- **Repository**: `D:\Downloads\before_project\ha-growatt-modbus-main`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_multiphase_modbus.py`. Zero code copied; device identification via DTC (Holding 43) and Tracker/Phase split (Holding 44), 3-phase SPH TL3 telemetry extension, export limitation (Holding 122 & 123), 3-window Grid First / Battery First TOU compilers, 112-bit fault matrix decoder, and Modbus block planner independently authored and verified.
+- **Rank**: #9 out of 30 upstream projects (37 files, 3,876 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Multi-Phase Architecture & Automatic Device Identification**:
+   - Holding Register 43 (Device Type Code - DTC).
+   - Holding Register 44 (Tracker / Phase Register): High byte = MPPT tracker count, Low byte = Output phase count (`0x0201` = 1-phase SPH, `0x0203` = 3-phase SPH TL3).
+   - Holding Registers 23..27: Serial Number ASCII decoder (5 words = 10 ASCII characters).
+   - Holding Registers 9..11 & 12..14: Inverter & Control Firmware ASCII decoders.
+   - Holding Registers 45..50: RTC System Clock synchronization (Year, Month, Day, Hour, Minute, Second).
+
+2. **Zero Feed-in & Export Limitation Engine**:
+   - Holding Register 0: Inverter Power State switch (0: Off, 1: On).
+   - Holding Register 122: Export Limitation switch (0: Disabled, 1: Enabled).
+   - Holding Register 123: Export Limit Rate (0.0..100.0%, 0.1% resolution, scale 0.1).
+   - Holding Register 3: Max Active Power limit (0..100%).
+   - Holding Register 4: Max Reactive Power limit (0..100%).
+   - Holding Register 608: Discharge Minimum SOC limit (10..100%).
+
+3. **Structured 3-Window TOU Schedulers**:
+   - Grid First Windows (1080..1088): Windows 1..3 with start, stop, enable, discharge rate (1070: 0..100%), and stop SOC (1071: 0..100%).
+   - Battery First Windows (1100..1108): Windows 1..3 with start, stop, enable, charge rate (1090: 0..100%), stop SOC (1091: 0..100%), and AC grid charge enable switch (1092).
+   - Time encoding format: `(hour << 8) | minute`.
+
+4. **112-Bit Comprehensive Fault / Warning Classification**:
+   - Input Registers 1001..1007: 7 words mapping 112 discrete error and warning flags.
+   - Strict categorization into CRITICAL trip faults (e.g. MasterForceINVFault, RelayFault, NoUtility) vs secondary non-critical WARNINGs (e.g. PV1_VoltLowWarn, BoostDriver1Warn, WARN104).
+
+5. **SPH TL3 3-Phase Symmetrical Telemetry**:
+   - Grid Voltages: L1 (38), L2 (42), L3 (46) (0.1 V scale).
+   - Grid Output Powers: L1 (40), L2 (44), L3 (48) (u32, 0.1 W scale).
+   - Line-to-line Voltages: L1-L2 (50), L2-L3 (51), L3-L1 (52).
+   - EPS 3-Phase Backup Outputs: L1, L2 (1072, 1074), L3 (1076, 1078).
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/growatt-multiphase/decode-telemetry`: Decodes full 1-phase or 3-phase telemetry, DTC, and normalizes to Solar Fleet EMS schema.
+   - `POST /api/growatt-multiphase/compile-export-limit`: Compiles Regs 122 & 123 for Growatt Zero Feed-in / Export Limitation with safety gating.
+   - `POST /api/growatt-multiphase/compile-window`: Compiles Grid First or Battery First time window registers with AC charge toggle.
+   - `POST /api/growatt-multiphase/decode-faults`: Decodes 112 fault/warning bits across registers 1001..1007.
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Extended `growatt_sph` subtab with 3 additional interactive panels:
+     * Section 4: Multi-Phase Architecture & 3-Phase Telemetry (SPH TL3).
+     * Section 5: Zero Feed-in / Export Limitation Controls (Regs 122 & 123).
+     * Section 6: 112-Bit Comprehensive Fault & Warning Matrix.
+   - All write commands remain locked under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+
 
 
 

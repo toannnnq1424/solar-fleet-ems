@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:09:26.392071+00:00",
+  "measured_at_utc": "2026-09-27T04:17:27.746455+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 104,
-      "lines": 35026,
-      "nonblank": 30611,
+      "files": 105,
+      "lines": 35777,
+      "nonblank": 31265,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -281,6 +281,11 @@
           "nonblank": 253
         },
         {
+          "path": "src/solar_fleet/growatt_multiphase_modbus.py",
+          "lines": 626,
+          "nonblank": 553
+        },
+        {
           "path": "src/solar_fleet/growatt_sph_modbus.py",
           "lines": 545,
           "nonblank": 460
@@ -387,8 +392,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2036,
-          "nonblank": 1690
+          "lines": 2161,
+          "nonblank": 1791
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -536,8 +541,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 14889,
-      "nonblank": 14191,
+      "lines": 15086,
+      "nonblank": 14366,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -566,8 +571,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 2391,
-          "nonblank": 2151
+          "lines": 2588,
+          "nonblank": 2326
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -718,9 +723,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 74,
-      "lines": 15301,
-      "nonblank": 13007,
+      "files": 75,
+      "lines": 15650,
+      "nonblank": 13306,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -856,6 +861,11 @@
           "path": "tests/test_growatt_adapter.py",
           "lines": 51,
           "nonblank": 44
+        },
+        {
+          "path": "tests/test_growatt_multiphase_modbus.py",
+          "lines": 349,
+          "nonblank": 299
         },
         {
           "path": "tests/test_growatt_sph_modbus.py",
