@@ -1217,6 +1217,57 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
 6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
    - Tab 5 (`#devices/main`): Dedicated subtab `solarman_v5` ("Giao thức Solarman V5 (Cổng 8899)") with 3 interactive panels: V5 Packet Encoder & Encapsulation Inspector, V5 Packet Decoder & Validation, and UDP Discovery Diagnostics.
 
+---
+
+## Detailed Absorption: Project #8 - `ha-smartess-local-master`
+
+- **Repository**: `D:\Downloads\before_project\ha-smartess-local-master`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/smartess_local_client.py`. Zero code copied; Eybond Modbus framing (`>HHHBB`), P17/Q-protocol state machines, CRC-16/XMODEM calculation with byte stuffing, command builders, and telemetry normalizer independently authored and verified.
+- **Rank**: #8 out of 30 upstream projects (30 files, 3,341 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Eybond Modbus Binary Header & Framing**:
+   - 8-byte binary header (`>HHHBB`): Transaction ID (uint16), Device Code (`0x0994` for Solar P17), Total Length (uint16), Inverter RS485 Address (uint8, default 1), Function Code (uint8).
+   - `FC_HEARTBEAT = 0x01`: Server/Collector heartbeat exchange containing UTC timestamp (year-2000, month, day, hour, min, sec) and polling interval (uint16), returning 14-byte collector serial number / PN.
+   - `FC_FORWARD2DEVICE = 0x04`: Transparent RS485 forwarder bridging P17 / Q-protocol frames to target inverter on half-duplex bus.
+
+2. **P17 & Q-Protocol Inverter Framing Engine**:
+   - CRC-16/XMODEM (poly 0x1021, init 0x0000) with byte-stuffing for frame delimiters: `0x28` `(`, `0x0D` `\r`, `0x0A` `\n` incremented by 1 (`b + 1`).
+   - Poll frame generator: `^P<len:03d><cmd><crc_hi><crc_lo>\r` (e.g. `^P005GS`, `^P007PIRI`, `^P006MOD`).
+   - Set frame generator: `^S<len:03d><cmd><crc_hi><crc_lo>\r` (e.g. `^S008POP01`).
+   - Response parser handling:
+     * P17 standard data: `^D<len:03d><data><crc_hi><crc_lo>\r`
+     * P17 short ACK (`^1`) and short NAK (`^0`) 5-byte responses.
+     * Q-protocol standard data: `(<data><crc_hi><crc_lo>\r`
+     * Q-protocol short ACK (`(ACK`) and short NAK (`(NAK`).
+
+3. **Inverter Telemetry Decoders (GS, MOD, PIRI, ET)**:
+   - `GS` (General Status - 28 fields): Grid voltage & frequency, AC output voltage & frequency, active & apparent power, load percent, battery voltage & SCC voltage, charge/discharge currents, battery SOC %, heatsink temperature, PV1 power & voltage, PV2 power, device status.
+   - `MOD` (Device Working Mode): Power On (`P`), Standby (`S`), Line/Grid (`L`), Battery (`B`), Fault (`F`), Power Saving (`H`), Shutdown (`D`).
+   - `PIRI` (Rated & Configuration Info): AC ratings, battery type (AGM, Flooded, User, Pylontech, Weco, Soltaro, BAK, LIB, LIC), bulk/float voltages, cut-off voltage, max charging currents, output source priority (USB vs SBU), charger source priority (Utility first, Solar first, Solar+Utility, Solar only).
+   - `ET` (Energy Counters): Daily energy (kWh) and cumulative total energy (kWh).
+
+4. **Inverter Parameter Control Engine & Safety Gates**:
+   - Output source priority: `POP0` (Solar > Utility > Battery / USB) vs `POP1` (Solar > Battery > Utility / SBU).
+   - Charger source priority: `PSP0`..`PSP3` (Utility First, Solar First, Solar+Utility, Solar Only).
+   - Max Charging Current: `MCHGC0,{amps:03d}` (0..150 A).
+   - Max AC Charging Current: `MUCHGC0,{amps:03d}` (0..120 A).
+   - Battery Cut-off Voltage: `PSDV{tenths:03d}` (40.0..54.0 V).
+   - Battery Bulk & Float Charge Voltages: `MCHGV{bulk:03d},{float:03d}`.
+   - Battery Re-charge & Re-discharge Voltages: `BUCD{recharge:03d},{redischarge:03d}`.
+   - All parameter write commands strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/smartess/poll`: Polls and normalizes live/simulated telemetry to Solar Fleet EMS schema.
+   - `POST /api/smartess/command`: Validates and safely executes P17 inverter configuration commands with readback verification.
+   - `POST /api/smartess/parse-frame`: Parses raw Eybond Modbus binary frame hex into decoded header, FC, and extracted P17 payload.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `smartess_local` ("SmartESS / Eybond (Wifi & P17)") with 3 interactive panels: Inverter Telemetry Poller & Normalizer, P17 Inverter Parameter Controls & Safety Gate, and Eybond Modbus Binary Frame Analyzer.
+
+
 
 
 

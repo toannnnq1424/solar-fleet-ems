@@ -283,6 +283,29 @@ class SolarmanV5DiscoveryRequest(BaseModel):
     payload: str = Field(default="", description="Raw UDP reply string from port 48899")
 
 
+class SmartEssPollRequest(BaseModel):
+    """Request for polling SmartESS / Eybond datalogger telemetry."""
+
+    collector_pn: str = Field(default="EYBOND-COLLECTOR-01", description="Eybond datalogger PN / Serial Number")
+    devaddr: int = Field(default=1, ge=1, le=247, description="Inverter RS485 slave address (1..247)")
+
+
+class SmartEssCommandRequest(BaseModel):
+    """Request for safely executing inverter configuration command."""
+
+    collector_pn: str = Field(default="EYBOND-COLLECTOR-01", description="Eybond datalogger PN / Serial Number")
+    devaddr: int = Field(default=1, ge=1, le=247, description="Inverter RS485 slave address")
+    command_type: str = Field(..., description="output_priority, charger_priority, max_charge_current, max_ac_charge_current, battery_cutoff_voltage, battery_bulk_float")
+    params: dict[str, Any] = Field(default_factory=dict, description="Parameters dictionary for the command")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class SmartEssParseFrameRequest(BaseModel):
+    """Request for parsing raw Eybond binary frame hex string."""
+
+    raw_frame_hex: str = Field(..., description="Hex string of raw Eybond Modbus binary frame")
+
+
 
 
 
@@ -1928,6 +1951,83 @@ def install_phase_d_apis(app, controller, user, admin=None):
             "source": "pysolarmanv5 (MIT clean-room independent)",
             "discovery": result,
         }
+
+    # -----------------------------------------------------------------------
+    # SmartESS / Eybond Local Inverter Endpoints (Project #8)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/smartess/poll")
+    async def smartess_poll(req: SmartEssPollRequest, principal=Depends(user)):
+        """Poll telemetry from SmartESS / Eybond datalogger and return normalized EMS payload."""
+        from .smartess_local_client import SmartEssLocalClient
+
+        client = SmartEssLocalClient(collector_pn=req.collector_pn, simulated=True)
+        telemetry = client.poll_telemetry(devaddr=req.devaddr)
+        return {
+            "source": "ha-smartess-local (MIT clean-room independent)",
+            "telemetry": telemetry,
+        }
+
+    @app.post("/api/smartess/command")
+    async def smartess_command(req: SmartEssCommandRequest, principal=Depends(user)):
+        """Safely execute inverter configuration command with readback verification."""
+        from .smartess_local_client import SmartEssLocalClient
+
+        client = SmartEssLocalClient(collector_pn=req.collector_pn, simulated=True)
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "ha-smartess-local (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/smartess/parse-frame")
+    async def smartess_parse_frame(req: SmartEssParseFrameRequest, principal=Depends(user)):
+        """Parse raw Eybond binary frame hex string into header, FC, and payload."""
+        from .smartess_local_client import (
+            FC_FORWARD2DEVICE,
+            FC_HEARTBEAT,
+            decode_eybond_header,
+            parse_forward2device_response,
+            parse_heartbeat_response,
+            parse_inverter_response,
+        )
+
+        try:
+            frame_bytes = bytes.fromhex(req.raw_frame_hex.replace(" ", ""))
+            hdr = decode_eybond_header(frame_bytes)
+            res: dict[str, Any] = {
+                "tid": hdr.tid,
+                "devcode": hex(hdr.devcode),
+                "total_len": hdr.total_len,
+                "devaddr": hdr.devaddr,
+                "fc": hdr.fc,
+            }
+            if hdr.fc == FC_HEARTBEAT:
+                _, pn = parse_heartbeat_response(frame_bytes)
+                res["collector_pn"] = pn
+            elif hdr.fc == FC_FORWARD2DEVICE:
+                _, p17_payload = parse_forward2device_response(frame_bytes)
+                res["p17_raw_hex"] = p17_payload.hex()
+                try:
+                    cmd_type, text = parse_inverter_response(p17_payload)
+                    res["p17_type"] = cmd_type
+                    res["p17_text"] = text
+                except Exception as inner_e:
+                    res["p17_parse_error"] = str(inner_e)
+            return {
+                "source": "ha-smartess-local (MIT clean-room independent)",
+                "frame": res,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Failed to parse frame: {exc}")
+
 
 
 

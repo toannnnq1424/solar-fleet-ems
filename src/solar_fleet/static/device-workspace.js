@@ -18,6 +18,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["solis_hybrid", l("Solis Hybrid S6 (Lưu trữ & TOU)", "Solis Hybrid S6 (Storage & TOU)")],
     ["deye_hybrid", l("Deye Hybrid SUN (Lưu trữ & 6-Slot TOU)", "Deye Hybrid SUN (Storage & 6-Slot TOU)")],
     ["solarman_v5", l("Giao thức Solarman V5 (Cổng 8899)", "Solarman V5 Protocol (Port 8899)")],
+    ["smartess_local", l("SmartESS / Eybond (Wifi & P17)", "SmartESS / Eybond (Wifi & P17)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -251,6 +252,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: SOLARMAN V5 DATALOGGER FRAME PROTOCOL
   if (currentTab === "solarman_v5") {
     await renderSolarmanV5Subtab(ui, container);
+  }
+
+  // SUB-TAB: SMARTESS / EYBOND LOCAL WI-FI & P17 INVERTER
+  if (currentTab === "smartess_local") {
+    await renderSmartEssLocalSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -2096,6 +2102,276 @@ async function renderSolarmanV5Subtab(ui, container) {
   v5Box.append(discCard);
 
   container.append(v5Box);
+}
+
+async function renderSmartEssLocalSubtab(ui, container) {
+  const { e, div, card, p, badge, notice, button, table, input } = ui;
+  const essBox = div("stack");
+
+  // Provenance Banner
+  const provenanceCard = card(l("Nguồn gốc & Hồ sơ Giao thức (SmartESS / Eybond Wi-Fi & P17)", "Provenance & Protocol Specification (SmartESS / Eybond Wi-Fi & P17)"));
+  provenanceCard.append(
+    p(
+      "Giao thức Eybond Modbus chạy trên cục phát Wi-Fi/LAN của các dòng biến tần Off-grid và Hybrid (Voltronic, Axpert, MPP Solar, EASun, PowMr, Bluesun, RCT). Độc lập triển khai dựa trên kiến thức mã nguồn mở ha-smartess-local (MIT). Giao thức sử dụng Header nhị phân 8 byte (>HHHBB) với mã hàm FC=1 (Heartbeat đồng bộ thời gian UTC) và FC=4 (Forward2Device đóng gói khung P17/Q-protocol qua RS485). Hỗ trợ đầy đủ các lệnh GS (Trạng thái tổng thể 28 trường), MOD (Chế độ hoạt động), PIRI (Cấu hình định mức & nguồn ưu tiên) và ET (Sản lượng điện).",
+      "muted"
+    ),
+    div("overview-kpis",
+      div("fact", e("span", "Chuẩn kết nối"), badge("Eybond Modbus + P17", "blue")),
+      div("fact", e("span", "Cổng dịch vụ"), badge("TCP Port 8899 / 5000", "secondary")),
+      div("fact", e("span", "Header Eybond"), badge("8 Bytes (>HHHBB)", "blue")),
+      div("fact", e("span", "Mã hàm hỗ trợ"), badge("FC=1 (HB) & FC=4 (Fwd)", "blue")),
+      div("fact", e("span", "Mã kiểm tra CRC"), badge("CRC-16/XMODEM (Stuffed)", "good")),
+      div("fact", e("span", "Inverter mục tiêu"), badge("Voltronic / Axpert / Bluesun", "good")),
+      div("fact", e("span", "Cổng an toàn"), badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "critical")),
+    )
+  );
+  essBox.append(provenanceCard);
+
+  // 1. Inverter Telemetry Poller (GS, MOD, PIRI, ET)
+  const pollCard = card(l("1. Đọc & Chuẩn hóa Dữ liệu Inverter (GS, MOD, PIRI, ET)", "1. Poll & Normalize Inverter Telemetry (GS, MOD, PIRI, ET)"));
+  const pollNotice = p(
+    "Nhập số Serial/PN của cục phát Wi-Fi Eybond và địa chỉ RS485 của biến tần (mặc định 1). Hệ thống sẽ gửi chuỗi lệnh P17 (^P...GS, ^P...MOD, ^P...PIRI, (ET), bóc tách 28 trường dữ liệu và chuẩn hóa thành mô hình dữ liệu Solar Fleet EMS.",
+    "muted"
+  );
+
+  const pollControls = div("row gap-sm items-center");
+  const pnInput = e("input", null, "input-text");
+  pnInput.value = "EYBOND-WIFI-001";
+  pnInput.placeholder = "Mã PN / Sê-ri Cục phát";
+  pnInput.style.maxWidth = "220px";
+
+  const devaddrInput = e("input", null, "input-text");
+  devaddrInput.type = "number";
+  devaddrInput.value = "1";
+  devaddrInput.min = "1";
+  devaddrInput.max = "247";
+  devaddrInput.placeholder = "Địa chỉ RS485";
+  devaddrInput.style.maxWidth = "110px";
+
+  const pollResults = div("stack");
+
+  const pollBtn = button(l("Đọc Dữ liệu Inverter (Poll)", "Poll Inverter Telemetry"), async () => {
+    try {
+      const pn = pnInput.value.trim() || "EYBOND-WIFI-001";
+      const addr = parseInt(devaddrInput.value, 10) || 1;
+
+      const res = await api("/smartess/poll", {
+        method: "POST",
+        body: JSON.stringify({ collector_pn: pn, devaddr: addr }),
+      });
+
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const bat = tel.battery || {};
+      const grid = tel.grid || {};
+      const conf = tel.configuration || {};
+      const nrg = tel.energy || {};
+
+      pollResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Dữ liệu Inverter ${tel.device_id} (${tel.inverter_mode})`),
+            badge(tel.protocol, "blue")
+          ),
+          // Top KPIs
+          div("overview-kpis",
+            div("fact", e("span", "Công suất PV"), badge(`${pf.solar_power_w} W`, "good")),
+            div("fact", e("span", "Công suất Tải"), e("b", `${pf.load_power_w} W`)),
+            div("fact", e("span", "Lưới điện"), e("b", `${pf.grid_power_w} W`)),
+            div("fact", e("span", "Dung lượng Pin SOC"), badge(`${bat.soc_percent}%`, bat.soc_percent > 30 ? "good" : "warn")),
+            div("fact", e("span", "Điện áp Pin"), e("b", `${bat.voltage_v} V`)),
+            div("fact", e("span", "Sản lượng ngày"), badge(`${nrg.today_kwh} kWh`, "secondary")),
+          ),
+          // Detailed Tables Grid
+          div("plant-card-grid",
+            div("plant-visual-card",
+              e("h5", "Thông số Hoạt động Thời gian thực (GS)"),
+              table(
+                ["Trường thông số", "Giá trị đo đạc"],
+                [
+                  ["Điện áp / Tần số Lưới", `${grid.voltage_v} V / ${grid.frequency_hz} Hz`],
+                  ["Điện áp / Tần số Đầu ra AC", `${grid.ac_output_voltage_v} V / ${grid.ac_output_frequency_hz} Hz`],
+                  ["Công suất biểu kiến / Tải", `${pf.apparent_power_va} VA (${pf.output_load_percent}%)`],
+                  ["Dòng nạp / Dòng xả Pin", `${bat.charge_current_a} A / ${bat.discharge_current_a} A`],
+                  ["Công suất PV1 / Điện áp PV1", `${pf.pv1_power_w} W (${pf.pv1_voltage_v} V)`],
+                  ["Nhiệt độ tản nhiệt Inverter", `${conf.heatsink_temperature_c} °C`],
+                ]
+              )
+            ),
+            div("plant-visual-card",
+              e("h5", "Cấu hình Định mức & Nguồn Ưu tiên (PIRI)"),
+              table(
+                ["Thông số cấu hình", "Giá trị thiết lập"],
+                [
+                  ["Loại Pin lưu trữ", badge(bat.type, "blue")],
+                  ["Nguồn ra ưu tiên (Output Priority)", badge(conf.output_source_priority, "secondary")],
+                  ["Nguồn sạc ưu tiên (Charger Priority)", badge(conf.charger_source_priority, "secondary")],
+                  ["Điện áp nạp Bulk / Float", `${bat.bulk_voltage_v} V / ${bat.float_voltage_v} V`],
+                  ["Điện áp ngắt tải (Cutoff)", `${bat.cutoff_voltage_v} V`],
+                  ["Dòng sạc tối đa (Tổng / AC)", `${bat.max_charge_current_a} A / ${bat.max_ac_charge_current_a} A`],
+                ]
+              )
+            )
+          )
+        )
+      );
+    } catch (err) {
+      pollResults.replaceChildren(notice("Lỗi đọc dữ liệu: " + err.message, "Error"));
+    }
+  }, "primary");
+
+  pollControls.append(pnInput, devaddrInput, pollBtn);
+  pollCard.append(pollNotice, pollControls, pollResults);
+  essBox.append(pollCard);
+
+  // 2. Safe Parameter Controls & Hardware Acceptance Gate
+  const ctrlCard = card(l("2. Điều khiển Tham số Biến tần (P17 Control & Safety Gate)", "2. Inverter Parameter Controls (P17 Control & Safety Gate)"));
+  const ctrlNotice = p(
+    "Gửi các lệnh cài đặt P17 (^S...) như thay đổi nguồn xuất ưu tiên (POP), nguồn sạc ưu tiên (PSP), dòng sạc tối đa (MCHGC/MUCHGC), và ngưỡng điện áp pin. Mặc định mọi lệnh đều ở chế độ khóa an toàn READ-ONLY theo quy định nghiệm thu thiết bị.",
+    "muted"
+  );
+
+  const ctrlControls = div("row gap-sm items-center flex-wrap");
+  const cmdTypeSelect = e("select", null, "input-select");
+  [
+    ["output_priority", "Nguồn ra ưu tiên: POP (USB vs SBU)"],
+    ["charger_priority", "Nguồn sạc ưu tiên: PSP (Utility/Solar/Both)"],
+    ["max_charge_current", "Dòng sạc tối đa: MCHGC (Amps)"],
+    ["max_ac_charge_current", "Dòng sạc AC tối đa: MUCHGC (Amps)"],
+    ["battery_cutoff_voltage", "Điện áp ngắt bảo vệ pin: PSDV (Volts)"],
+    ["battery_bulk_float", "Điện áp nạp Bulk & Float: MCHGV (Volts)"],
+  ].forEach(([v, t]) => {
+    const opt = e("option", t);
+    opt.value = v;
+    cmdTypeSelect.append(opt);
+  });
+
+  const paramInput = e("input", null, "input-text");
+  paramInput.value = "1";
+  paramInput.placeholder = "Giá trị tham số (VD: 1 cho SBU, 60 cho 60A)";
+  paramInput.style.maxWidth = "200px";
+
+  const unlockLabel = e("label", " Mở khóa thử nghiệm (Simulated Unlock)", "small");
+  const unlockCheck = e("input", null);
+  unlockCheck.type = "checkbox";
+  unlockLabel.prepend(unlockCheck);
+
+  const ctrlResults = div("stack");
+
+  const sendCmdBtn = button(l("Gửi Lệnh P17 đến Inverter", "Send P17 Command"), async () => {
+    try {
+      const pn = pnInput.value.trim() || "EYBOND-WIFI-001";
+      const addr = parseInt(devaddrInput.value, 10) || 1;
+      const cmdType = cmdTypeSelect.value;
+      const rawVal = paramInput.value.trim();
+
+      const params = {};
+      if (cmdType === "output_priority" || cmdType === "charger_priority") {
+        params.priority = parseInt(rawVal, 10) || 0;
+      } else if (cmdType === "max_charge_current" || cmdType === "max_ac_charge_current") {
+        params.current_a = parseInt(rawVal, 10) || 30;
+      } else if (cmdType === "battery_cutoff_voltage") {
+        params.voltage_v = parseFloat(rawVal) || 42.0;
+      } else if (cmdType === "battery_bulk_float") {
+        const parts = rawVal.split(",");
+        params.bulk_v = parseFloat(parts[0]) || 56.4;
+        params.float_v = parseFloat(parts[1]) || 54.0;
+      }
+
+      const res = await api("/smartess/command", {
+        method: "POST",
+        body: JSON.stringify({
+          collector_pn: pn,
+          devaddr: addr,
+          command_type: cmdType,
+          params: params,
+          unlocked: unlockCheck.checked,
+        }),
+      });
+
+      const r = res.result || {};
+      const isLocked = r.status === "LOCKED_PENDING_HARDWARE_ACCEPTANCE";
+
+      ctrlResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Kết quả thực thi lệnh P17 (${cmdType})`),
+            badge(r.status, isLocked ? "critical" : "good")
+          ),
+          isLocked ? notice(r.message, "Warning") : null,
+          !isLocked ? table(
+            ["Thành phần điều khiển", "Dữ liệu / Giá trị", "Mô tả kỹ thuật"],
+            [
+              [e("b", "Lệnh P17"), e("code", r.p17_command), "Lệnh gửi đến Inverter qua cổng RS485"],
+              [e("b", "Khung P17 thô (Hex)"), e("code", r.raw_p17_hex), "Bao gồm độ dài, mã lệnh và mã CRC16/XMODEM"],
+              [e("b", "Khung Eybond FC=4 (Hex)"), e("code", r.raw_eybond_hex), "Đóng gói phong bì nhị phân 8-byte gửi qua TCP 8899"],
+              [e("b", "Kiểm tra phản hồi (Readback)"), badge("Đã đối chiếu thành công", "good"), r.readback_state || "—"],
+            ]
+          ) : null
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice("Lỗi thực thi lệnh: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  ctrlControls.append(cmdTypeSelect, paramInput, unlockLabel, sendCmdBtn);
+  ctrlCard.append(ctrlNotice, ctrlControls, ctrlResults);
+  essBox.append(ctrlCard);
+
+  // 3. Raw Eybond Frame Analyzer
+  const frameCard = card(l("3. Phân tích Khung truyền Nhị phân Eybond Modbus", "3. Eybond Modbus Binary Frame Analyzer"));
+  const frameNotice = p(
+    "Dán chuỗi Hex của gói tin Eybond Modbus nhận được từ mạng (Cổng TCP 8899). Bộ phân tích sẽ giải mã Header 8 byte (TID, DevCode, TotalLen, DevAddr, Function Code), bóc tách thông tin Heartbeat hoặc khung dữ liệu P17 bên trong.",
+    "muted"
+  );
+
+  const frameInputArea = div("row gap-sm items-center");
+  const hexInput = e("input", null, "input-text");
+  hexInput.value = "00370994001201045e5000547345380d";
+  hexInput.placeholder = "Chuỗi Hex khung Eybond";
+  hexInput.style.minWidth = "360px";
+
+  const frameResults = div("stack");
+
+  const parseBtn = button(l("Giải mã Khung truyền (Decode Frame)", "Decode Eybond Frame"), async () => {
+    try {
+      const res = await api("/smartess/parse-frame", {
+        method: "POST",
+        body: JSON.stringify({ raw_frame_hex: hexInput.value }),
+      });
+      const f = res.frame || {};
+      frameResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Giải mã khung Eybond (Mã hàm FC=${f.fc})`),
+            badge(`TID: ${f.tid}`, "blue")
+          ),
+          table(
+            ["Trường Header", "Giá trị giải mã", "Ý nghĩa chi tiết"],
+            [
+              ["Transaction ID (TID)", `${f.tid}`, "Số định danh phiên giao dịch 2 byte"],
+              ["Device Code", `${f.devcode}`, "0x0994 cho Inverter Solar P17"],
+              ["Total Length", `${f.total_len} Bytes`, "Độ dài toàn khung bao gồm 8 bytes header"],
+              ["Device Address", `${f.devaddr}`, "Địa chỉ RS485 của biến tần"],
+              ["Function Code", `${f.fc}`, f.fc === 1 ? "FC=1: Heartbeat đồng bộ" : (f.fc === 4 ? "FC=4: Forward2Device (P17/RS485)" : `FC=${f.fc}`)],
+              f.collector_pn ? ["Số Serial Datalogger", badge(f.collector_pn, "good"), "Số PN được khai báo trong gói Heartbeat"] : null,
+              f.p17_text ? ["Dữ liệu P17 nhúng", e("code", f.p17_text), `Kiểu phản hồi: ${f.p17_type}`] : null,
+              f.p17_raw_hex ? ["Khung P17 thô (Hex)", e("code", f.p17_raw_hex), "Dữ liệu được chuyển tiếp qua RS485"] : null,
+            ].filter(Boolean)
+          )
+        )
+      );
+    } catch (err) {
+      frameResults.replaceChildren(notice("Lỗi giải mã khung: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  frameInputArea.append(hexInput, parseBtn);
+  frameCard.append(frameNotice, frameInputArea, frameResults);
+  essBox.append(frameCard);
+
+  container.append(essBox);
 }
 
 // Backward compatibility wrapper

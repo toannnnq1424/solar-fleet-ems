@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T03:48:22.165237+00:00",
+  "measured_at_utc": "2026-09-27T04:09:26.392071+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 103,
-      "lines": 34115,
-      "nonblank": 29840,
+      "files": 104,
+      "lines": 35026,
+      "nonblank": 30611,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -387,8 +387,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 1936,
-          "nonblank": 1607
+          "lines": 2036,
+          "nonblank": 1690
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -434,6 +434,11 @@
           "path": "src/solar_fleet/smart_meter_driver.py",
           "lines": 303,
           "nonblank": 268
+        },
+        {
+          "path": "src/solar_fleet/smartess_local_client.py",
+          "lines": 811,
+          "nonblank": 688
         },
         {
           "path": "src/solar_fleet/solar_model.py",
@@ -531,8 +536,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 14613,
-      "nonblank": 13944,
+      "lines": 14889,
+      "nonblank": 14191,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -561,8 +566,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 2115,
-          "nonblank": 1904
+          "lines": 2391,
+          "nonblank": 2151
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -713,9 +718,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 73,
-      "lines": 14876,
-      "nonblank": 12654,
+      "files": 74,
+      "lines": 15301,
+      "nonblank": 13007,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -996,6 +1001,11 @@
           "path": "tests/test_settings_and_rules.py",
           "lines": 89,
           "nonblank": 74
+        },
+        {
+          "path": "tests/test_smartess_local_client.py",
+          "lines": 425,
+          "nonblank": 353
         },
         {
           "path": "tests/test_solarman_adapter.py",
