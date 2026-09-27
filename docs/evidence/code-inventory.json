@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:45:35.646601+00:00",
+  "measured_at_utc": "2026-09-27T04:57:47.836754+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 108,
-      "lines": 37842,
-      "nonblank": 33048,
+      "files": 109,
+      "lines": 38618,
+      "nonblank": 33720,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -311,6 +311,11 @@
           "nonblank": 102
         },
         {
+          "path": "src/solar_fleet/huawei_sun2000_client.py",
+          "lines": 709,
+          "nonblank": 616
+        },
+        {
           "path": "src/solar_fleet/incident_api.py",
           "lines": 450,
           "nonblank": 419
@@ -407,8 +412,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2447,
-          "nonblank": 2024
+          "lines": 2514,
+          "nonblank": 2080
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -556,8 +561,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 15994,
-      "nonblank": 15188,
+      "lines": 16349,
+      "nonblank": 15507,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -586,8 +591,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 3496,
-          "nonblank": 3148
+          "lines": 3851,
+          "nonblank": 3467
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -738,9 +743,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 78,
-      "lines": 16517,
-      "nonblank": 14028,
+      "files": 79,
+      "lines": 16740,
+      "nonblank": 14218,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -916,6 +921,11 @@
           "path": "tests/test_huawei_growatt.py",
           "lines": 17,
           "nonblank": 14
+        },
+        {
+          "path": "tests/test_huawei_sun2000_client.py",
+          "lines": 223,
+          "nonblank": 190
         },
         {
           "path": "tests/test_incident_center.py",

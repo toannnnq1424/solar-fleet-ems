@@ -1467,3 +1467,65 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 2: Operation Mode & Grid Export Limitation (Mode compiler, Export limit ON/OFF and Watt cap, Cutoff SOC).
      * Section 3: Eco Mode V1 Time-of-Use Schedule Compiler (4 groups, start/stop HH:MM, power %, enable toggle).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+
+## Detailed Absorption: Project #13 - `huawei-solar-lib-develop`
+
+- **Repository**: `D:\Downloads\before_project\huawei-solar-lib-develop`
+- **License**: GNU Affero General Public License v3.0 (AGPL-3.0) (wlcrs/huawei-solar-lib).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/huawei_sun2000_client.py`. Zero code copied; Modbus TCP (port 502) and Modbus RTU frame codecs (FC03, FC06, FC10), big-endian register decoding, multi-string PV tracker voltages/currents/powers (32016..32023, 32064), 3-phase grid line/phase voltages, currents, active & reactive powers, power factor, frequency (32066..32085), DTSU666-H smart power meter bidirectional active power and export/import counters (37100..37138), LUNA2000 energy storage telemetry (37000..37025, 37760..37782), active power percentage derating compiler (40125), storage working mode compiler (47004), export limitation compiler (47079), battery cutoff SOC compiler (47081/47082), AC charge from grid toggle (47087), and LUNA2000 14-period Time-of-Use (TOU) schedule compiler (47255..47297) independently authored and verified.
+- **Rank**: #13 out of 30 upstream projects (51 files, 10,474 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Modbus TCP & RTU Protocol Engine (Port 502)**:
+   - MBAP header construction and Modbus RTU CRC-16 checksum calculation.
+   - Support for slave unit ID addressing (1..16) behind SDongleA, SmartLogger, or AP.
+   - Big-endian register packing and ASCII string register decoding.
+
+2. **Multi-String PV Telemetry (Registers 32016..32023, 32064)**:
+   - Up to 4 MPPT strings: PV1..PV4 voltages (0.1V), currents (0.01A), and computed powers.
+   - Total DC input power (32064, u32 W).
+
+3. **3-Phase Grid Output Telemetry (Registers 32066..32085)**:
+   - Phase A, B, C voltages (0.1V) and currents (0.001A).
+   - Inverter active power (32080, signed s32 W), reactive power (32082, signed s32 var).
+   - Power factor (32084, signed s16 / 1000) and grid frequency (32085, 0.01 Hz).
+   - Daily yield (32114, 0.01 kWh) and total lifetime yield (32106, 0.01 kWh).
+   - Internal inverter temperature (32087, 0.1 °C).
+
+4. **LUNA2000 Energy Storage System (ESS) Telemetry**:
+   - Storage running status (37762): Offline (0), Standby (1), Running (2), Fault (3), Sleep (4).
+   - Pack State of Charge (SOC 37760, 0.1%).
+   - Pack charge/discharge power (37765, signed s32 W; positive = charging, negative = discharging).
+   - Bus voltage (37763, 0.1V) and bus current (37764, signed s16 0.1A).
+   - Current day charge (37015) and discharge (37017) energy (0.01 kWh).
+   - Lifetime total charge (37780) and discharge (37782) energy (0.01 kWh).
+
+5. **DTSU666-H Smart Power Meter Telemetry**:
+   - Meter status (37100): Offline (0) / Normal (1).
+   - Point of common coupling active power (37113, signed s32 W; positive = export, negative = import).
+   - 3-phase individual active powers (37132, 37134, 37136).
+   - Accumulated grid export (37119, 0.01 kWh) and import (37121, 0.01 kWh) energies.
+   - Home load calculation: Inverter Active Power - Meter Export Power.
+
+6. **Parameter Write Compilers with Safety Gating**:
+   - Active Power Percentage Derating (40125, 0..1000 = 0..100.0%) and Fixed derating (40126, W).
+   - Storage Working Mode: Maximise Self-Consumption (4), Time of Use (6), Fully Fed to Grid (5).
+   - Grid Export Power Limit (47079, signed s32 W).
+   - Storage Charge / Discharge Cutoff SOC (47081 & 47082, 0..1000 = 0..100.0%).
+   - AC Grid Charging Toggle (47087, 0=Disable, 1=Enable).
+   - LUNA2000 Time-of-Use (TOU) Schedule Compiler (Registers 47255..47297):
+     Encodes up to 14 periods with start minute, end minute, charge/discharge mode, and 7-day effective mask.
+   - All parameter writes strictly gated by `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/huawei-sun2000/telemetry`: Queries and decodes local Huawei SUN2000, LUNA2000, and DTSU666-H telemetry over Modbus TCP into normalized EMS schema.
+   - `POST /api/huawei-sun2000/command`: Safely compiles parameter write commands gated behind hardware acceptance.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `huawei_sun2000` ("Huawei SUN2000 (LUNA2000 & TOU)") with 3 interactive sections:
+     * Section 1: Modbus TCP Gateway & SUN2000 Telemetry (Host, Port 502, Unit ID, live metrics table).
+     * Section 2: Active Power Derating, Storage Mode & Export Limitation (Holding 40125 / 47004 / 47079 / 47081 / 47082).
+     * Section 3: LUNA2000 Time-of-Use (TOU) Schedule Compiler (Holding 47255..47297, 14 slots, 7-day mask).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.

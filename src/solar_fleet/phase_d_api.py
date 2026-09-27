@@ -428,6 +428,25 @@ class GoodWeLocalCommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class HuaweiSun2000TelemetryRequest(BaseModel):
+    """Request for polling Huawei SUN2000 & LUNA2000 telemetry."""
+
+    host: str = Field(default="192.168.200.1", description="Inverter IP address on local network / SDongle / AP")
+    port: int = Field(default=502, description="Modbus TCP port (default 502)")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID (1..16)")
+
+
+class HuaweiSun2000CommandRequest(BaseModel):
+    """Request for executing Huawei SUN2000 & LUNA2000 configuration command."""
+
+    host: str = Field(default="192.168.200.1", description="Inverter IP address on local network")
+    port: int = Field(default=502, description="Modbus TCP port")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID")
+    command_type: str = Field(..., description="Command type: 'active_power_derating', 'storage_mode', 'export_limit', 'cutoff_soc', 'charge_from_grid', 'luna_tou_period'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
 
 
 
@@ -2433,6 +2452,54 @@ def install_phase_d_apis(app, controller, user, admin=None):
             )
             return {
                 "source": "goodwe-master (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Huawei SUN2000 & LUNA2000 Protocol Engine Endpoints (Project #13)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/huawei-sun2000/telemetry")
+    async def huawei_sun2000_telemetry(req: HuaweiSun2000TelemetryRequest, principal=Depends(user)):
+        """Poll and normalize Huawei SUN2000, LUNA2000, and DTSU666-H telemetry."""
+        from .huawei_sun2000_client import HuaweiSun2000Client
+
+        client = HuaweiSun2000Client(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            tel = client.poll_telemetry()
+            return {
+                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/huawei-sun2000/command")
+    async def huawei_sun2000_command(req: HuaweiSun2000CommandRequest, principal=Depends(user)):
+        """Safely execute Huawei SUN2000 / LUNA2000 command with hardware acceptance gate."""
+        from .huawei_sun2000_client import HuaweiSun2000Client
+
+        client = HuaweiSun2000Client(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
                 "result": result,
             }
         except ValueError as exc:

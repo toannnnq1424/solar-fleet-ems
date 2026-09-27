@@ -188,20 +188,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T04:45:35.646601+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T04:57:47.836754+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 108 | 37,842 | 33,048 |
-| Frontend JavaScript | 31 | 15,994 | 15,188 |
+| Backend Python | 109 | 38,618 | 33,720 |
+| Frontend JavaScript | 31 | 16,349 | 15,507 |
 | Frontend CSS / HTML | 2 | 6,012 | 5,502 |
-| Test BE / simulator / fixture | 78 | 16,517 | 14,028 |
+| Test BE / simulator / fixture | 79 | 16,740 | 14,218 |
 | Test UI / browser fixture | 6 | 702 | 640 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **33** | **22,006** | **20,690** |
-| **Tổng code ứng dụng BE + FE** | **141** | **59,848** | **53,738** |
-| **Tổng test / simulator / fixture** | **84** | **17,219** | **14,668** |
-| **Tổng code ứng dụng + test + scripts** | **228** | **77,585** | **68,884** |
+| **Tổng FE (JS + CSS/HTML)** | **33** | **22,361** | **21,009** |
+| **Tổng code ứng dụng BE + FE** | **142** | **60,979** | **54,729** |
+| **Tổng test / simulator / fixture** | **85** | **17,442** | **14,858** |
+| **Tổng code ứng dụng + test + scripts** | **230** | **78,939** | **70,065** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

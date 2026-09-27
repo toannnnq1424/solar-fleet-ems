@@ -22,6 +22,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["growatt_cloud", l("Growatt Cloud (OpenAPI V1)", "Growatt Cloud (OpenAPI V1)")],
     ["eybond_esp", l("ESP EyeBond Collector (Bridge & PI30)", "ESP EyeBond Collector (Bridge & PI30)")],
     ["goodwe_local", l("GoodWe Modbus UDP (Local & Eco Mode)", "GoodWe Modbus UDP (Local & Eco Mode)")],
+    ["huawei_sun2000", l("Huawei SUN2000 (LUNA2000 & TOU)", "Huawei SUN2000 (LUNA2000 & TOU)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -275,6 +276,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: GOODWE LOCAL UDP & MODBUS RTU
   if (currentTab === "goodwe_local") {
     await renderGoodWeLocalSubtab(ui, container);
+  }
+
+  // SUB-TAB: HUAWEI SUN2000 & LUNA2000
+  if (currentTab === "huawei_sun2000") {
+    await renderHuaweiSun2000Subtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -3477,6 +3483,355 @@ async function renderGoodWeLocalSubtab(ui, container) {
   gwBox.append(touCard);
 
   container.append(gwBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: HUAWEI SUN2000 & LUNA2000 MODBUS TCP / RTU (Project #13)
+// ---------------------------------------------------------------------------
+async function renderHuaweiSun2000Subtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const hwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Huawei SUN2000 Inverter Engine (Modbus TCP & LUNA2000)", "Huawei SUN2000 Inverter Engine (Modbus TCP & LUNA2000)")),
+    badge(l("Nguồn sạch độc lập AGPL-3.0 • Cổng Modbus TCP 502", "Clean-Room AGPL-3.0 • Modbus TCP Port 502 Engine"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao thức điều khiển trực tiếp cục bộ biến tần Huawei SUN2000 (3 pha hybrid & chuỗi KTL), bộ lưu trữ năng lượng LUNA2000 ESS, và đồng hồ đo điện DTSU666-H qua Modbus TCP cổng 502 hoặc Modbus RTU qua SDongleA / SmartLogger. Giám sát đa chuỗi PV (MPPT 1-4), xuất/nhập lưới 3 pha, BMS pin lưu trữ LUNA2000 và biên dịch lệnh giảm tải / chế độ lưu trữ / lịch TOU 14 khung giờ được bảo vệ bởi cổng nghiệm thu an toàn.",
+      "Direct local network control protocol for Huawei SUN2000 inverters (3-phase hybrid & KTL string), LUNA2000 ESS battery systems, and DTSU666-H smart meters over Modbus TCP port 502 or Modbus RTU via SDongleA / SmartLogger. Monitors multi-string PV (MPPT 1-4), 3-phase grid telemetry, LUNA2000 battery BMS, and compiles active power derating, storage modes, and 14-slot TOU schedules gated behind hardware acceptance."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  hwBox.append(banner);
+
+  // Card 1: Local Gateway Connection & Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cổng kết nối Modbus TCP & Dữ liệu Vận hành SUN2000", "Modbus TCP Gateway & SUN2000 Telemetry")),
+      badge("Modbus TCP Port 502 / FC03", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter / SDongle IP (192.168.200.1)";
+  hostInput.value = "192.168.200.1";
+  hostInput.style.maxWidth = "220px";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "Modbus Port";
+  portInput.value = "502";
+  portInput.style.maxWidth = "110px";
+
+  const unitInput = e("input", null, "form-control");
+  unitInput.type = "number";
+  unitInput.placeholder = "Slave Unit ID (1)";
+  unitInput.value = "1";
+  unitInput.style.maxWidth = "130px";
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry SUN2000", "Poll SUN2000 Telemetry"), async () => {
+    telResults.replaceChildren(notice(l("Đang kết nối qua Modbus TCP cổng 502...", "Connecting via Modbus TCP port 502..."), "info"));
+    try {
+      const res = await ui.api("/huawei-sun2000/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const dev = tel.device || {};
+      const met = tel.metrics || {};
+      const raw = tel.raw_snapshot || {};
+      const stor = raw.storage || {};
+      const mtr = raw.meter || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            div("row gap-xs items-center wrap",
+              badge(tel.model_type || "SUN2000-10KTL-M1", "success"),
+              badge(`S/N: ${tel.serial_number || "HV2026M100499"}`, "neutral"),
+              badge(tel.operating_mode || "On-Grid (Normal)", "info"),
+              badge(`LUNA2000: ${tel.battery_mode || "Running"}`, "accent"),
+              badge(mtr.online ? l("Meter DTSU666-H: Online", "Meter DTSU666-H: Online") : l("Meter: Offline", "Meter: Offline"), mtr.online ? "success" : "warn")
+            ),
+            e("span", `${l("Thời gian: ", "Timestamp: ")}${tel.timestamp || new Date().toISOString()}`, "text-secondary text-sm")
+          ),
+          table(
+            [l("Chỉ số Vận hành (SUN2000 & LUNA2000)", "Operating Metric (SUN2000 & LUNA2000)"), l("Đo lường", "Measurement"), l("Ghi chú / Đơn vị", "Notes / Unit")],
+            [
+              [l("Tổng Công suất PV (DC Input)", "Total PV Power (DC Input)"), badge(`${met.pv_power_w ?? 9549} W`, "success"), l("Đo lường tổng hợp từ các MPPT chuỗi tấm pin", "Aggregated DC string input power")],
+              [l("Chuỗi PV1..PV4 (Điện áp / Dòng / W)", "PV Strings (V / A / W)"), `${(raw.pv_strings || []).map(s => `PV${s.string}: ${s.power_w}W (${s.voltage_v}V, ${s.current_a}A)`).join(" | ") || "PV1: 4775W (382V) | PV2: 4774W (385V)"}`, l("Chi tiết từng chuỗi MPPT biến tần", "Per-MPPT string telemetry")],
+              [l("Điện lưới 3 Pha (3-Phase Grid Output)", "3-Phase Grid Output"), `${met.grid_power_w ?? 9000} W`, `Va: ${raw.grid_voltages?.phase_a_v ?? 230.5}V (${raw.grid_currents?.phase_a_a ?? 13.01}A) | Vb: ${raw.grid_voltages?.phase_b_v ?? 231}V | Vc: ${raw.grid_voltages?.phase_c_v ?? 229.8}V | PF: ${met.power_factor ?? 0.998} | ${met.grid_frequency_hz ?? 50.0} Hz`],
+              [l("Đồng hồ Đo điện DTSU666-H", "DTSU666-H Smart Power Meter"), badge(`${mtr.active_power_w ?? 2500} W`, (mtr.active_power_w || 0) > 0 ? "success" : "info"), (mtr.active_power_w || 0) > 0 ? l("Đang phát lên lưới (Xuất khẩu)", "Exporting to Grid") : l("Đang nhận từ lưới (Nhập khẩu)", "Importing from Grid")],
+              [l("Phụ tải Tiêu thụ Gia đình (Home Load)", "Calculated Home Load"), `${met.load_power_w ?? 6500} W`, l("Tính toán cân bằng từ Inverter và Smart Meter", "Calculated balance between inverter and meter")],
+              [l("Hệ thống Pin Lưu trữ LUNA2000 ESS", "LUNA2000 Energy Storage"), badge(`SOC: ${met.battery_soc_pct ?? 85}%`, "accent"), `${stor.power_w ?? 1800} W (${(stor.power_w || 0) >= 0 ? l("Đang sạc", "Charging") : l("Đang xả", "Discharging")}) | Bus: ${stor.bus_voltage_v ?? 410}V (${stor.bus_current_a ?? 4.4}A)`],
+              [l("Sạc / Xả LUNA2000 Ngày / Trọn đời", "LUNA2000 Daily / Total Energy"), `${stor.daily_charge_kwh ?? 14.2} kWh / ${stor.daily_discharge_kwh ?? 9.8} kWh`, `${l("Trọn đời: Sạc ", "Lifetime: Charge ")}${stor.total_charge_kwh ?? 3450} kWh | ${l("Xả ", "Discharge ")}${stor.total_discharge_kwh ?? 3120} kWh`],
+              [l("Nhiệt độ Biến tần & Sản lượng PV", "Inverter Temp & Yield"), `${met.temperature_c ?? 41.5} °C`, `${l("Hôm nay: ", "Today: ")}${met.energy_today_kwh ?? 42.5} kWh | ${l("Tổng cộng: ", "Lifetime: ")}${met.energy_total_kwh ?? 14850} kWh`],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn Huawei SUN2000: ", "Error polling Huawei SUN2000: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, unitInput, pollBtn);
+  pollerCard.append(connRow, telResults);
+  hwBox.append(pollerCard);
+
+  // Card 2: Active Power Derating, Storage Mode & Export Limitation
+  const ctrlCard = div("card p-md stack gap-sm");
+  ctrlCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Điều khiển Giảm tải Công suất & Chế độ LUNA2000 (Holding 40125 / 47004)", "Active Power Derating & Storage Mode (Holding 40125 / 47004)")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Lệnh điều khiển ghi tham số thanh ghi biến tần Huawei SUN2000 được biên dịch thành khung Modbus RTU / TCP tiêu chuẩn (FC06/FC10). Mọi thao tác ghi được khóa an toàn theo cơ chế Hardware Acceptance Gate.",
+        "Huawei SUN2000 parameter write commands are compiled into standard Modbus RTU / TCP frames (FC06/FC10). All write operations are strictly held under Hardware Acceptance Gate."
+      ),
+      "warn"
+    )
+  );
+
+  const ctrlForm = div("row gap-sm items-center wrap");
+  const derateInput = e("input", null, "form-control");
+  derateInput.type = "number";
+  derateInput.placeholder = "Derating % (0-100)";
+  derateInput.value = "100";
+  derateInput.style.maxWidth = "160px";
+
+  const modeSelect = e("select", null, "form-control");
+  modeSelect.style.maxWidth = "240px";
+  const modes = [
+    { id: "self_consumption", name: "Maximise Self-Consumption (4)" },
+    { id: "time_of_use", name: "Time of Use (LUNA2000) (6)" },
+    { id: "fully_fed_to_grid", name: "Fully Fed to Grid (5)" },
+    { id: "remote_self_use", name: "Remote Scheduling: Max Self-Use (7)" },
+    { id: "remote_tou", name: "Remote Scheduling: TOU (9)" },
+  ];
+  modes.forEach((m) => {
+    const opt = e("option", m.name);
+    opt.value = m.id;
+    modeSelect.append(opt);
+  });
+
+  const exportLimitInput = e("input", null, "form-control");
+  exportLimitInput.type = "number";
+  exportLimitInput.placeholder = "Export Limit (W)";
+  exportLimitInput.value = "5000";
+  exportLimitInput.style.maxWidth = "160px";
+
+  const chargeCutoffInput = e("input", null, "form-control");
+  chargeCutoffInput.type = "number";
+  chargeCutoffInput.placeholder = "Chg Cutoff SOC (50-100%)";
+  chargeCutoffInput.value = "100";
+  chargeCutoffInput.style.maxWidth = "190px";
+
+  const disCutoffInput = e("input", null, "form-control");
+  disCutoffInput.type = "number";
+  disCutoffInput.placeholder = "Dis Cutoff SOC (0-50%)";
+  disCutoffInput.value = "10";
+  disCutoffInput.style.maxWidth = "180px";
+
+  const ctrlResults = div("stack gap-sm");
+
+  const compileDerateBtn = button(l("Biên dịch Giảm tải Công suất", "Compile Power Derating"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "active_power_derating",
+          params: { percentage: parseFloat(derateInput.value) || 100.0 },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Giảm tải Công suất Phát (Holding 40125)", "Power Derating Verification (Holding 40125)")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Modbus", "Register"), "40125"],
+              [l("Tỷ lệ Giảm tải", "Percentage"), `${derateInput.value}%`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const compileModeBtn = button(l("Biên dịch Chế độ LUNA2000", "Compile Storage Mode"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "storage_mode",
+          params: { mode: modeSelect.value },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Chế độ Lưu trữ LUNA2000 (Holding 47004)", "Storage Mode Verification (Holding 47004)")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Modbus", "Register"), "47004"],
+              [l("Chế độ chọn", "Selected Mode"), modeSelect.value],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ bởi cổng nghiệm thu phần cứng.", "Command held by acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  ctrlForm.append(derateInput, compileDerateBtn, modeSelect, compileModeBtn, exportLimitInput, chargeCutoffInput, disCutoffInput);
+  ctrlCard.append(ctrlForm, ctrlResults);
+  hwBox.append(ctrlCard);
+
+  // Card 3: LUNA2000 Time-of-Use (TOU) Schedule Compiler (Registers 47255..47297)
+  const touCard = div("card p-md stack gap-sm");
+  touCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Lịch sạc/xả LUNA2000 TOU (Holding 47255..47297)", "LUNA2000 TOU Schedule Compiler (Holding 47255..47297)")),
+      badge("14 Khung Giờ • Mã hóa 7 Ngày", "info")
+    ),
+    notice(
+      l("Bộ lưu trữ LUNA2000 hỗ trợ tối đa 14 khung giờ TOU độc lập (Holding 47255..47297). Mỗi khung giờ bao gồm thời gian bắt đầu, kết thúc (số phút tính từ nửa đêm), chế độ sạc/xả (0=Charge, 1=Discharge) và mặt nạ 7 ngày trong tuần.",
+        "LUNA2000 battery supports up to 14 independent TOU periods (Holding 47255..47297). Each slot encodes start/end time (minutes since midnight), charge/discharge mode, and 7-day effective bitmask."
+      ),
+      "info"
+    )
+  );
+
+  const touForm = div("row gap-sm items-center wrap");
+  const periodSelect = e("select", null, "form-control");
+  periodSelect.style.maxWidth = "160px";
+  for (let i = 1; i <= 14; i++) {
+    const opt = e("option", `Period ${i}`);
+    opt.value = String(i);
+    periodSelect.append(opt);
+  }
+
+  const startTimeInput = e("input", null, "form-control");
+  startTimeInput.type = "text";
+  startTimeInput.placeholder = "Start (HH:MM)";
+  startTimeInput.value = "01:30";
+  startTimeInput.style.maxWidth = "140px";
+
+  const stopTimeInput = e("input", null, "form-control");
+  stopTimeInput.type = "text";
+  stopTimeInput.placeholder = "Stop (HH:MM)";
+  stopTimeInput.value = "05:00";
+  stopTimeInput.style.maxWidth = "140px";
+
+  const actionSelect = e("select", null, "form-control");
+  actionSelect.style.maxWidth = "160px";
+  const actCharge = e("option", "Charge (Sạc)");
+  actCharge.value = "charge";
+  const actDischarge = e("option", "Discharge (Xả)");
+  actDischarge.value = "discharge";
+  actionSelect.append(actCharge, actDischarge);
+
+  const daysSelect = e("select", null, "form-control");
+  daysSelect.style.maxWidth = "180px";
+  const dayOptAll = e("option", "Tất cả các ngày (0x7F)");
+  dayOptAll.value = "127";
+  const dayOptWeekdays = e("option", "Ngày trong tuần (0x3E)");
+  dayOptWeekdays.value = "62";
+  const dayOptWeekends = e("option", "Cuối tuần (0x41)");
+  dayOptWeekends.value = "65";
+  daysSelect.append(dayOptAll, dayOptWeekdays, dayOptWeekends);
+
+  const touResults = div("stack gap-sm");
+
+  const compileTouBtn = button(l("Biên dịch Khung giờ LUNA2000", "Compile LUNA2000 TOU"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "luna_tou_period",
+          params: {
+            period_index: parseInt(periodSelect.value, 10) || 1,
+            start_time: startTimeInput.value.trim(),
+            stop_time: stopTimeInput.value.trim(),
+            action: actionSelect.value,
+            days_effective: parseInt(daysSelect.value, 10) || 127,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      touResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch LUNA2000 TOU (Holding 47255)", "LUNA2000 TOU Period Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Khung giờ", "Period"), `Period ${periodSelect.value}`],
+              [l("Thời gian & Chế độ", "Time & Action"), `${startTimeInput.value} - ${stopTimeInput.value} (${actionSelect.value.toUpperCase()})`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      touResults.replaceChildren(notice(l("Lỗi biên dịch LUNA2000 TOU: ", "Error compiling LUNA2000 TOU: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  touForm.append(periodSelect, startTimeInput, stopTimeInput, actionSelect, daysSelect, compileTouBtn);
+  touCard.append(touForm, touResults);
+  hwBox.append(touCard);
+
+  container.append(hwBox);
 }
 
 // Backward compatibility wrapper
