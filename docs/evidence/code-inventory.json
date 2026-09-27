@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:09:26.392071+00:00",
+  "measured_at_utc": "2026-09-27T06:27:57.302086+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 104,
-      "lines": 35026,
-      "nonblank": 30611,
+      "files": 107,
+      "lines": 35444,
+      "nonblank": 30954,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -162,13 +162,13 @@
         },
         {
           "path": "src/solar_fleet/app.py",
-          "lines": 350,
-          "nonblank": 300
+          "lines": 353,
+          "nonblank": 302
         },
         {
           "path": "src/solar_fleet/battery_health.py",
-          "lines": 302,
-          "nonblank": 255
+          "lines": 284,
+          "nonblank": 245
         },
         {
           "path": "src/solar_fleet/brand_registry.py",
@@ -179,6 +179,11 @@
           "path": "src/solar_fleet/budgets.py",
           "lines": 32,
           "nonblank": 26
+        },
+        {
+          "path": "src/solar_fleet/calculation_inputs.py",
+          "lines": 256,
+          "nonblank": 209
         },
         {
           "path": "src/solar_fleet/capability_profiles.py",
@@ -252,18 +257,18 @@
         },
         {
           "path": "src/solar_fleet/ev_fleet_coordinator.py",
-          "lines": 198,
-          "nonblank": 167
+          "lines": 203,
+          "nonblank": 172
         },
         {
           "path": "src/solar_fleet/forecast_baseline.py",
-          "lines": 396,
-          "nonblank": 350
+          "lines": 420,
+          "nonblank": 377
         },
         {
           "path": "src/solar_fleet/genset_controller.py",
-          "lines": 277,
-          "nonblank": 224
+          "lines": 284,
+          "nonblank": 231
         },
         {
           "path": "src/solar_fleet/gis_engine.py",
@@ -347,8 +352,8 @@
         },
         {
           "path": "src/solar_fleet/market_trader.py",
-          "lines": 211,
-          "nonblank": 173
+          "lines": 216,
+          "nonblank": 178
         },
         {
           "path": "src/solar_fleet/microgrid_controller.py",
@@ -376,19 +381,29 @@
           "nonblank": 432
         },
         {
+          "path": "src/solar_fleet/observed_energy.py",
+          "lines": 85,
+          "nonblank": 79
+        },
+        {
           "path": "src/solar_fleet/operational_views.py",
           "lines": 454,
           "nonblank": 421
         },
         {
           "path": "src/solar_fleet/phase_balancer.py",
-          "lines": 359,
-          "nonblank": 294
+          "lines": 368,
+          "nonblank": 302
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2036,
-          "nonblank": 1690
+          "lines": 2084,
+          "nonblank": 1720
+        },
+        {
+          "path": "src/solar_fleet/planning_configuration.py",
+          "lines": 106,
+          "nonblank": 85
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -397,8 +412,8 @@
         },
         {
           "path": "src/solar_fleet/predbat_planner.py",
-          "lines": 331,
-          "nonblank": 282
+          "lines": 332,
+          "nonblank": 283
         },
         {
           "path": "src/solar_fleet/providers.py",
@@ -437,8 +452,8 @@
         },
         {
           "path": "src/solar_fleet/smartess_local_client.py",
-          "lines": 811,
-          "nonblank": 688
+          "lines": 690,
+          "nonblank": 578
         },
         {
           "path": "src/solar_fleet/solar_model.py",
@@ -477,8 +492,8 @@
         },
         {
           "path": "src/solar_fleet/tariff_engine.py",
-          "lines": 367,
-          "nonblank": 320
+          "lines": 357,
+          "nonblank": 312
         },
         {
           "path": "src/solar_fleet/telemetry.py",
@@ -507,8 +522,8 @@
         },
         {
           "path": "src/solar_fleet/vendor_registers.py",
-          "lines": 443,
-          "nonblank": 399
+          "lines": 431,
+          "nonblank": 387
         },
         {
           "path": "src/solar_fleet/vpp_aggregator.py",
@@ -527,22 +542,27 @@
         },
         {
           "path": "src/solar_fleet/workspaces.py",
-          "lines": 1495,
-          "nonblank": 1384
+          "lines": 1525,
+          "nonblank": 1409
         }
       ]
     },
     {
       "key": "frontend_js",
       "label": "Frontend JavaScript",
-      "files": 31,
-      "lines": 14889,
-      "nonblank": 14191,
+      "files": 33,
+      "lines": 14487,
+      "nonblank": 13808,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
           "lines": 741,
           "nonblank": 739
+        },
+        {
+          "path": "src/solar_fleet/static/advisory-calculator.js",
+          "lines": 25,
+          "nonblank": 24
         },
         {
           "path": "src/solar_fleet/static/app.js",
@@ -556,23 +576,28 @@
         },
         {
           "path": "src/solar_fleet/static/control-workspace.js",
-          "lines": 219,
-          "nonblank": 205
+          "lines": 144,
+          "nonblank": 135
         },
         {
           "path": "src/solar_fleet/static/data-workspace.js",
-          "lines": 144,
-          "nonblank": 133
+          "lines": 81,
+          "nonblank": 76
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 2391,
-          "nonblank": 2151
+          "lines": 2320,
+          "nonblank": 2066
+        },
+        {
+          "path": "src/solar_fleet/static/dispatch-plan.js",
+          "lines": 31,
+          "nonblank": 30
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
-          "lines": 431,
-          "nonblank": 387
+          "lines": 251,
+          "nonblank": 225
         },
         {
           "path": "src/solar_fleet/static/energy-flow.js",
@@ -621,8 +646,8 @@
         },
         {
           "path": "src/solar_fleet/static/maintenance-workspace.js",
-          "lines": 1184,
-          "nonblank": 1055
+          "lines": 1179,
+          "nonblank": 1050
         },
         {
           "path": "src/solar_fleet/static/mapping-workspace.js",
@@ -646,13 +671,13 @@
         },
         {
           "path": "src/solar_fleet/static/plant-workspace.js",
-          "lines": 672,
-          "nonblank": 619
+          "lines": 702,
+          "nonblank": 649
         },
         {
           "path": "src/solar_fleet/static/report-workspace.js",
-          "lines": 126,
-          "nonblank": 118
+          "lines": 96,
+          "nonblank": 88
         },
         {
           "path": "src/solar_fleet/static/schedule-planner.js",
@@ -661,8 +686,8 @@
         },
         {
           "path": "src/solar_fleet/static/schedule-workspace.js",
-          "lines": 109,
-          "nonblank": 100
+          "lines": 30,
+          "nonblank": 27
         },
         {
           "path": "src/solar_fleet/static/schema-form.js",
@@ -671,8 +696,8 @@
         },
         {
           "path": "src/solar_fleet/static/settings-workspace.js",
-          "lines": 603,
-          "nonblank": 560
+          "lines": 618,
+          "nonblank": 575
         },
         {
           "path": "src/solar_fleet/static/site-overview-workspace.js",
@@ -718,9 +743,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 74,
-      "lines": 15301,
-      "nonblank": 13007,
+      "files": 80,
+      "lines": 16133,
+      "nonblank": 13729,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -814,8 +839,23 @@
         },
         {
           "path": "tests/test_ev_fleet_and_market.py",
-          "lines": 225,
-          "nonblank": 194
+          "lines": 247,
+          "nonblank": 215
+        },
+        {
+          "path": "tests/test_explicit_calculations.py",
+          "lines": 147,
+          "nonblank": 125
+        },
+        {
+          "path": "tests/test_explicit_operational_inputs.py",
+          "lines": 234,
+          "nonblank": 211
+        },
+        {
+          "path": "tests/test_explicit_phase_thermal.py",
+          "lines": 107,
+          "nonblank": 92
         },
         {
           "path": "tests/test_extension_data_stream.py",
@@ -844,13 +884,13 @@
         },
         {
           "path": "tests/test_goodwe_sems_client.py",
-          "lines": 285,
-          "nonblank": 252
+          "lines": 276,
+          "nonblank": 243
         },
         {
           "path": "tests/test_grid_code_and_meters.py",
-          "lines": 223,
-          "nonblank": 185
+          "lines": 226,
+          "nonblank": 188
         },
         {
           "path": "tests/test_growatt_adapter.py",
@@ -894,8 +934,8 @@
         },
         {
           "path": "tests/test_load_and_tariff.py",
-          "lines": 231,
-          "nonblank": 201
+          "lines": 230,
+          "nonblank": 200
         },
         {
           "path": "tests/test_maintenance_execution.py",
@@ -933,6 +973,16 @@
           "nonblank": 182
         },
         {
+          "path": "tests/test_no_seed_routes.py",
+          "lines": 119,
+          "nonblank": 102
+        },
+        {
+          "path": "tests/test_observed_energy.py",
+          "lines": 66,
+          "nonblank": 52
+        },
+        {
           "path": "tests/test_overview_and_conflicts.py",
           "lines": 279,
           "nonblank": 241
@@ -959,8 +1009,8 @@
         },
         {
           "path": "tests/test_predbat_and_genset.py",
-          "lines": 394,
-          "nonblank": 348
+          "lines": 407,
+          "nonblank": 361
         },
         {
           "path": "tests/test_report_workspace.py",
@@ -1003,9 +1053,14 @@
           "nonblank": 74
         },
         {
+          "path": "tests/test_sidebar_contracts.py",
+          "lines": 103,
+          "nonblank": 88
+        },
+        {
           "path": "tests/test_smartess_local_client.py",
-          "lines": 425,
-          "nonblank": 353
+          "lines": 412,
+          "nonblank": 343
         },
         {
           "path": "tests/test_solarman_adapter.py",
@@ -1084,8 +1139,8 @@
         },
         {
           "path": "tests/test_workspaces.py",
-          "lines": 384,
-          "nonblank": 350
+          "lines": 425,
+          "nonblank": 385
         },
         {
           "path": "tests/ui_fixture.py",
@@ -1097,9 +1152,9 @@
     {
       "key": "browser_tests",
       "label": "Test UI / browser fixture",
-      "files": 6,
-      "lines": 702,
-      "nonblank": 640,
+      "files": 9,
+      "lines": 928,
+      "nonblank": 842,
       "entries": [
         {
           "path": "ui_tests/conftest.py",
@@ -1110,6 +1165,11 @@
           "path": "ui_tests/test_audit_workflows.py",
           "lines": 158,
           "nonblank": 143
+        },
+        {
+          "path": "ui_tests/test_explicit_calculations.py",
+          "lines": 96,
+          "nonblank": 88
         },
         {
           "path": "ui_tests/test_legacy_reuse_screens.py",
@@ -1130,6 +1190,16 @@
           "path": "ui_tests/test_operations_screens.py",
           "lines": 72,
           "nonblank": 63
+        },
+        {
+          "path": "ui_tests/test_plant_missing_metadata.py",
+          "lines": 76,
+          "nonblank": 69
+        },
+        {
+          "path": "ui_tests/test_sidebar_contracts.py",
+          "lines": 54,
+          "nonblank": 45
         }
       ]
     },

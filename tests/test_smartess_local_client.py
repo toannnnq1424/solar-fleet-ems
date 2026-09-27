@@ -318,24 +318,14 @@ def test_smartess_client_simulation_and_safety_gates():
     """Verify SmartEssLocalClient polling, TID tracking, and safety gates."""
     client = SmartEssLocalClient(collector_pn="WIFI-DEMO-01", simulated=True)
 
-    # 1. Telemetry Polling
-    telemetry = client.poll_telemetry(devaddr=1)
-    assert telemetry["collector_pn"] == "WIFI-DEMO-01"
-    assert telemetry["battery"]["soc_percent"] == 88
-
-    # 2. Safety Gate (Read-only by default)
-    res_locked = client.execute_command_safely("output_priority", {"priority": 0}, unlocked=False)
-    assert res_locked["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
-
-    # 3. Authorized Execution
-    res_unlocked = client.execute_command_safely("output_priority", {"priority": 0}, unlocked=True)
-    assert res_unlocked["status"] == "EXECUTED"
-    assert res_unlocked["p17_command"] == "POP0"
-    assert res_unlocked["readback_verified"] is True
-
-    # 4. Verify Readback in Polled Telemetry
-    updated = client.poll_telemetry(devaddr=1)
-    assert "USB" in updated["configuration"]["output_source_priority"]
+    with pytest.raises(NotImplementedError, match="local_transport_unavailable"):
+        client.poll_telemetry(devaddr=1)
+    for unlocked in (False, True):
+        result = client.execute_command_safely("output_priority", {"priority": 0}, unlocked=unlocked)
+        assert result["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        assert result["readback_verified"] is False
+    assert client.next_tid() == 1
+    assert client.next_tid() == 2
 
 
 # ---------------------------------------------------------------------------
@@ -354,12 +344,9 @@ def test_api_smartess_poll(local):
         json={"collector_pn": "EYBOND-TEST-01", "devaddr": 1},
         headers=headers,
     )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "ha-smartess-local" in data["source"]
-    assert data["telemetry"]["collector_pn"] == "EYBOND-TEST-01"
-    assert data["telemetry"]["vendor"] == "SmartESS / Eybond"
-    assert data["telemetry"]["power_flow"]["solar_power_w"] > 0
+    assert resp.status_code == 409
+    assert "local_transport_unavailable" in resp.json()["detail"]
+    assert "telemetry" not in resp.json()
 
 
 def test_api_smartess_command_locked_and_unlocked(local):
@@ -399,8 +386,8 @@ def test_api_smartess_command_locked_and_unlocked(local):
     )
     assert resp_unlocked.status_code == 200
     data_unlocked = resp_unlocked.json()
-    assert data_unlocked["result"]["status"] == "EXECUTED"
-    assert data_unlocked["result"]["p17_command"] == "POP0"
+    assert data_unlocked["result"]["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+    assert data_unlocked["result"]["readback_verified"] is False
 
 
 def test_api_smartess_parse_frame(local):

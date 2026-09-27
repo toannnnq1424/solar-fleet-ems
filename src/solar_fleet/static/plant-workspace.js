@@ -28,7 +28,7 @@ function renderBenchmarkingSvg(plants, width = 640, height = 220) {
   const plotW = width - padLeft - padRight;
   const plotH = height - padTop - padBottom;
 
-  const data = (plants || []).filter(p => Number.isFinite(p.specific_yield_kwh_per_kwp)).slice(0, 10);
+  const data = (plants || []).filter(p => Number.isFinite(p.specific_yield_kwh_per_kwp) && p.specific_yield_kwh_per_kwp >= 0).slice(0, 10);
   if (!data.length) {
     const txt = svgEl("text", { x: width / 2, y: height / 2, "text-anchor": "middle", fill: "#94a3b8", "font-size": "13" });
     txt.textContent = l("Chưa có đủ dữ liệu so sánh trạm", "No plant benchmarking data");
@@ -36,10 +36,10 @@ function renderBenchmarkingSvg(plants, width = 640, height = 220) {
     return svg;
   }
 
-  const maxVal = 5.0; // 5.0 kWh/kWp
+  const maxVal = Math.max(5, Math.ceil(Math.max(...data.map(p => p.specific_yield_kwh_per_kwp))));
   // Grid lines
   for (let i = 0; i <= 5; i++) {
-    const yVal = i;
+    const yVal = i * maxVal / 5;
     const yPos = padTop + plotH - (i / 5) * plotH;
     svg.append(svgEl("line", {
       x1: padLeft,
@@ -58,7 +58,7 @@ function renderBenchmarkingSvg(plants, width = 640, height = 220) {
       "font-size": "10",
       "font-family": "monospace",
     });
-    tLab.textContent = `${yVal}.0`;
+    tLab.textContent = number(yVal);
     svg.append(tLab);
   }
 
@@ -68,7 +68,7 @@ function renderBenchmarkingSvg(plants, width = 640, height = 220) {
     const val = p.specific_yield_kwh_per_kwp;
     const barH = (val / maxVal) * plotH;
     const y = padTop + plotH - barH;
-    const color = p.status === "OPTIMAL" ? "#10b981" : "#f59e0b";
+    const color = "var(--primary, #2563eb)";
 
     svg.append(svgEl("rect", {
       x: x,
@@ -124,9 +124,9 @@ export function openPlantWizard(ui, onComplete) {
     timezone: "Asia/Ho_Chi_Minh",
     capacity_kwp: null,
     battery_capacity_kwh: null,
-    grid_limit_kw: 0.0,
-    tariff_type: "TOU_INDUSTRIAL",
-    inverter_vendor: "GoodWe",
+    grid_limit_kw: null,
+    tariff_type: "",
+    inverter_vendor: "",
   };
 
   const container = div("stack wizard-container");
@@ -192,8 +192,12 @@ export function openPlantWizard(ui, onComplete) {
       addrInput.placeholder = l("VD: KCN VSIP II, Bến Cát, Bình Dương", "e.g. VSIP II Industrial Park, Binh Duong");
       const latInput = input("number", wizardData.latitude);
       latInput.step = "0.0001";
+      latInput.min = "-90";
+      latInput.max = "90";
       const lngInput = input("number", wizardData.longitude);
       lngInput.step = "0.0001";
+      lngInput.min = "-180";
+      lngInput.max = "180";
       const tzSelect = select(
         [
           ["Asia/Ho_Chi_Minh", "Asia/Ho_Chi_Minh (UTC+7)"],
@@ -221,9 +225,14 @@ export function openPlantWizard(ui, onComplete) {
         div("row justify-between",
           btn(l("← Quay lại", "← Back"), () => { currentStep = 1; renderStep(); }),
           btn(l("Tiếp tục →", "Next →"), () => {
+            if (!latInput.reportValidity() || !lngInput.reportValidity()) return;
+            if ((latInput.value === "") !== (lngInput.value === "")) {
+              alert(l("Nhập cả hai tọa độ hoặc để trống cả hai.", "Enter both coordinates or leave both blank."));
+              return;
+            }
             wizardData.address = addrInput.value.trim();
-            wizardData.latitude = parseFloat(latInput.value) || 0;
-            wizardData.longitude = parseFloat(lngInput.value) || 0;
+            wizardData.latitude = latInput.value === "" ? null : Number(latInput.value);
+            wizardData.longitude = lngInput.value === "" ? null : Number(lngInput.value);
             wizardData.timezone = tzSelect.value;
             currentStep = 3;
             renderStep();
@@ -232,12 +241,20 @@ export function openPlantWizard(ui, onComplete) {
       );
     } else if (currentStep === 3) {
       const capInput = input("number", wizardData.capacity_kwp);
-      capInput.min = "1";
+      capInput.min = "0";
+      capInput.max = "10000000";
+      capInput.step = "any";
       const batInput = input("number", wizardData.battery_capacity_kwh);
       batInput.min = "0";
+      batInput.max = "10000000";
+      batInput.step = "any";
       const gridLimitInput = input("number", wizardData.grid_limit_kw);
+      gridLimitInput.min = "0";
+      gridLimitInput.max = "10000000";
+      gridLimitInput.step = "any";
       const vendorSelect = select(
         [
+          ["", l("Chưa khai báo", "Not declared")],
           ["GoodWe", "GoodWe Inverter"],
           ["Sungrow", "Sungrow Inverter"],
           ["Huawei", "Huawei FusionSolar"],
@@ -250,6 +267,7 @@ export function openPlantWizard(ui, onComplete) {
       );
       const tariffSelect = select(
         [
+          ["", l("Chưa khai báo", "Not declared")],
           ["TOU_INDUSTRIAL", l("Biểu giá điện sản xuất EVN (3 khung giờ)", "EVN Industrial TOU")],
           ["TOU_COMMERCIAL", l("Biểu giá điện kinh doanh EVN", "EVN Commercial TOU")],
           ["FLAT_RATE", l("Giá cố định theo hợp đồng PPA", "Flat PPA Rate")],
@@ -266,17 +284,20 @@ export function openPlantWizard(ui, onComplete) {
           ),
           div("grid grid-2",
             field(l("Hãng biến tần chính", "Primary Inverter Vendor"), vendorSelect),
-            field(l("Giới hạn công suất phát lưới (kW)", "Zero-export limit (kW)"), gridLimitInput)
+            field(l("Giới hạn phát lưới khai báo (kW)", "Declared export limit (kW)"), gridLimitInput)
           ),
-          field(l("Biểu giá điện lực EVN áp dụng", "Electricity Tariff"), tariffSelect)
+          field(l("Loại biểu giá khai báo", "Declared tariff type"), tariffSelect),
+          notice("Chỉ lưu hồ sơ khai báo; không áp dụng giới hạn lên thiết bị hoặc thiết lập giá tính tiền.",
+            "Inventory declarations only; does not apply device limits or configure billing rates.")
         ),
         div("row justify-between",
           btn(l("← Quay lại", "← Back"), () => { currentStep = 2; renderStep(); }),
           btn(l("Tiếp tục →", "Next →"), () => {
-            wizardData.capacity_kwp = parseFloat(capInput.value) || 0;
-            wizardData.battery_capacity_kwh = parseFloat(batInput.value) || 0;
+            if (![capInput, batInput, gridLimitInput].every(control => control.reportValidity())) return;
+            wizardData.capacity_kwp = capInput.value === "" ? null : Number(capInput.value);
+            wizardData.battery_capacity_kwh = batInput.value === "" ? null : Number(batInput.value);
             wizardData.inverter_vendor = vendorSelect.value;
-            wizardData.grid_limit_kw = parseFloat(gridLimitInput.value) || 0;
+            wizardData.grid_limit_kw = gridLimitInput.value === "" ? null : Number(gridLimitInput.value);
             wizardData.tariff_type = tariffSelect.value;
             currentStep = 4;
             renderStep();
@@ -291,15 +312,17 @@ export function openPlantWizard(ui, onComplete) {
             div("fact", e("span", l("Tên nhà máy:", "Plant name:")), e("b", wizardData.name)),
             div("fact", e("span", l("Khách hàng:", "Customer:")), e("b", wizardData.customer || "—")),
             div("fact", e("span", l("Địa chỉ:", "Address:")), e("b", wizardData.address || "—")),
-            div("fact", e("span", l("Tọa độ GPS:", "GPS Coordinates:")), e("b", `${wizardData.latitude}, ${wizardData.longitude}`)),
-            div("fact", e("span", l("Công suất PV:", "PV Capacity:")), e("b", `${wizardData.capacity_kwp} kWp`)),
-            div("fact", e("span", l("Pin lưu trữ:", "Battery:")), e("b", `${wizardData.battery_capacity_kwh} kWh`)),
-            div("fact", e("span", l("Hãng chính:", "Primary Vendor:")), badge(wizardData.inverter_vendor)),
-            div("fact", e("span", l("Biểu giá:", "Tariff:")), e("b", wizardData.tariff_type))
+            div("fact", e("span", l("Tọa độ GPS:", "GPS Coordinates:")), e("b", wizardData.latitude === null ? "—" : `${wizardData.latitude}, ${wizardData.longitude}`)),
+            div("fact", e("span", l("Công suất PV:", "PV Capacity:")), e("b", wizardData.capacity_kwp === null ? "—" : `${wizardData.capacity_kwp} kWp`)),
+            div("fact", e("span", l("Loại công trình:", "Installation type:")), e("b", wizardData.plant_type)),
+            div("fact", e("span", l("Pin lưu trữ:", "Battery:")), e("b", `${number(wizardData.battery_capacity_kwh)} kWh`)),
+            div("fact", e("span", l("Giới hạn phát lưới khai báo:", "Declared export limit:")), e("b", `${number(wizardData.grid_limit_kw)} kW`)),
+            div("fact", e("span", l("Hãng chính:", "Primary Vendor:")), badge(wizardData.inverter_vendor || "—")),
+            div("fact", e("span", l("Loại biểu giá khai báo:", "Declared tariff type:")), e("b", wizardData.tariff_type || "—"))
           ),
           notice(
-            "Sau khi tạo, nhà máy sẽ tự động xuất hiện trên danh mục hạm đội với đầy đủ 10 không gian làm việc chuyên sâu.",
-            "Upon creation, the plant will appear in the fleet portfolio with all 10 specialized workspaces."
+            "Chỉ tạo hồ sơ nhà máy. Chưa nghiệm thu thiết bị, áp dụng giới hạn điều khiển hoặc cấu hình giá tính tiền.",
+            "Creates inventory only. Does not commission devices, apply control limits or configure billing rates."
           )
         ),
         div("row justify-between",
@@ -314,6 +337,13 @@ export function openPlantWizard(ui, onComplete) {
                 longitude: wizardData.longitude,
                 timezone: wizardData.timezone,
                 capacity_kwp: wizardData.capacity_kwp,
+                declared_specs: {
+                  plant_type: wizardData.plant_type,
+                  battery_capacity_kwh: wizardData.battery_capacity_kwh,
+                  grid_limit_kw: wizardData.grid_limit_kw,
+                  inverter_vendor: wizardData.inverter_vendor || null,
+                  tariff_type: wizardData.tariff_type || null,
+                },
               });
               closeDialog();
               if (onComplete) onComplete(resp);
@@ -619,36 +649,36 @@ export async function renderPlantsMainWorkspace(ui) {
       const bench = await api("/fleet/plants-benchmarking");
 
       const kpis = div("overview-kpis",
-        div("fact", e("span", l("Số nhà máy đối chiếu:", "Compared Plants:")), e("b", `${bench.total_plants}`)),
-        div("fact", e("span", l("Hiệu suất PR hạm đội trung bình:", "Fleet Avg PR:")), e("b", `${bench.fleet_avg_pr_pct}%`)),
-        div("fact", e("span", l("Sản lượng riêng trung bình:", "Fleet Avg Specific Yield:")), e("b", `${bench.fleet_avg_specific_yield} kWh/kWp`)),
+        div("fact", e("span", l("Số nhà máy đối chiếu:", "Compared Plants:")), e("b", number(bench.total_plants))),
+        div("fact", e("span", l("Hiệu suất PR hạm đội trung bình:", "Fleet Avg PR:")), e("b", `${number(bench.fleet_avg_pr_pct)}%`)),
+        div("fact", e("span", l("Sản lượng riêng trung bình:", "Fleet Avg Specific Yield:")), e("b", `${number(bench.fleet_avg_specific_yield)} kWh/kWp`)),
       );
 
       const chartCard = card(
         l("Biểu đồ so sánh sản lượng riêng Specific Yield (kWh/kWp)", "Specific Yield Comparison Chart (kWh/kWp)"),
         div("row small muted",
-          e("span", "■ " + l("Hiệu suất tối ưu (≥ 3.6 kWh/kWp)", "Optimal (≥ 3.6)"), "green-text"),
-          e("span", "■ " + l("Cần kiểm tra / bảo trì (< 3.6 kWh/kWp)", "Needs Inspection (< 3.6)"), "orange-text")
+          e("span", l("Sản lượng riêng không đủ để kết luận tình trạng thiết bị hoặc PR.", "Specific yield alone does not establish equipment health or PR."))
         ),
         renderBenchmarkingSvg(bench.plants || [])
       );
 
       const rankingTable = card(
-        l("Bảng xếp hạng hiệu suất các nhà máy", "Plant Performance Ranking"),
+        l("So sánh dữ liệu các nhà máy", "Plant Data Comparison"),
         table(
-          [l("Xếp hạng", "Rank"), l("Nhà máy", "Plant"), l("Công suất (kWp)", "Capacity"), l("Sản lượng hôm nay", "Today Yield"), l("Sản lượng riêng (kWh/kWp)", "Specific Yield"), l("Chỉ số PR (%)", "PR Ratio"), t("status")],
-          (bench.plants || []).map((p, idx) => [
-            badge(`#${idx + 1}`, idx === 0 ? "good" : idx < 3 ? "blue" : ""),
+          [l("Nhà máy", "Plant"), l("Công suất (kWp)", "Capacity"), l("Sản lượng hôm nay", "Today Yield"), l("Sản lượng riêng (kWh/kWp)", "Specific Yield"), l("Chỉ số PR (%)", "PR Ratio"), t("status")],
+          (bench.plants || []).map((p) => [
             btn(p.name, async () => {
-              state.site = p.site_id;
+              state.site = p.id;
               state.tab = "overview";
               await go("overview");
             }, "link"),
             `${number(p.capacity_kwp)} kWp`,
             `${number(p.today_yield_kwh)} kWh`,
-            e("b", `${p.specific_yield_kwh_per_kwp}`),
-            e("b", `${p.performance_ratio_pct}%`),
-            badge(p.status === "OPTIMAL" ? l("Tối ưu", "Optimal") : l("Cần kiểm tra", "Inspect"), p.status === "OPTIMAL" ? "good" : "warn"),
+            e("b", number(p.specific_yield_kwh_per_kwp)),
+            e("b", `${number(p.performance_ratio_pct)}%`),
+            badge(p.status === "IRRADIANCE_REFERENCE_REQUIRED"
+              ? l("Cần dữ liệu bức xạ tham chiếu", "Irradiance reference required")
+              : l("Chưa xác định", "Unknown")),
           ])
         )
       );

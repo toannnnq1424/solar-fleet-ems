@@ -12,38 +12,199 @@ Installs routes for:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Annotated, Any, Dict, Literal
 
-from fastapi import Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import Depends, HTTPException, Query
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+
+from .calculation_inputs import (
+    BlackStartCalculation,
+    GeneratorCalculation,
+    GridCalculation,
+    HeatPumpCalculation,
+    MicrogridCalculation,
+    PredbatCalculation,
+    SGCalculation,
+)
 
 # ---------------------------------------------------------------------------
 # Request / Response models
 # ---------------------------------------------------------------------------
 
+class ExplicitCalculationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+
+class CatalogueBillRequest(ExplicitCalculationRequest):
+    tariff_key: str = Field(min_length=1)
+    import_kwh_hourly: list[Annotated[float, Field(ge=0)]] = Field(min_length=24, max_length=24)
+    export_kwh_hourly: list[Annotated[float, Field(ge=0)]] = Field(min_length=24, max_length=24)
+    peak_demand_kw: float = Field(ge=0)
+
+
+class PhaseMeasurementRequest(ExplicitCalculationRequest):
+    v_l1: float = Field(gt=0)
+    v_l2: float = Field(gt=0)
+    v_l3: float = Field(gt=0)
+    i_l1: float = Field(ge=0)
+    i_l2: float = Field(ge=0)
+    i_l3: float = Field(ge=0)
+    p_l1: float
+    p_l2: float
+    p_l3: float
+    q_l1: float
+    q_l2: float
+    q_l3: float
+
+
+class PhaseLimitsRequest(ExplicitCalculationRequest):
+    max_total_kw: float = Field(gt=0)
+    max_phase_kw: float = Field(gt=0)
+    max_phase_kvar: float = Field(ge=0)
+    battery_max_charge_kw: float = Field(ge=0)
+    battery_max_discharge_kw: float = Field(ge=0)
+    allows_independent_phases: bool = Field(strict=True)
+
+
+class PhaseDispatchRequest(ExplicitCalculationRequest):
+    measurement: PhaseMeasurementRequest
+    limits: PhaseLimitsRequest
+
+
+class BuildingParametersRequest(ExplicitCalculationRequest):
+    indoor_temp_c: float = Field(gt=-273.15)
+    wall_temp_c: float = Field(gt=-273.15)
+    air_heat_capacity_kwh_k: float = Field(gt=0)
+    wall_heat_capacity_kwh_k: float = Field(gt=0)
+    r_indoor_wall_k_kw: float = Field(gt=0)
+    r_wall_outdoor_k_kw: float = Field(gt=0)
+    solar_aperture_m2: float = Field(ge=0)
+    internal_gain_base_kw: float = Field(ge=0)
+
+
+class BuildingSimulationRequest(ExplicitCalculationRequest):
+    building: BuildingParametersRequest
+    outdoor_temps_hourly: list[float] = Field(min_length=1, max_length=168)
+    solar_ghi_hourly: list[float] = Field(min_length=1, max_length=168)
+    heating_thermal_kw: float
+
+    @model_validator(mode="after")
+    def validate_series(self):
+        if len(self.outdoor_temps_hourly) != len(self.solar_ghi_hourly):
+            raise ValueError("aligned_weather_series_required")
+        if any(t <= -273.15 for t in self.outdoor_temps_hourly) or any(g < 0 for g in self.solar_ghi_hourly):
+            raise ValueError("invalid_weather_series")
+        b = self.building
+        # One-hour forward Euler steps must not overshoot the thermal time constants.
+        if (b.air_heat_capacity_kwh_k * b.r_indoor_wall_k_kw < 1
+                or b.wall_heat_capacity_kwh_k < 1 / b.r_indoor_wall_k_kw + 1 / b.r_wall_outdoor_k_kw):
+            raise ValueError("thermal_time_constants_require_smaller_integration_step")
+        return self
+
+
+class EVLoadpointRequest(ExplicitCalculationRequest):
+    observed_at: AwareDatetime | None = None
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    vehicle_id: str | None
+    soc_pct: float | None = Field(ge=0, le=100)
+    target_soc_pct: float = Field(ge=0, le=100)
+    mode: Literal["off", "now", "min_pv", "pv"]
+    priority: int = Field(ge=1, le=5)
+    min_current_amps: float = Field(gt=0, le=1000)
+    max_current_amps: float = Field(gt=0, le=1000)
+    voltage_per_phase_v: float = Field(gt=0, le=1000)
+    phases: Literal[1, 3]
+
+    @model_validator(mode="after")
+    def validate_limits(self):
+        if self.min_current_amps > self.max_current_amps:
+            raise ValueError("min_current_exceeds_max_current")
+        if self.vehicle_id is not None and (not self.vehicle_id.strip() or self.soc_pct is None):
+            raise ValueError("connected_vehicle_requires_identity_and_soc")
+        return self
+
+
+class EVFleetRequest(ExplicitCalculationRequest):
+    observed_at: AwareDatetime | None = None
+    site_breaker_limit_kw: float = Field(gt=0, le=100000)
+    available_solar_surplus_kw: float = Field(ge=0, le=100000)
+    building_base_load_kw: float = Field(ge=0, le=100000)
+    chargers: list[EVLoadpointRequest] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def unique_chargers(self):
+        ids = [charger.id for charger in self.chargers]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate_charger_id")
+        return self
+
+
+class MarketBidRequest(ExplicitCalculationRequest):
+    id: str = Field(min_length=1)
+    market: Literal["day_ahead", "intraday"]
+    direction: Literal["buy_charge", "sell_discharge"]
+    delivery_hour: int = Field(ge=0, le=23)
+    quantity_mw: float = Field(ge=0.01, le=100000)
+    price_eur_per_mwh: float
+
+
+class MarketCalculationRequest(ExplicitCalculationRequest):
+    fleet_capacity_mw: float = Field(gt=0, le=100000)
+    bids: list[MarketBidRequest] = Field(min_length=1, max_length=1000)
+    clearing_prices: dict[int, float]
+
+    @model_validator(mode="after")
+    def validate_bids(self):
+        ids = [bid.id for bid in self.bids]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate_bid_id")
+        quantities = {}
+        for bid in self.bids:
+            if bid.delivery_hour not in self.clearing_prices:
+                raise ValueError("delivery_hour_price_required")
+            quantities[bid.delivery_hour] = quantities.get(bid.delivery_hour, 0) + bid.quantity_mw
+        if any(value > self.fleet_capacity_mw for value in quantities.values()):
+            raise ValueError("hourly_bids_exceed_fleet_capacity")
+        if any(hour < 0 or hour > 23 for hour in self.clearing_prices):
+            raise ValueError("invalid_clearing_hour")
+        return self
+
+
 class MPCDispatchRequest(BaseModel):
     """Request for MPC dispatch optimization."""
 
-    soc_init: float = Field(ge=0.0, le=1.0, default=0.5)
-    pv_forecast_kw: list[float] = Field(default_factory=lambda: [0.0] * 24)
-    load_forecast_kw: list[float] = Field(default_factory=lambda: [2.0] * 24)
-    price_forecast: list[float] = Field(default_factory=lambda: [0.1] * 24)
+    soc_init: float = Field(ge=0.0, le=1.0)
+    pv_forecast_kw: list[float] = Field(min_length=1, max_length=168)
+    load_forecast_kw: list[float] = Field(min_length=1, max_length=168)
+    price_forecast: list[float] = Field(min_length=1, max_length=168)
     horizon_steps: int = Field(ge=1, le=168, default=24)
-    battery_capacity_kwh: float = Field(ge=0.1, le=10000, default=10.0)
-    max_charge_kw: float = Field(ge=0.1, le=10000, default=5.0)
-    max_discharge_kw: float = Field(ge=0.1, le=10000, default=5.0)
+    battery_capacity_kwh: float = Field(ge=0.1, le=10000)
+    max_charge_kw: float = Field(ge=0.1, le=10000)
+    max_discharge_kw: float = Field(ge=0.1, le=10000)
 
 
-class SolarEstimateRequest(BaseModel):
+class SolarEstimateRequest(ExplicitCalculationRequest):
     """Request for solar PV energy estimation."""
 
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
-    peak_power_kwp: float = Field(ge=0.1, le=100000, default=10.0)
-    date: str = Field(default="")
-    altitude_m: float = Field(ge=0, le=9000, default=0.0)
-    tilt_deg: float = Field(ge=0, le=90, default=15.0)
-    azimuth_deg: float = Field(ge=0, le=360, default=180.0)
+    peak_power_kwp: float = Field(ge=0.1, le=100000)
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    altitude_m: float = Field(ge=0, le=9000)
+    tilt_deg: float = Field(ge=0, le=90)
+    azimuth_deg: float = Field(ge=0, le=360)
+    system_loss: float = Field(ge=0, lt=1)
+    inverter_efficiency: float = Field(gt=0, le=1)
+    hourly_temperature: list[float] = Field(min_length=24, max_length=24)
+    hourly_wind: list[float] = Field(min_length=24, max_length=24)
+
+    @model_validator(mode="after")
+    def weather_bounds(self):
+        datetime.strptime(self.date, "%Y-%m-%d")
+        if any(t <= -273.15 for t in self.hourly_temperature) or any(w < 0 for w in self.hourly_wind):
+            raise ValueError("invalid_weather_inputs")
+        return self
 
 
 class AnomalyCheckRequest(BaseModel):
@@ -52,15 +213,6 @@ class AnomalyCheckRequest(BaseModel):
     device_id: str = Field(min_length=1)
     metrics: dict[str, float] = Field(default_factory=dict)
     rated_power_kw: float = Field(ge=0.1, le=100000, default=10.0)
-
-
-class MicrogridSimRequest(BaseModel):
-    """Request for microgrid simulation step."""
-
-    grid_voltage_pu: float = Field(ge=0.0, le=2.0, default=1.0)
-    grid_frequency_hz: float = Field(ge=40.0, le=60.0, default=50.0)
-    grid_phase_deg: float = Field(ge=-180, le=180, default=0.0)
-    dt_seconds: float = Field(ge=0.001, le=60.0, default=1.0)
 
 
 class OptimizePollingRequest(BaseModel):
@@ -380,7 +532,7 @@ def install_phase_d_apis(app, controller, user, admin=None):
         """Estimate daily PV energy production under clear-sky."""
         from .solar_model import PVArrayConfig, estimate_daily_energy
 
-        date_str = body.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_str = body.date
         try:
             date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
@@ -390,32 +542,41 @@ def install_phase_d_apis(app, controller, user, admin=None):
             peak_power_kwp=body.peak_power_kwp,
             tilt_deg=body.tilt_deg,
             azimuth_deg=body.azimuth_deg,
+            system_loss=body.system_loss,
+            inverter_efficiency=body.inverter_efficiency,
         )
 
         result = estimate_daily_energy(
             array, body.latitude, body.longitude, date,
             altitude_m=body.altitude_m,
+            hourly_temperature=body.hourly_temperature,
+            hourly_wind=body.hourly_wind,
         )
-        return result
+        return {**result, "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "provenance": "CLEAR_SKY_SIMULATION", "weather_forecast_verified": False}
 
     @app.get("/api/solar/clearsky")
     async def solar_clearsky(
-        lat: float,
-        lon: float,
-        date: str = "",
+        lat: float = Query(ge=-90, le=90, allow_inf_nan=False),
+        lon: float = Query(ge=-180, le=180, allow_inf_nan=False),
+        date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        altitude_m: float = Query(ge=0, le=9000, allow_inf_nan=False),
         principal=Depends(user),
     ):
         """Get 24-hour clear-sky GHI profile."""
         from .solar_model import clear_sky_profile_24h
 
-        date_str = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date_str = date
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:
             raise HTTPException(400, "invalid date format")
 
-        profile = clear_sky_profile_24h(lat, lon, dt)
-        return {"profile": profile, "latitude": lat, "longitude": lon, "date": date_str}
+        profile = clear_sky_profile_24h(lat, lon, dt, altitude_m)
+        return {"profile": profile, "latitude": lat, "longitude": lon, "date": date_str,
+                "altitude_m": altitude_m, "provenance": "CLEAR_SKY_SIMULATION",
+                "input_source": "USER_SUPPLIED", "dispatch_enabled": False,
+                "weather_forecast_verified": False}
 
     # -----------------------------------------------------------------------
     # Anomaly Detection
@@ -468,7 +629,7 @@ def install_phase_d_apis(app, controller, user, admin=None):
     # -----------------------------------------------------------------------
 
     @app.post("/api/microgrid/simulate")
-    async def microgrid_simulate(body: MicrogridSimRequest, principal=Depends(user)):
+    async def microgrid_simulate(body: MicrogridCalculation, principal=Depends(user)):
         """Run one microgrid controller simulation step."""
         from .microgrid_controller import (
             InverterMode,
@@ -477,16 +638,13 @@ def install_phase_d_apis(app, controller, user, admin=None):
             MicrogridController,
         )
 
-        ctrl = MicrogridController()
-        ctrl.register_inverter(InverterState(
-            inverter_id="sim_inv1",
-            mode=InverterMode.GRID_FOLLOWING,
-            real_power_kw=5.0,
-            rated_power_kw=10.0,
-            is_online=True,
-        ))
-        ctrl.register_load(LoadPriority("sim_load1", "Main Load", 3.0, priority=3))
-        ctrl.register_load(LoadPriority("sim_load2", "Secondary", 2.0, priority=7))
+        ctrl = MicrogridController(**body.parameters.model_dump())
+        for inverter in body.inverters:
+            values = inverter.model_dump()
+            values["mode"] = InverterMode(inverter.mode)
+            ctrl.register_inverter(InverterState(**values))
+        for load in body.loads:
+            ctrl.register_load(LoadPriority(**load.model_dump()))
 
         result = ctrl.update(
             body.grid_voltage_pu,
@@ -497,6 +655,12 @@ def install_phase_d_apis(app, controller, user, admin=None):
         return {
             "simulation": result,
             "controller_status": ctrl.status(),
+            "dispatch_enabled": False,
+            "input_source": "USER_SUPPLIED",
+            "provenance": "ADVISORY_SIMULATION",
+            "initial_state": "grid_connected",
+            "scope": "ONE_STEP_FROM_GRID_CONNECTED",
+            "hardware_acknowledgements_verified": False,
         }
 
     @app.get("/api/microgrid/states")
@@ -786,6 +950,8 @@ def install_phase_d_apis(app, controller, user, admin=None):
         model_type = payload.get("model", "ensemble")
         day_type = payload.get("day_type", "weekday")
         history_raw = payload.get("history", [])
+        if not history_raw or any(not h.get("values") for h in history_raw):
+            raise HTTPException(422, "observed_load_history_required")
 
         if model_type == "persistence":
             predictor = PersistencePredictor()
@@ -799,7 +965,7 @@ def install_phase_d_apis(app, controller, user, admin=None):
             predictor = EnsemblePredictor()
 
         for h in history_raw:
-            vals = h.get("values", [2.0] * 24)
+            vals = h["values"]
             predictor.add_history(LoadProfile(values=vals, day_type=h.get("day_type", "weekday")))
 
         predictor.train()
@@ -834,65 +1000,62 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/tariffs/calculate-bill")
     async def calculate_bill(
-        payload: Dict[str, Any],
+        payload: CatalogueBillRequest,
         principal=Depends(user),
     ):
         """Calculate bill for given import/export profile and tariff plan."""
         from .tariff_catalogue import TARIFF_CATALOGUE, BillCalculator
 
-        tariff_key = payload.get("tariff_key", "vn_evn_commercial_tou")
+        tariff_key = payload.tariff_key
         plan = TARIFF_CATALOGUE.get(tariff_key)
         if not plan:
             raise HTTPException(404, f"Tariff '{tariff_key}' not found in catalogue")
 
-        import_hourly = payload.get("import_kwh_hourly", [1.0] * 24)
-        export_hourly = payload.get("export_kwh_hourly", [0.5] * 24)
-        peak_demand = float(payload.get("peak_demand_kw", 0.0))
-
         calc = BillCalculator(plan)
-        bill = calc.calculate_daily(import_hourly, export_hourly, peak_demand_kw=peak_demand)
-        return bill
+        bill = calc.calculate_daily(payload.import_kwh_hourly, payload.export_kwh_hourly,
+                                    peak_demand_kw=payload.peak_demand_kw)
+        return {**bill, "status": "ADVISORY_CATALOGUE_ESTIMATE", "tariff_key": tariff_key,
+                "effective_version_verified": False, "billing_ready": False,
+                "input_source": "USER_SUPPLIED", "dispatch_enabled": False}
 
     # -----------------------------------------------------------------------
     # Thermal Load Manager
     # -----------------------------------------------------------------------
 
-    @app.get("/api/thermal/heat-pump-cop")
+    @app.post("/api/thermal/heat-pump-cop")
     async def heat_pump_cop(
-        ambient_temp_c: float = 7.0,
-        supply_temp_c: float = 35.0,
-        required_thermal_kw: float = 6.0,
+        payload: HeatPumpCalculation,
         principal=Depends(user),
     ):
         """Calculate Carnot heat pump COP and electrical draw."""
         from .thermal_load_manager import HeatPumpModel
 
-        hp = HeatPumpModel()
-        power = hp.calculate_power(required_thermal_kw, ambient_temp_c, supply_temp_c)
-        return power
+        hp = HeatPumpModel(carnot_efficiency=payload.carnot_efficiency,
+                           min_electric_kw=payload.min_electric_kw, max_electric_kw=payload.max_electric_kw)
+        power = hp.calculate_power(payload.required_thermal_kw, payload.ambient_temp_c, payload.supply_temp_c)
+        return {**power, "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "assumptions": ["Carnot approximation", "COP bounded to 1.5–6.5"]}
 
     @app.post("/api/thermal/sg-ready-evaluate")
     async def sg_ready_evaluate(
-        payload: Dict[str, Any],
+        payload: SGCalculation,
         principal=Depends(user),
     ):
         """Evaluate SG-Ready 4-state heat pump state based on PV surplus."""
         from .thermal_load_manager import SGReadyController, ThermalStorageTank
 
         ctrl = SGReadyController(
-            surplus_threshold_kw=float(payload.get("surplus_threshold_kw", 1.8)),
-            forced_surplus_kw=float(payload.get("forced_surplus_kw", 3.5)),
+            surplus_threshold_kw=payload.surplus_threshold_kw,
+            forced_surplus_kw=payload.forced_surplus_kw,
         )
         tank = ThermalStorageTank(
-            volume_liters=float(payload.get("tank_volume_liters", 300.0)),
-            current_temp_c=float(payload.get("tank_temp_c", 48.0)),
+            current_temp_c=payload.tank_temp_c, min_temp_c=payload.min_temp_c,
+            normal_setpoint_c=payload.normal_setpoint_c, boost_setpoint_c=payload.boost_setpoint_c,
         )
-        pv_surplus = float(payload.get("pv_surplus_kw", 2.5))
-        grid_price = float(payload.get("grid_price", 0.15))
-        peak_lock = bool(payload.get("is_grid_peak_lock", False))
-
-        res = ctrl.evaluate(pv_surplus, grid_price, tank, is_grid_peak_lock=peak_lock)
-        return res
+        res = ctrl.evaluate(payload.pv_surplus_kw, payload.grid_price, tank,
+                            is_grid_peak_lock=payload.is_grid_peak_lock)
+        return {**res, "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "assumptions": ["stateless recommendation; no anti-cycling or relay execution"]}
 
     # -----------------------------------------------------------------------
     # Phase Balancer
@@ -900,7 +1063,7 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/phase-balancer/dispatch")
     async def phase_balancer_dispatch(
-        payload: Dict[str, Any],
+        payload: PhaseDispatchRequest,
         principal=Depends(user),
     ):
         """Compute independent per-phase active and reactive power dispatch setpoints."""
@@ -911,30 +1074,16 @@ def install_phase_d_apis(app, controller, user, admin=None):
             PhaseUnbalanceEvaluator,
         )
 
-        meas = PhaseMeasurement(
-            v_l1=float(payload.get("v_l1", 230.0)),
-            v_l2=float(payload.get("v_l2", 230.0)),
-            v_l3=float(payload.get("v_l3", 230.0)),
-            i_l1=float(payload.get("i_l1", 10.0)),
-            i_l2=float(payload.get("i_l2", 5.0)),
-            i_l3=float(payload.get("i_l3", 15.0)),
-            p_l1=float(payload.get("p_l1", 2.3)),
-            p_l2=float(payload.get("p_l2", 1.15)),
-            p_l3=float(payload.get("p_l3", 3.45)),
-            q_l1=float(payload.get("q_l1", 0.5)),
-            q_l2=float(payload.get("q_l2", 0.2)),
-            q_l3=float(payload.get("q_l3", 0.8)),
-        )
+        meas = PhaseMeasurement(**payload.measurement.model_dump())
         unbalance = PhaseUnbalanceEvaluator.evaluate(meas)
 
-        limits = InverterPhaseLimits(
-            max_total_kw=float(payload.get("max_total_kw", 10.0)),
-            max_phase_kw=float(payload.get("max_phase_kw", 3.68)),
-        )
+        limits = InverterPhaseLimits(**payload.limits.model_dump())
         balancer = AsymmetricPhaseBalancer(limits)
         dispatch = balancer.calculate_dispatch(meas)
 
         return {
+            "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+            "assumptions": ["120_degree_phase_displacement", "not_a_compliance_assessment"],
             "unbalance_metrics": unbalance,
             "dispatch_setpoints": dispatch,
         }
@@ -945,25 +1094,20 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/predbat/plan")
     async def predbat_plan(
-        payload: Dict[str, Any],
+        payload: PredbatCalculation,
         principal=Depends(user),
     ):
         """Generate 24-48h predictive battery dispatch schedule."""
         from .predbat_planner import BatterySpecs, PredbatPlanner
 
-        specs = BatterySpecs(
-            capacity_kwh=float(payload.get("capacity_kwh", 10.0)),
-            usable_kwh=float(payload.get("usable_kwh", 9.0)),
-            max_charge_kw=float(payload.get("max_charge_kw", 5.0)),
-            max_discharge_kw=float(payload.get("max_discharge_kw", 5.0)),
-        )
+        specs = BatterySpecs(**{key: getattr(payload, key) for key in BatterySpecs.__dataclass_fields__})
         planner = PredbatPlanner(specs)
 
-        solar = payload.get("solar_forecast_hourly", [0.0] * 24)
-        load = payload.get("load_forecast_hourly", [1.5] * 24)
-        imp_tariffs = payload.get("import_tariffs_hourly", [0.15] * 24)
-        exp_tariffs = payload.get("export_tariffs_hourly", [0.05] * 24)
-        soc = float(payload.get("current_soc_pct", 50.0))
+        solar = payload.solar_forecast_hourly
+        load = payload.load_forecast_hourly
+        imp_tariffs = payload.import_tariffs_hourly
+        exp_tariffs = payload.export_tariffs_hourly
+        soc = payload.current_soc_pct
 
         plan = planner.plan_horizon(
             solar_forecast_hourly=solar,
@@ -971,8 +1115,11 @@ def install_phase_d_apis(app, controller, user, admin=None):
             import_tariffs_hourly=imp_tariffs,
             export_tariffs_hourly=exp_tariffs,
             current_soc_pct=soc,
+            enable_arbitrage=payload.enable_arbitrage,
         )
-        return plan
+        return {**plan, "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "provenance": "ADVISORY_SIMULATION", "currency": payload.currency,
+                "tariff_source": payload.tariff_source}
 
     # -----------------------------------------------------------------------
     # Vendor Device Translator
@@ -1019,19 +1166,24 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/grid-code/evaluate")
     async def grid_code_evaluate(
-        payload: Dict[str, Any],
+        payload: GridCalculation,
         principal=Depends(user),
     ):
         """Evaluate grid-code compliance (Volt-Watt, Volt-Var, Freq-Watt, Anti-Islanding)."""
-        from .grid_code_regulator import GridCodeRegulator
+        from .grid_code_regulator import (
+            FreqWattDroop,
+            GridCodeRegulator,
+            ProtectionRelayLimits,
+            VoltVarCurve,
+            VoltWattCurve,
+        )
 
-        regulator = GridCodeRegulator()
-        v = float(payload.get("voltage_v", 230.0))
-        f = float(payload.get("frequency_hz", 50.0))
-        p = float(payload.get("current_power_kw", 8.0))
-
-        res = regulator.evaluate(v, f, p)
-        return res
+        regulator = GridCodeRegulator(
+            VoltWattCurve(**payload.volt_watt.model_dump()), VoltVarCurve(**payload.volt_var.model_dump()),
+            FreqWattDroop(**payload.freq_watt.model_dump()), ProtectionRelayLimits(**payload.protection.model_dump()))
+        res = regulator.evaluate(payload.voltage_v, payload.frequency_hz, payload.current_power_kw)
+        return {**res, "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "compliance_verified": False, "anti_islanding_verified": False}
 
     # -----------------------------------------------------------------------
     # Smart Meter Driver
@@ -1076,33 +1228,50 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/ev-fleet/optimize-dlm")
     async def ev_fleet_optimize_dlm(
-        payload: Dict[str, Any],
+        payload: EVFleetRequest,
         principal=Depends(user),
     ):
         """Optimize dynamic load management across fleet of EV chargers."""
-        from .ev_fleet_coordinator import ChargingMode, EVFleetCoordinator, Loadpoint
+        from .ev_fleet_coordinator import ChargePhaseMode, ChargingMode, EVFleetCoordinator, Loadpoint
 
-        breaker_limit = float(payload.get("site_breaker_limit_kw", 40.0))
-        coord = EVFleetCoordinator(site_breaker_limit_kw=breaker_limit)
+        # Advisory input check only: timestamps are user declarations, not
+        # authenticated telemetry or a commissioned control freshness policy.
+        now = datetime.now(timezone.utc)
+        observations = {"site": payload.observed_at}
+        observations.update({f"charger:{ch.id}": ch.observed_at for ch in payload.chargers})
+        ages = {}
+        for key, observed_at in observations.items():
+            if observed_at is None:
+                ages[key] = None
+                continue
+            age = (now - observed_at).total_seconds()
+            if age < 0 or age > 300:
+                raise HTTPException(422, f"ev_observation_outside_advisory_window:{key}")
+            ages[key] = round(age, 3)
 
-        chargers_data = payload.get("chargers", [])
+        coord = EVFleetCoordinator(site_breaker_limit_kw=payload.site_breaker_limit_kw,
+                                   enable_1p3p_switching=False)
+
+        chargers_data = payload.chargers
         for ch in chargers_data:
             lp = Loadpoint(
-                charger_id=ch.get("id", "cp1"),
-                name=ch.get("name", "Charger 1"),
-                connected_vehicle_id=ch.get("vehicle_id", "v1"),
-                vehicle_soc_pct=ch.get("soc_pct"),
-                target_soc_pct=float(ch.get("target_soc_pct", 80.0)),
-                mode=ChargingMode(ch.get("mode", "pv")),
-                priority=int(ch.get("priority", 1)),
+                charger_id=ch.id, name=ch.name, connected_vehicle_id=ch.vehicle_id,
+                vehicle_soc_pct=ch.soc_pct, target_soc_pct=ch.target_soc_pct,
+                mode=ChargingMode(ch.mode), priority=ch.priority,
+                min_current_amps=ch.min_current_amps, max_current_amps=ch.max_current_amps,
+                voltage_per_phase_v=ch.voltage_per_phase_v, allocated_phases=ChargePhaseMode(ch.phases),
             )
             coord.add_loadpoint(lp)
 
-        surplus = float(payload.get("available_solar_surplus_kw", 10.0))
-        base_load = float(payload.get("building_base_load_kw", 5.0))
+        surplus = payload.available_solar_surplus_kw
+        base_load = payload.building_base_load_kw
 
         allocation = coord.update(surplus, base_load)
-        return allocation
+        return {**allocation, "status": "ESTIMATED", "dispatch_enabled": False,
+                "input_source": "USER_SUPPLIED", "phase_switching_enabled": False,
+                "freshness": {"status": "UNKNOWN" if None in ages.values() else "USER_REPORTED_RECENT",
+                              "age_seconds": ages, "max_age_seconds": 300,
+                              "evaluated_at": now.isoformat(), "telemetry_verified": False}}
 
     # -----------------------------------------------------------------------
     # Wholesale Market Trader & FCR
@@ -1110,30 +1279,27 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/market-trader/submit-and-clear")
     async def market_submit_and_clear(
-        payload: Dict[str, Any],
+        payload: MarketCalculationRequest,
         principal=Depends(user),
     ):
         """Submit wholesale energy market bids and simulate auction clearing."""
         from .market_trader import MarketTrader, MarketType, OrderDirection
 
-        trader = MarketTrader(fleet_capacity_mw=float(payload.get("fleet_capacity_mw", 5.0)))
-        bids_data = payload.get("bids", [])
+        trader = MarketTrader(fleet_capacity_mw=payload.fleet_capacity_mw)
+        bids_data = payload.bids
 
         for b in bids_data:
             trader.submit_bid(
-                bid_id=b.get("id", "b1"),
-                market=MarketType(b.get("market", "day_ahead")),
-                direction=OrderDirection(b.get("direction", "sell_discharge")),
-                delivery_hour=int(b.get("delivery_hour", 12)),
-                quantity_mw=float(b.get("quantity_mw", 1.0)),
-                price_eur_per_mwh=float(b.get("price_eur_per_mwh", 45.0)),
+                bid_id=b.id, market=MarketType(b.market), direction=OrderDirection(b.direction),
+                delivery_hour=b.delivery_hour, quantity_mw=b.quantity_mw,
+                price_eur_per_mwh=b.price_eur_per_mwh,
             )
 
-        clearing_prices_raw = payload.get("clearing_prices", {"12": 55.0})
-        clearing_prices = {int(k): float(v) for k, v in clearing_prices_raw.items()}
+        clearing_prices = payload.clearing_prices
 
         result = trader.simulate_auction_clearing(clearing_prices)
-        return result
+        return {**result, "status": "ESTIMATED", "submitted_to_market": False,
+                "input_source": "USER_SUPPLIED"}
 
     @app.get("/api/market-trader/fcr-response")
     async def market_fcr_response(
@@ -1155,41 +1321,29 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/genset/evaluate-dispatch")
     async def genset_evaluate_dispatch(
-        payload: Dict[str, Any],
+        payload: GeneratorCalculation,
         principal=Depends(user),
     ):
         """Evaluate diesel/gas genset dispatch, loading sweet-spot, and fuel burn."""
         from .genset_controller import GeneratorController, GeneratorSpecs, GeneratorState
 
-        specs = GeneratorSpecs(
-            rated_power_kw=float(payload.get("rated_power_kw", 50.0)),
-            min_loading_ratio=float(payload.get("min_loading_ratio", 0.40)),
-            optimal_loading_ratio=float(payload.get("optimal_loading_ratio", 0.75)),
-            fuel_idle_liters_per_hour=float(payload.get("fuel_idle_lph", 2.5)),
-            fuel_slope_liters_per_kwh=float(payload.get("fuel_slope_lp_kwh", 0.22)),
-        )
+        specs = GeneratorSpecs(**payload.specs.model_dump())
         ctrl = GeneratorController(specs)
-        desired_state = payload.get("initial_state")
-        if desired_state:
-            try:
-                ctrl._transition_to(GeneratorState(desired_state))
-            except ValueError:
-                pass
-
-        load_kw = float(payload.get("microgrid_load_kw", 30.0))
-        soc_pct = float(payload.get("battery_soc_pct", 18.0))
-        grid_avail = bool(payload.get("is_grid_available", False))
-        charge_cap_kw = float(payload.get("battery_max_charge_kw", 15.0))
-        dt = int(payload.get("dt_seconds", 60))
+        ctrl._transition_to(GeneratorState(payload.initial_state))
+        ctrl._elapsed_in_state_seconds = payload.elapsed_in_state_seconds
+        ctrl._cumulative_run_seconds = payload.cumulative_run_seconds
 
         result = ctrl.step(
-            dt_seconds=dt,
-            microgrid_load_kw=load_kw,
-            battery_soc_pct=soc_pct,
-            battery_max_charge_kw=charge_cap_kw,
-            is_grid_available=grid_avail,
+            dt_seconds=payload.dt_seconds,
+            microgrid_load_kw=payload.microgrid_load_kw,
+            battery_soc_pct=payload.battery_soc_pct,
+            battery_max_charge_kw=payload.battery_max_charge_kw,
+            battery_max_discharge_kw=payload.battery_max_discharge_kw,
+            is_grid_available=payload.is_grid_available,
         )
         return {
+            "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+            "fuel_accounting": "current_calculation_only",
             "genset_specs": {
                 "rated_power_kw": specs.rated_power_kw,
                 "min_power_kw": specs.min_power_kw,
@@ -1201,30 +1355,22 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/genset/black-start-sequence")
     async def genset_black_start_sequence(
-        payload: Dict[str, Any],
+        payload: BlackStartCalculation,
         principal=Depends(user),
     ):
         """Step through multi-stage black-start microgrid restoration sequence."""
         from .genset_controller import BlackStartOrchestrator, GeneratorController, GeneratorSpecs
 
-        specs = GeneratorSpecs(rated_power_kw=float(payload.get("rated_power_kw", 50.0)))
+        specs = GeneratorSpecs(**payload.specs.model_dump())
         ctrl = GeneratorController(specs)
         orchestrator = BlackStartOrchestrator(ctrl)
 
-        bus_v = float(payload.get("bus_voltage_v", 0.0))
-        freq_hz = float(payload.get("pv_frequency_hz", 50.0))
-        critical_kw = float(payload.get("critical_load_kw", 10.0))
-
-        steps = int(payload.get("advance_steps", 1))
         res = {}
-        for _ in range(steps):
-            res = orchestrator.execute_next_stage(
-                bus_voltage_v=bus_v,
-                pv_frequency_hz=freq_hz,
-                critical_load_kw=critical_kw,
-            )
+        for observation in payload.observations:
+            res = orchestrator.execute_next_stage(**observation.model_dump())
 
-        return res
+        return {**res, "status": "SIMULATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
+                "assumptions": ["scenario starts idle", "start/synchronization acknowledgements are not verified"]}
 
     # -----------------------------------------------------------------------
     # Thermal Building Envelope Simulation (2R2C Model)
@@ -1232,23 +1378,23 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/thermal/building-simulation")
     async def thermal_building_simulation(
-        payload: Dict[str, Any],
+        payload: BuildingSimulationRequest,
         principal=Depends(user),
     ):
         """Simulate building 2R2C lumped envelope thermal response."""
         from .thermal_load_manager import BuildingThermalModel
 
-        indoor_init = float(payload.get("initial_indoor_temp_c", 20.0))
-        wall_init = float(payload.get("initial_wall_temp_c", 19.0))
-        model = BuildingThermalModel(indoor_temp_c=indoor_init, wall_temp_c=wall_init)
+        indoor_init = payload.building.indoor_temp_c
+        wall_init = payload.building.wall_temp_c
+        model = BuildingThermalModel(**payload.building.model_dump())
 
-        outdoor_temps = payload.get("outdoor_temps_hourly", [5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 14.0, 13.0, 11.0, 8.0, 6.0, 5.0])
-        heating_kw = float(payload.get("heating_thermal_kw", 4.0))
-        solar_ghi = payload.get("solar_ghi_hourly", [0.0, 0.0, 50.0, 200.0, 450.0, 600.0, 550.0, 350.0, 150.0, 0.0, 0.0, 0.0])
+        outdoor_temps = payload.outdoor_temps_hourly
+        heating_kw = payload.heating_thermal_kw
+        solar_ghi = payload.solar_ghi_hourly
 
         sim_hours = []
         for i, out_t in enumerate(outdoor_temps):
-            ghi = solar_ghi[i] if i < len(solar_ghi) else 0.0
+            ghi = solar_ghi[i]
             step = model.simulate_hour(
                 heating_cooling_thermal_kw=heating_kw,
                 outdoor_temp_c=out_t,
@@ -1258,6 +1404,7 @@ def install_phase_d_apis(app, controller, user, admin=None):
             sim_hours.append(step)
 
         return {
+            "status": "ESTIMATED", "dispatch_enabled": False, "input_source": "USER_SUPPLIED",
             "initial_state": {"indoor_temp_c": indoor_init, "wall_temp_c": wall_init},
             "hourly_simulation": sim_hours,
             "final_state": {
@@ -1463,96 +1610,16 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/goodwe-sems/login")
     async def goodwe_sems_login(req: GoodWeLoginRequest, principal=Depends(user)):
-        """Verify GoodWe SEMS credentials or simulate authentication token."""
-        from .goodwe_sems_client import GoodWeSEMSClient
-
-        # If live credentials not provided, return simulated successful session per repository safety rules
-        if not req.account or not req.password:
-            return {
-                "status": "simulated",
-                "authenticated": True,
-                "account": req.account or "operator@goodwe-sems.example",
-                "base_url": "https://eu.semsportal.com/api/",
-                "token": "{\"uid\":\"demo_user\",\"timestamp\":1758960000,\"token\":\"simulated_token\"}",
-                "message": "Simulated authentication session active (no live production credentials committed).",
-            }
-
-        client = GoodWeSEMSClient(account=req.account, password=req.password)
-        # Safe mock response for tests / integration
-        mock_response = {
-            "hasError": False,
-            "code": 0,
-            "msg": "success",
-            "data": {"uid": "goodwe_user", "timestamp": 1758960000, "token": "session_tok_abc123"},
-            "api": "https://eu.semsportal.com/api/",
-        }
-        success = client.process_login_response(mock_response)
-        return {
-            "status": "success" if success else "failed",
-            "authenticated": success,
-            "account": req.account,
-            "base_url": client.base_url,
-            "token": client.token,
-        }
+        raise HTTPException(409, "use_registered_account_authentication; no_standalone_session")
 
     @app.post("/api/goodwe-sems/station-detail")
     async def goodwe_sems_station_detail(req: GoodWeStationDetailRequest, principal=Depends(user)):
         """Parse or simulate GoodWe SEMS station real-time monitoring details."""
         from .goodwe_sems_client import GoodWeSEMSClient
 
-        raw_data = req.simulated_raw_data or {
-            "info": {
-                "powerstation_id": req.station_id,
-                "stationname": "GoodWe Solar Rooftop Plant",
-                "capacity": "15.0",
-                "latitude": 10.7769,
-                "longitude": 106.7009,
-                "address": "Thu Duc City, Ho Chi Minh City",
-                "status": 1,
-                "battery_capacity": 20.0,
-                "time": "09/27/2026 10:15:00",
-            },
-            "kpi": {
-                "power": "34.5",
-                "total_power": "14250.0",
-                "day_income": "62.1",
-                "total_income": "25650.0",
-                "pac": "7850",
-            },
-            "powerflow": {
-                "pv": "8200(W)",
-                "load": "2400(W)",
-                "loadStatus": -1,
-                "bettery": "3500(W)",
-                "grid": "2300(W)",
-            },
-            "soc": {"power": "86.5"},
-            "inverter": [
-                {
-                    "sn": "91000ETU26010042",
-                    "name": "GW10K-ET",
-                    "model_type": "GoodWe ET 3-Phase Hybrid",
-                    "status": 1,
-                    "tempperature": "41.2",
-                    "invert_full": {
-                        "pac": 7850,
-                        "vac1": 230.5,
-                        "vac2": 231.0,
-                        "vac3": 229.8,
-                        "iac1": 11.4,
-                        "iac2": 11.3,
-                        "iac3": 11.5,
-                        "fac1": 50.02,
-                        "vpv1": 540.2,
-                        "vpv2": 538.6,
-                        "ipv1": 7.6,
-                        "ipv2": 7.6,
-                        "soc": 86.5,
-                        "pmeter": 2300,
-                    },
-                }
-            ],
-        }
+        if not req.simulated_raw_data:
+            raise HTTPException(422, "provider_payload_required; use_registered_account_sync")
+        raw_data = req.simulated_raw_data
 
         parsed = GoodWeSEMSClient.parse_station_detail(raw_data, system_id=req.station_id)
         normalized = GoodWeSEMSClient.normalize_to_fleet_telemetry(parsed)
@@ -1568,21 +1635,9 @@ def install_phase_d_apis(app, controller, user, admin=None):
         """Parse or simulate GoodWe SEMS monthly generation report."""
         from .goodwe_sems_client import GoodWeSEMSClient
 
-        raw_data = req.simulated_raw_data or {
-            "record": 1,
-            "list": [
-                {
-                    "pw_id": req.station_id,
-                    "pw_name": "GoodWe Solar Rooftop Plant",
-                    "capacity": 15.0,
-                    "address": "Thu Duc City, Ho Chi Minh City",
-                    "owner_name": "Solar Fleet Operator",
-                    "month_power": 1280.5,
-                    "avg_day_power": 47.4,
-                    "total_power": 14250.0,
-                }
-            ],
-        }
+        if not req.simulated_raw_data:
+            raise HTTPException(422, "provider_payload_required; use_registered_account_sync")
+        raw_data = req.simulated_raw_data
 
         return GoodWeSEMSClient.parse_monthly_report(raw_data)
 
@@ -1959,21 +2014,14 @@ def install_phase_d_apis(app, controller, user, admin=None):
     @app.post("/api/smartess/poll")
     async def smartess_poll(req: SmartEssPollRequest, principal=Depends(user)):
         """Poll telemetry from SmartESS / Eybond datalogger and return normalized EMS payload."""
-        from .smartess_local_client import SmartEssLocalClient
-
-        client = SmartEssLocalClient(collector_pn=req.collector_pn, simulated=True)
-        telemetry = client.poll_telemetry(devaddr=req.devaddr)
-        return {
-            "source": "ha-smartess-local (MIT clean-room independent)",
-            "telemetry": telemetry,
-        }
+        raise HTTPException(409, "local_transport_unavailable; use_registered_eybond_account_sync")
 
     @app.post("/api/smartess/command")
     async def smartess_command(req: SmartEssCommandRequest, principal=Depends(user)):
         """Safely execute inverter configuration command with readback verification."""
         from .smartess_local_client import SmartEssLocalClient
 
-        client = SmartEssLocalClient(collector_pn=req.collector_pn, simulated=True)
+        client = SmartEssLocalClient(collector_pn=req.collector_pn, simulated=False)
         try:
             result = client.execute_command_safely(
                 command_type=req.command_type,

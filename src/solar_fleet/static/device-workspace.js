@@ -6,7 +6,8 @@ export async function renderDevicesMainWorkspace(ui) {
   const { state, e, div, p, btn, badge, card, table, select, input, field, fact, notice, showDialog, closeDialog, api, go, sites, deviceDetail } = ui;
   const container = div("stack device-workspace-container");
 
-  const overviewData = await api('/fleet/devices-overview');
+  const scopeQuery = state.site ? '?site_id=' + encodeURIComponent(state.site) : '';
+  const overviewData = await api('/fleet/devices-overview' + scopeQuery);
 
   const subtabs = [
     ["inventory", l("Danh mục thiết bị", "Device Inventory")],
@@ -261,14 +262,12 @@ export async function renderDevicesMainWorkspace(ui) {
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
   if (currentTab === "native_config") {
-    let targetDeviceId = state.selectedInspectorDevice || (deviceList[0] ? deviceList[0].id : "inv_demo");
-
-    let configData = null;
-    try {
-      configData = await api(`/devices/${targetDeviceId}/native-config-groups`);
-    } catch (_err) {
-      configData = { groups: [] };
+    const targetDeviceId = deviceList.find(d => d.id === state.selectedInspectorDevice)?.id || deviceList[0]?.id;
+    if (!targetDeviceId) {
+      container.append(p(l("Chưa có thiết bị trong phạm vi đã chọn.", "No devices in the selected scope.")));
+      return container;
     }
+    const configData = await api(`/devices/${encodeURIComponent(targetDeviceId)}/native-config-groups`);
 
     const groupsList = div("plant-card-grid");
     (configData.groups || []).forEach((g) => {
@@ -279,10 +278,11 @@ export async function renderDevicesMainWorkspace(ui) {
         ),
         p(l("Lý do khóa: Chưa hoàn tất biên bản nghiệm thu phần cứng hiện trường (LOCKED_PENDING_HARDWARE_ACCEPTANCE).", "Locked: Hardware acceptance required before native write."), "small bad"),
         div("plant-card-metrics",
-          ...(g.fields || []).map((f) => div("fact", e("span", f.name + ":"), e("b", f.current)))
+           ...(g.fields || []).map((f) => div("fact", e("span", (typeof f === "string" ? f : f.name) + ":"), e("b", typeof f === "string" ? "—" : f.current ?? "—")))
         ),
-        btn(l("Yêu cầu mở khóa nghiệm thu", "Request Hardware Commissioning"), () => {
-          alert(l("Yêu cầu nghiệm thu phần cứng đã được gửi tới kỹ sư trưởng phụ trách O&M.", "Commissioning request sent to Lead Engineer."));
+        btn(l("Mở hồ sơ nghiệm thu", "Open commissioning records"), () => {
+          state.site = deviceList.find(d => d.id === targetDeviceId).site_id;
+          return go("operations", "", "handover");
         }, "secondary")
       );
       groupsList.append(gCard);
@@ -324,21 +324,21 @@ export async function renderDevicesMainWorkspace(ui) {
               e("p", `${d.vendor} · ${d.model}`, "small muted")
             )
           ),
-          bHealth ? badge(`SOH ${bHealth.soh_percent}%`, bHealth.soh_percent >= 80 ? "good" : "warn") :
+          bHealth?.soh_percent != null ? badge(`SOH ${bHealth.soh_percent}%`, bHealth.soh_percent >= 80 ? "good" : "warn") :
             badge(d.health_score == null ? l("Chưa đánh giá", "Not assessed") : `${d.health_score}/100`)
         ),
         div("plant-card-metrics",
-          div("fact", e("span", l("Nhiệt độ cell / vỏ:", "Cell / Case Temp:")), e("b", bHealth ? `${bHealth.operating_temp_c} °C` : `${number(d.temp_c || 28.5)} °C`)),
-          div("fact", e("span", l("Chu kỳ tương đương (EFC):", "Equivalent Cycles:")), e("b", bHealth ? `${bHealth.equivalent_full_cycles}` : "—")),
-          div("fact", e("span", l("Hệ số lão hóa nhiệt:", "Thermal Stress:")), e("b", bHealth ? `${bHealth.temperature_stress_factor}x` : "1.00x", bHealth && bHealth.temperature_stress_factor > 1.2 ? "bad-text" : "")),
-          div("fact", e("span", l("Tuổi thọ ước tính còn lại:", "Estimated Life:")), e("b", bHealth ? `${bHealth.estimated_remaining_years} ${l("năm", "yrs")}` : "—", "good-text"))
+          div("fact", e("span", l("Nhiệt độ cell / vỏ:", "Cell / Case Temp:")), e("b", `${number(bHealth?.operating_temp_c)} °C`)),
+          div("fact", e("span", l("Chu kỳ tương đương (EFC):", "Equivalent Cycles:")), e("b", number(bHealth?.equivalent_full_cycles))),
+          div("fact", e("span", l("Hệ số lão hóa nhiệt:", "Thermal Stress:")), e("b", number(bHealth?.temperature_stress_factor), bHealth && bHealth.temperature_stress_factor > 1.2 ? "bad-text" : "")),
+          div("fact", e("span", l("Tuổi thọ ước tính còn lại:", "Estimated Life:")), e("b", number(bHealth?.estimated_remaining_years), "good-text"))
         ),
         div("stack",
           div("fact", e("span", l("Tình trạng bảo hành:", "Warranty Status:")),
-            bHealth ? badge(bHealth.warranty_status === "WITHIN_WARRANTY" ? l("Trong hạn bảo hành", "In Warranty") : l("Hết hạn bảo hành", "Expired"), bHealth.warranty_status === "WITHIN_WARRANTY" ? "good" : "bad") :
-            e("span", l("Đang cập nhật", "Updating"))),
+            bHealth?.warranty_status && bHealth.warranty_status !== "UNKNOWN" ? badge(bHealth.warranty_status === "WITHIN_WARRANTY" ? l("Trong hạn bảo hành", "In Warranty") : l("Hết hạn bảo hành", "Expired"), bHealth.warranty_status === "WITHIN_WARRANTY" ? "good" : "bad") :
+            e("span", l("Chưa xác định", "Unknown"))),
           div("fact", e("span", l("Chu kỳ bảo hành còn lại:", "Warranty Remaining:")),
-            e("span", bHealth ? `${number(bHealth.warranty_remaining_cycles)} / ${bHealth.warranty_remaining_days} ${l("ngày", "days")}` : l("Chưa nghiệm thu", "Not accepted")))
+            e("span", bHealth?.warranty_remaining_days != null ? `${number(bHealth.warranty_remaining_cycles)} / ${bHealth.warranty_remaining_days} ${l("ngày", "days")}` : l("Chưa nghiệm thu", "Not accepted")))
         )
       );
       if (bHealth && bHealth.recommendations && bHealth.recommendations.length > 0) {
@@ -356,25 +356,20 @@ export async function renderDevicesMainWorkspace(ui) {
 
   // SUB-TAB 5: FIRMWARE MATRIX
   if (currentTab === "firmware") {
-    let fwData = null;
-    try {
-      fwData = await api("/fleet/firmware-matrix");
-    } catch (_err) {
-      fwData = { records: [] };
-    }
+    const fwData = await api("/fleet/firmware-matrix" + scopeQuery);
 
     const fwTable = table(
       [l("Thiết bị", "Device"), l("Hãng", "Vendor"), l("Model", "Model"), l("Phiên bản hiện tại", "Installed Version"), l("Bản mới nhất", "Latest Release"), l("Đánh giá tuân thủ", "Compliance Status"), l("Ngày phát hành", "Release Date"), l("Mã băm SHA-256", "SHA-256 Hash"), l("Hành động", "Actions")],
-      (fwData.records || []).map((r) => [
+      (fwData.devices || []).map((r) => [
         e("b", r.device_name),
         r.vendor,
         r.model,
-        badge(r.installed_version, "blue"),
-        e("b", r.latest_release),
+        badge(r.current_firmware ?? "—", "blue"),
+        e("b", r.latest_firmware ?? "—"),
         badge(r.compliance_status === "COMPLIANT" ? l("Đạt chuẩn", "Compliant") : l("Chưa xác minh", "Unverified"), r.compliance_status === "COMPLIANT" ? "good" : "warn"),
-        r.release_date,
+        r.release_date ?? "—",
         e("span", r.sha256_hash ? r.sha256_hash.slice(0, 16) + "…" : "—", "monospace small"),
-        btn(l("Mở hồ sơ bảo trì", "Open maintenance records"), () => go('incidents', 'health'), "secondary")
+        btn(l("Mở hồ sơ bảo trì", "Open maintenance records"), () => {state.site = r.site_id; return go('incidents', '', 'health');}, "secondary")
       ])
     );
 
@@ -576,6 +571,10 @@ async function renderCommunityOptimizerSubtab(ui, container) {
 }
 
 async function renderSolisMqttSubtab(ui, container) {
+  const rawRegisterInput = ui.e("textarea", null, "monospace");
+  rawRegisterInput.placeholder = l("Nhập JSON thanh ghi từ thiết bị đã xác minh", "Enter observed register JSON from the verified device");
+  container.append(ui.field(l("Thanh ghi đầu vào (không tự lấy số mẫu)", "Observed register input (no sample data)"), rawRegisterInput));
+
   const { e, div, p, btn, badge, notice, card, table, api } = ui;
   const bridgeBox = div("stack");
 
@@ -629,7 +628,7 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_node_id";
         inp.value = "solis2mqtt";
-        inp.style.width = "140px";
+
         return inp;
       })(),
       e("label", "Prefix:"),
@@ -637,7 +636,7 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_disc_prefix";
         inp.value = "homeassistant";
-        inp.style.width = "140px";
+
         return inp;
       })()
     )
@@ -677,9 +676,9 @@ async function renderSolisMqttSubtab(ui, container) {
           (() => {
             const numCfg = configs.find((c) => c.entity_type === "number") || configs[0];
             const pre = e("pre", JSON.stringify(numCfg?.payload || {}, null, 2), "monospace small");
-            pre.style.background = "var(--bg-card)";
-            pre.style.padding = "8px";
-            pre.style.overflowX = "auto";
+
+
+
             return pre;
           })()
         )
@@ -703,19 +702,7 @@ async function renderSolisMqttSubtab(ui, container) {
   const telResults = div("stack");
   const decodeBtn = btn("Giải mã dữ liệu thô sang MQTT Telemetry", async () => {
     try {
-      const simulatedRegisters = {
-        3004: 0, 3005: 4500, // active_power = 4500 W
-        3006: 0, 3007: 4720, // total_dc_output_power = 4720 W
-        3008: 0, 3009: 18250, // total_power = 18250 kWh
-        3010: 0, 3011: 420, // energy_this_month = 420 kWh
-        3012: 0, 3013: 560, // generation_last_month = 560 kWh
-        3014: 245, // generation_today = 24.5 kWh (decimals: 1)
-        3015: 312, // generation_yesterday = 31.2 kWh (decimals: 1)
-        3016: 0, 3017: 2850, // generation_this_year = 2850 kWh
-        3018: 0, 3019: 3950, // generation_last_year = 3950 kWh
-        3041: 385, // inverter_temp = 38.5 °C (decimals: 1)
-        3072: 26, 3073: 9, 3074: 27, 3075: 9, 3076: 45, 3077: 0 // 2026-09-27T09:45:00
-      };
+      const simulatedRegisters = JSON.parse(rawRegisterInput.value);
 
       const res = await api("/solis-mqtt/decode-telemetry", {
         method: "POST",
@@ -824,7 +811,7 @@ async function renderSolisMqttSubtab(ui, container) {
           inp.max = "100";
           inp.step = "5";
           inp.value = "75.0";
-          inp.style.width = "90px";
+
           return inp;
         })(),
         btn("Biên dịch khung FC06 Power Limit", async () => {
@@ -916,7 +903,7 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_acc";
         inp.placeholder = "operator@semsportal.com";
-        inp.style.width = "200px";
+
         return inp;
       })(),
       e("label", "Mã trạm (Station ID):"),
@@ -924,7 +911,7 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_stid";
         inp.value = "gw_rooftop_vn01";
-        inp.style.width = "180px";
+
         return inp;
       })(),
       btn("Kiểm tra kết nối SEMS Portal", async () => {
@@ -1038,7 +1025,7 @@ async function renderGoodWeSemsSubtab(ui, container) {
         inp.id = "goodwe_rep_month";
         inp.type = "month";
         inp.value = "2026-09";
-        inp.style.width = "160px";
+
         return inp;
       })(),
       btn("Tải báo cáo sản lượng tháng (v1/ReportData)", async () => {
@@ -1081,6 +1068,10 @@ async function renderGoodWeSemsSubtab(ui, container) {
 }
 
 async function renderGrowattSphSubtab(ui, container) {
+  const rawRegisterInput = ui.e("textarea", null, "monospace");
+  rawRegisterInput.placeholder = l("Nhập JSON thanh ghi từ thiết bị đã xác minh", "Enter observed register JSON from the verified device");
+  container.append(ui.field(l("Thanh ghi đầu vào (không tự lấy số mẫu)", "Observed register input (no sample data)"), rawRegisterInput));
+
   const { e, div, p, btn, badge, notice, card, table, api } = ui;
   const sphBox = div("stack");
 
@@ -1175,22 +1166,7 @@ async function renderGrowattSphSubtab(ui, container) {
   const readSlotsBtn = btn("Đọc trạng thái 12 khe lịch TOU", async () => {
     slotResults.replaceChildren(notice("Đang đọc trạng thái thanh ghi các khe TOU…", "Reading..."));
     try {
-      const simulatedHolding = {
-        // Battery First slots
-        1100: (0 << 8) | 0, 1101: (4 << 8) | 0, 1102: 1, // Slot 1: 00:00 - 04:00, enabled
-        1103: (4 << 8) | 0, 1104: (6 << 8) | 0, 1105: 0, // Slot 2
-        1106: 0, 1107: 0, 1108: 0,                       // Slot 3
-        1018: (12 << 8) | 0, 1019: (14 << 8) | 0, 1020: 0, // Slot 4 (reg 1018)
-        1021: 0, 1022: 0, 1023: 0,                       // Slot 5
-        1024: (2 << 8) | 30, 1025: (4 << 8) | 30, 1026: 1, // Slot 6: 02:30 - 04:30, enabled
-        // Grid First slots
-        1080: (17 << 8) | 0, 1081: (19 << 8) | 0, 1082: 1, // Slot 1: 17:00 - 19:00, enabled
-        1083: 0, 1084: 0, 1085: 0,
-        1086: 0, 1087: 0, 1088: 0,
-        1027: 0, 1028: 0, 1029: 0,
-        1030: 0, 1031: 0, 1032: 0,
-        1033: 0, 1034: 0, 1035: 0,
-      };
+      const simulatedHolding = JSON.parse(rawRegisterInput.value);
 
       const res = await api("/growatt-sph/decode-tou-slots", {
         method: "POST",
@@ -1245,23 +1221,7 @@ async function renderGrowattSphSubtab(ui, container) {
   const readBmsBtn = btn("Giải mã dữ liệu BMS & 12 Cell Pin", async () => {
     bmsResults.replaceChildren(notice("Đang giải mã thông số BMS…", "Decoding..."));
     try {
-      const simulatedInputRegs = {
-        1084: 184, // Cycle count = 184
-        1085: 28,  // SOC = 28%
-        1086: 93,  // SOH = 93%
-        1087: 5370, // bmsVoltage = 53.70 V
-        1088: 5750, // bmsCurrent = +57.50 A
-        1090: 17620, // maxChargeCurrent = 176.20 A
-        1091: 6110,  // remaining capacity = 61.10 Ah
-        1092: 21580, // FCC = 215.80 Ah
-        1097: 5680,  // CV target = 56.80 V
-        1108: 3358,  // maxCellVoltage = 3.358 V
-        1109: 3346,  // minCellVoltage = 3.346 V
-        1110: 2,     // 2 modules in parallel
-        1112: 3355, 1113: 3358, 1114: 3350, 1115: 3352,
-        1116: 3348, 1117: 3346, 1118: 3354, 1119: 3351,
-        1120: 3353, 1121: 3349, 1122: 3356, 1123: 3352,
-      };
+      const simulatedInputRegs = JSON.parse(rawRegisterInput.value);
 
       const [resBms, resCells] = await Promise.all([
         api("/growatt-sph/decode-bms", {
@@ -1317,6 +1277,10 @@ async function renderGrowattSphSubtab(ui, container) {
 }
 
 async function renderSolisHybridSubtab(ui, container) {
+  const rawRegisterInput = ui.e("textarea", null, "monospace");
+  rawRegisterInput.placeholder = l("Nhập JSON thanh ghi từ thiết bị đã xác minh", "Enter observed register JSON from the verified device");
+  container.append(ui.field(l("Thanh ghi đầu vào (không tự lấy số mẫu)", "Observed register input (no sample data)"), rawRegisterInput));
+
   const { e, div, card, p, badge, notice, button, table } = ui;
   const solisBox = div("stack");
 
@@ -1350,7 +1314,6 @@ async function renderSolisHybridSubtab(ui, container) {
   modeInput.type = "number";
   modeInput.value = "33"; // 0x0021 = BIT00 + BIT05
   modeInput.placeholder = "Giá trị thanh ghi 43110 (VD: 33 = 0x0021)";
-  modeInput.style.maxWidth = "280px";
 
   const decodeModeBtn = button(l("Giải mã thanh ghi 43110", "Decode Reg 43110"), async () => {
     try {
@@ -1430,19 +1393,16 @@ async function renderSolisHybridSubtab(ui, container) {
   powerInput.type = "number";
   powerInput.value = "3000";
   powerInput.placeholder = "Công suất W (VD: 3000)";
-  powerInput.style.maxWidth = "160px";
 
   const voltInput = e("input", null, "input-text");
   voltInput.type = "number";
   voltInput.value = "51.2";
   voltInput.placeholder = "Điện áp Pin V (VD: 51.2)";
-  voltInput.style.maxWidth = "140px";
 
   const ttlInput = e("input", null, "input-text");
   ttlInput.type = "number";
   ttlInput.value = "1200";
   ttlInput.placeholder = "Watchdog TTL s (VD: 1200)";
-  ttlInput.style.maxWidth = "140px";
 
   const compileDispatchBtn = button(l("Biên dịch lệnh Điều phối & Watchdog", "Compile Dispatch & Watchdog"), async () => {
     try {
@@ -1490,11 +1450,7 @@ async function renderSolisHybridSubtab(ui, container) {
   const decodeTouBtn = button(l("Giải mã Ma trận 12 Khe Lịch TOU", "Decode 12 TOU Slots Matrix"), async () => {
     try {
       // Mock active registers for demonstration
-      const mockRegs = {
-        43708: 100, 43709: 600, 43710: 490, 43711: 0, 43712: 0, 43713: 4, 43714: 0, // Charge slot 0: 00:00 - 04:00 @ 60.0A
-        43715: 80, 43716: 300, 43717: 490, 43718: 11, 43719: 0, 43720: 13, 43721: 0, // Charge slot 1: 11:00 - 13:00 @ 30.0A
-        43750: 15, 43751: 800, 43752: 490, 43753: 17, 43754: 0, 43755: 20, 43756: 0, // Discharge slot 0: 17:00 - 20:00 @ 80.0A
-      };
+      const mockRegs = JSON.parse(rawRegisterInput.value);
 
       const res = await api("/solis-hybrid/decode-tou-slots", {
         method: "POST",
@@ -1573,6 +1529,10 @@ async function renderSolisHybridSubtab(ui, container) {
 }
 
 async function renderDeyeHybridSubtab(ui, container) {
+  const rawRegisterInput = ui.e("textarea", null, "monospace");
+  rawRegisterInput.placeholder = l("Nhập JSON thanh ghi từ thiết bị đã xác minh", "Enter observed register JSON from the verified device");
+  container.append(ui.field(l("Thanh ghi đầu vào (không tự lấy số mẫu)", "Observed register input (no sample data)"), rawRegisterInput));
+
   const { e, div, card, p, badge, notice, button, table } = ui;
   const deyeBox = div("stack");
 
@@ -1623,7 +1583,6 @@ async function renderDeyeHybridSubtab(ui, container) {
   maxSellInput.type = "number";
   maxSellInput.value = "10000";
   maxSellInput.placeholder = "Max Sell Power W (VD: 10000)";
-  maxSellInput.style.maxWidth = "200px";
 
   const compileWorkBtn = button(l("Biên dịch lệnh Chế độ Deye", "Compile Deye Work Mode"), async () => {
     try {
@@ -1667,7 +1626,6 @@ async function renderDeyeHybridSubtab(ui, container) {
   currInput.type = "number";
   currInput.value = "40";
   currInput.placeholder = "Dòng sạc A (VD: 40)";
-  currInput.style.maxWidth = "160px";
 
   const compileGridBtn = button(l("Biên dịch cấu hình Sạc lưới", "Compile Grid Charge"), async () => {
     try {
@@ -1698,12 +1656,7 @@ async function renderDeyeHybridSubtab(ui, container) {
   const touActions = div("row gap-sm items-center");
   const decodeTouBtn = button(l("Giải mã Ma trận 6 Khe TOU", "Decode 6 TOU Slots Matrix"), async () => {
     try {
-      const mockRegs = {
-        148: 100, 149: 500, 150: 900, 151: 1300, 152: 1700, 153: 2100,
-        154: 5000, 155: 6000, 156: 4000, 157: 5000, 158: 8000, 159: 5000,
-        166: 100, 167: 90, 168: 50, 169: 80, 170: 20, 171: 40,
-        172: 1, 173: 0, 174: 0, 175: 1, 176: 0, 177: 0,
-      };
+      const mockRegs = JSON.parse(rawRegisterInput.value);
 
       const res = await api("/deye-hybrid/decode-tou-schedule", {
         method: "POST",
@@ -1742,19 +1695,16 @@ async function renderDeyeHybridSubtab(ui, container) {
   slotTimeInput.type = "text";
   slotTimeInput.value = "02:00";
   slotTimeInput.placeholder = "HH:MM";
-  slotTimeInput.style.maxWidth = "110px";
 
   const slotPwrInput = e("input", null, "input-text");
   slotPwrInput.type = "number";
   slotPwrInput.value = "6000";
   slotPwrInput.placeholder = "Công suất W";
-  slotPwrInput.style.maxWidth = "130px";
 
   const slotSocInput = e("input", null, "input-text");
   slotSocInput.type = "number";
   slotSocInput.value = "95";
   slotSocInput.placeholder = "SOC %";
-  slotSocInput.style.maxWidth = "100px";
 
   const slotSrcSelect = e("select", null, "input-select");
   [
@@ -1810,19 +1760,7 @@ async function renderDeyeHybridSubtab(ui, container) {
 
   const readTelemBtn = button(l("Đọc & Chuẩn hóa Đo xa Deye", "Read & Normalize Deye Telemetry"), async () => {
     try {
-      const mockTelemetryRegs = {
-        500: 2, // Normal
-        672: 3200, 676: 4205, 677: 76, // PV1: 3200W, 420.5V, 7.6A
-        673: 2800, 678: 4150, 679: 67, // PV2: 2800W, 415.0V, 6.7A
-        587: 5120, 588: 85, 590: 1500, 591: 2930, 586: 1285, 592: 200, // Batt: 51.2V, 85%, 1500W, 29.3A, 28.5C, 200Ah
-        598: 2315, 599: 2298, 600: 2304, 609: 5002, 619: -1250, // Grid: 231.5V, 50.02Hz, -1250W import
-        653: 4450, 643: 0, 636: 4450, // Load: 4450W, UPS: 0W, Inv: 4450W
-        540: 1350, 541: 1380, // DC: 35.0C, AC: 38.0C
-        529: 245, 514: 85, 515: 42, 520: 120, 521: 180, 526: 310, // Today energy
-        534: 25400, 535: 0, // PV Total 2540.0 kWh (32-bit LE)
-        522: 12500, 523: 0, // Grid Import Total 1250.0 kWh
-        524: 18200, 525: 0, // Grid Export Total 1820.0 kWh
-      };
+      const mockTelemetryRegs = JSON.parse(rawRegisterInput.value);
 
       const res = await api("/deye-hybrid/decode-telemetry", {
         method: "POST",
@@ -1930,13 +1868,11 @@ async function renderSolarmanV5Subtab(ui, container) {
   serialInput.type = "number";
   serialInput.value = "2312345678";
   serialInput.placeholder = "Sê-ri Logger (VD: 2312345678)";
-  serialInput.style.maxWidth = "200px";
 
   const slaveInput = e("input", null, "input-text");
   slaveInput.type = "number";
   slaveInput.value = "1";
   slaveInput.placeholder = "Slave ID";
-  slaveInput.style.maxWidth = "90px";
 
   const fcSelect = e("select", null, "input-select");
   [
@@ -1954,13 +1890,11 @@ async function renderSolarmanV5Subtab(ui, container) {
   addrInput.type = "number";
   addrInput.value = "500";
   addrInput.placeholder = "Địa chỉ (VD: 500)";
-  addrInput.style.maxWidth = "130px";
 
   const qtyInput = e("input", null, "input-text");
   qtyInput.type = "number";
   qtyInput.value = "10";
   qtyInput.placeholder = "Số lượng / Giá trị";
-  qtyInput.style.maxWidth = "140px";
 
   const compileBtn = button(l("Biên dịch & Đóng gói V5", "Compile & Encapsulate V5"), async () => {
     try {
@@ -2024,11 +1958,11 @@ async function renderSolarmanV5Subtab(ui, container) {
 
   const decInputArea = e("textarea", null, "input-textarea");
   decInputArea.rows = 3;
-  decInputArea.style.width = "100%";
-  decInputArea.style.fontFamily = "monospace";
+
+
   // Prepopulate with a verified synthetic response frame:
   // Start=A5, Len=15 (0x0F,0x00), Code=10 15, Seq=01 00, Serial=DE C0 AD 89 (2309865694), Type=02, Status=01, Times..., Modbus RTU (01 03 02 01 F4 78 8B), Checksum=XX, End=15
-  decInputArea.value = "A51500101501004E8BA389020100000000000000000000000001030201F4788BC615";
+  decInputArea.value = "";
 
   const decodeBtn = button(l("Giải mã & Xác thực Khung V5", "Decode & Validate V5 Frame"), async () => {
     try {
@@ -2074,9 +2008,8 @@ async function renderSolarmanV5Subtab(ui, container) {
   );
 
   const discInput = e("input", null, "input-text");
-  discInput.value = "192.168.1.150,ACCF23654128,2312345678";
+  discInput.value = "";
   discInput.placeholder = "Chuỗi phản hồi UDP (VD: 192.168.1.150,ACCF23654128,2312345678)";
-  discInput.style.maxWidth = "400px";
 
   const discBtn = button(l("Phân tích Phản hồi Discovery", "Parse Discovery Reply"), async () => {
     try {
@@ -2138,7 +2071,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const pnInput = e("input", null, "input-text");
   pnInput.value = "EYBOND-WIFI-001";
   pnInput.placeholder = "Mã PN / Sê-ri Cục phát";
-  pnInput.style.maxWidth = "220px";
 
   const devaddrInput = e("input", null, "input-text");
   devaddrInput.type = "number";
@@ -2146,7 +2078,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   devaddrInput.min = "1";
   devaddrInput.max = "247";
   devaddrInput.placeholder = "Địa chỉ RS485";
-  devaddrInput.style.maxWidth = "110px";
 
   const pollResults = div("stack");
 
@@ -2249,7 +2180,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const paramInput = e("input", null, "input-text");
   paramInput.value = "1";
   paramInput.placeholder = "Giá trị tham số (VD: 1 cho SBU, 60 cho 60A)";
-  paramInput.style.maxWidth = "200px";
 
   const unlockLabel = e("label", " Mở khóa thử nghiệm (Simulated Unlock)", "small");
   const unlockCheck = e("input", null);
@@ -2330,7 +2260,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const hexInput = e("input", null, "input-text");
   hexInput.value = "00370994001201045e5000547345380d";
   hexInput.placeholder = "Chuỗi Hex khung Eybond";
-  hexInput.style.minWidth = "360px";
 
   const frameResults = div("stack");
 

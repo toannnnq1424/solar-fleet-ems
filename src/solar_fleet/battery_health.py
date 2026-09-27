@@ -10,7 +10,7 @@ independent clean-room implementation) and standard LFP/NMC degradation curves.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Literal
 
 from fastapi import Depends, HTTPException
@@ -221,82 +221,64 @@ def install_battery_health(app, controller, user):
         if not device or not who.can_access(device["site_id"]):
             raise HTTPException(404, "device_not_found")
 
-        # Extract nominal capacity or default 10kWh
-        cap = float(device.get("battery_capacity_kwh") or 10.0)
-        spec = BatterySpecification(
-            nominal_capacity_kwh=cap,
-            chemistry=device.get("battery_chemistry", "LFP"),
-            warranty_cycles=int(device.get("warranty_cycles", 6000)),
-            warranty_years=int(device.get("warranty_years", 10)),
-        )
+        from .observed_energy import accepted_points, integrate_directional_power
 
-        # Retrieve historical samples or telemetry
         now = utcnow()
-        commissioned_date = device.get("commissioned_at")
-        if commissioned_date:
-            try:
-                age_days = max(1, (now - datetime.fromisoformat(commissioned_date)).days)
-            except Exception:
-                age_days = 180
-        else:
-            age_days = 180
-
-        # Query discharge throughput from samples or device counter
-        samples = controller.store.report_samples(device_id, now - timedelta(days=30), now, "battery_w", 5000)
-        total_discharge_w_samples = [abs(s["value"]) for s in samples if s.get("value") is not None and s["value"] < 0]
-        # Approximate monthly throughput extrapolated to total age
-        recent_throughput_kwh = (sum(total_discharge_w_samples) / 1000.0) * (5.0 / 60.0) if total_discharge_w_samples else (cap * 25.0)
-        total_discharge_kwh = recent_throughput_kwh * (age_days / 30.0)
-
-        # Average temperature reading
-        temp_samples = controller.store.report_samples(device_id, now - timedelta(days=7), now, "battery_temp", 500)
-        avg_temp = (
-            sum(s["value"] for s in temp_samples if s.get("value") is not None) / len(temp_samples)
-            if temp_samples
-            else 28.5
-        )
-
-        # BMS SOH reading
-        soh_samples = controller.store.report_samples(device_id, now - timedelta(days=1), now, "battery_soh", 10)
-        bms_soh = soh_samples[-1]["value"] if soh_samples and soh_samples[-1].get("value") is not None else None
-
-        return estimate_battery_health(
-            device_id=device_id,
-            spec=spec,
-            total_discharge_kwh=total_discharge_kwh,
-            calendar_days=age_days,
-            avg_temp_c=avg_temp,
-            reported_bms_soh=bms_soh,
-        )
+        start = now - timedelta(days=7)
+        rows = controller.store.report_samples(device_id, start, now, "battery_discharge_w", 10001)
+        if len(rows) > 10000:
+            raise HTTPException(422, "health_history_limit; reviewed_rollup_required")
+        energy = integrate_directional_power(rows, "battery_discharge_w", start, now)
+        measured = {}
+        provenance = {}
+        for metric, unit, target in (
+            ("battery_soh", "%", "soh_percent"),
+            ("battery_temp", "°C", "operating_temp_c"),
+        ):
+            observations = controller.store.report_samples(device_id, now - timedelta(minutes=15), now, metric, 10001)
+            points = accepted_points(observations, metric, unit, now - timedelta(minutes=15), now)
+            value = points[-1][1] if points else None
+            if metric == "battery_soh" and value is not None and not 0 <= value <= 100:
+                value = None
+            measured[target] = value
+            provenance[target] = points[-1][0].isoformat() if value is not None else None
+        cap = device.get("battery_capacity_kwh")
+        valid_capacity = isinstance(cap, (int, float)) and not isinstance(cap, bool) and math.isfinite(cap) and cap > 0
+        throughput = energy["energy_kwh"]
+        return {
+            "device_id": device_id,
+            "status": "MEASURED" if measured["soh_percent"] is not None else "INSUFFICIENT_DATA",
+            **measured,
+            "reported_bms_soh": measured["soh_percent"],
+            "source_timestamps": provenance,
+            "nominal_capacity_kwh": cap if valid_capacity else None,
+            "equivalent_full_cycles": None,
+            "observed_window_equivalent_cycles": throughput / cap if valid_capacity and throughput is not None else None,
+            "observed_discharge_kwh": throughput,
+            "coverage": energy["coverage"],
+            "window_start": start.isoformat(),
+            "window_end": now.isoformat(),
+            "temperature_stress_factor": None,
+            "estimated_remaining_years": None,
+            "warranty_status": "UNKNOWN",
+            "warranty_remaining_cycles": None,
+            "warranty_remaining_days": None,
+            "recommendations": ["Lifetime degradation and warranty require reviewed nameplate and lifetime history."],
+        }
 
     @app.get("/api/sites/{site_id}/battery-health")
     def get_site_battery_health(site_id: str, who=Depends(user)):
         site = controller.store.get("site", site_id)
         if not site or not who.can_access(site_id):
             raise HTTPException(404, "site_not_found")
-
-        devices = [
-            d for d in controller.store.list("device")
-            if d.get("site_id") == site_id and d.get("has_battery")
-        ]
-
-        if not devices:
-            # Check devices that have battery telemetry
-            devices = [
-                d for d in controller.store.list("device")
-                if d.get("site_id") == site_id and ("battery" in d.get("type", "").lower() or "hybrid" in d.get("type", "").lower() or "storage" in d.get("type", "").lower())
-            ]
-
-        results = []
-        for dev in devices:
-            try:
-                results.append(get_device_battery_health(dev["id"], who))
-            except Exception:
-                continue
-
+        devices = [d for d in controller.store.list("device") if d.get("site_id") == site_id
+                   and (d.get("has_battery") or d.get("type", "").lower() in {"battery", "hybrid", "storage"})]
+        results = [get_device_battery_health(d["id"], who) for d in devices]
+        values = [r["soh_percent"] for r in results if r["soh_percent"] is not None]
         return {
             "site_id": site_id,
             "batteries_count": len(results),
             "batteries": results,
-            "site_average_soh": round(sum(r.soh_percent for r in results) / len(results), 1) if results else None,
+            "measured_batteries_count": len(values),
+            "site_average_soh": sum(values) / len(values) if values and len(values) == len(results) else None,
         }

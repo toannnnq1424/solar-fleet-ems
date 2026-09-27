@@ -468,10 +468,25 @@ export async function renderSettingsWorkspace(ctx) {
       await refresh();
     });
     f.finish(field(l('Chủ sở hữu', 'Owner'), entity), field(l('Hợp đồng', 'Contract'), contract), field(l('Phụ trách kỹ thuật', 'Technical contact'), notes));
+    const planning = await api('/sites/' + encodeURIComponent(currentSiteId) + '/planning-configuration');
+    const planningInput = document.createElement('textarea');
+    planningInput.rows = 12;
+    planningInput.setAttribute('aria-label', 'Advisory planning configuration JSON');
+    planningInput.value = JSON.stringify(planning.configuration, null, 2);
+    const planningForm = form(async () => {
+      await api('/sites/' + encodeURIComponent(currentSiteId) + '/planning-configuration', JSON.parse(planningInput.value));
+      await refresh();
+    });
+    planningForm.finish(planningInput);
     return div('stack', field(t('plants'), picker),
       notice('Thông tin lưu tại đây là hồ sơ nhà máy. Điều khiển, lịch, biểu giá và nguồn dữ liệu dùng các luồng riêng bên dưới.',
         'This page stores plant records. Use the linked workflows for control, schedules, tariffs and data sources.'),
       card(l('Quyền sở hữu và liên hệ', 'Ownership and contacts'), f),
+      card(l('Ranh giới đo và cấu hình quy hoạch', 'Measurement boundaries and planning configuration'),
+        p(l('Lưu cấu hình tư vấn, không kích hoạt điều khiển. Chỉ quản trị viên được lưu. Biểu giá USD cần 24 giờ UTC liên tiếp và nguồn gốc; thiếu dữ liệu đo vẫn chặn tính toán.',
+          'Advisory configuration only; no dispatch enabled. Only administrators can save. USD prices require 24 consecutive UTC hours and provenance; missing observations still block calculation.')),
+        p('dispatch_config: capacity_kwh, usable_kwh, max_charge_kw, max_discharge_kw, charge_efficiency, discharge_efficiency, min_soc_pct, max_soc_pct, reserve_soc_pct, replacement_cost_usd, rated_cycle_life, currency, tariff_source, hourly_prices [{timestamp, import_per_kwh, export_per_kwh}]. Set both dispatch_device_id and dispatch_config to null to clear dispatch configuration.'),
+        planningForm),
       card(l('Cấu hình vận hành', 'Operating configuration'), div('row wrap',
         btn(l('Biểu giá điện', 'Electricity tariffs'), () => go('reports', '', 'tariff')),
         btn(l('Lịch / TOU', 'Schedules / TOU'), () => go('operations', 'schedules')),

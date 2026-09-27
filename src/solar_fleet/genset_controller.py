@@ -63,6 +63,7 @@ class GeneratorSpecs:
     fuel_idle_liters_per_hour: float = 2.5
     fuel_slope_liters_per_kwh: float = 0.22  # Liters per generated kWh
     warmup_time_seconds: int = 120
+    crank_time_seconds: int = 10
     cooldown_time_seconds: int = 180
     min_run_time_seconds: int = 1800     # 30 minutes minimum to avoid thermal cycling
     auto_start_soc_threshold: float = 20.0
@@ -117,6 +118,7 @@ class GeneratorController:
         battery_soc_pct: float,
         battery_max_charge_kw: float,
         is_grid_available: bool = False,
+        battery_max_discharge_kw: float | None = None,
     ) -> Dict[str, Any]:
         """Execute one simulation/control step."""
         self._elapsed_in_state_seconds += dt_seconds
@@ -129,12 +131,15 @@ class GeneratorController:
             # Trigger conditions:
             # 1. Grid lost AND battery SOC dropped below start threshold
             # 2. Grid lost AND load exceeds battery max discharge capability
-            if not is_grid_available and (battery_soc_pct <= self.specs.auto_start_soc_threshold or microgrid_load_kw > 15.0):
+            if not is_grid_available and (
+                battery_soc_pct <= self.specs.auto_start_soc_threshold
+                or (battery_max_discharge_kw is not None and microgrid_load_kw > battery_max_discharge_kw)
+            ):
                 self._transition_to(GeneratorState.CRANKING)
 
         elif self._state == GeneratorState.CRANKING:
             # Cranking takes 10 seconds
-            if self._elapsed_in_state_seconds >= 10:
+            if self._elapsed_in_state_seconds >= self.specs.crank_time_seconds:
                 self._transition_to(GeneratorState.WARMUP)
 
         elif self._state == GeneratorState.WARMUP:
@@ -156,7 +161,7 @@ class GeneratorController:
                 surplus_power = max(0.0, output_power_kw - microgrid_load_kw)
                 battery_charge_kw = min(battery_max_charge_kw, surplus_power)
                 # Adjust output if battery cannot absorb full surplus
-                output_power_kw = max(self.specs.min_power_kw, microgrid_load_kw + battery_charge_kw)
+                output_power_kw = microgrid_load_kw + battery_charge_kw
 
             # Fuel tracking
             fuel_rate = self.specs.calculate_fuel_rate(output_power_kw)
@@ -194,6 +199,8 @@ class GeneratorController:
             "total_fuel_liters": round(self._total_fuel_consumed_liters, 2),
             "elapsed_in_state_seconds": self._elapsed_in_state_seconds,
             "cumulative_run_seconds": self._cumulative_run_seconds,
+            "below_minimum_loading": 0 < output_power_kw < self.specs.min_power_kw,
+            "unserved_load_kw": round(max(0.0, microgrid_load_kw - output_power_kw), 2),
         }
 
     def _transition_to(self, new_state: GeneratorState) -> None:

@@ -212,7 +212,7 @@ def test_compile_grid_first_slot():
     assert c1.register_address == 1070
     assert c1.register_count == 2
     assert c1.raw_values == [80, 30]
-    assert c1.safety_gate == "COMMISSIONED_WRITE_ENABLED"
+    assert c1.safety_gate == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
     assert calculate_modbus_crc16(bytes(c1.wire_bytes)) == 0
 
     # Command 2: write slot 1 (regs 1080..1082)

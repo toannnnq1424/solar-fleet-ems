@@ -5097,14 +5097,14 @@ dialog::backdrop {
   justify-content: space-between;
   padding: 1rem 1.15rem;
   border-radius: 8px;
-  background: var(--bg-card, #1e293b);
-  border: 1px solid var(--border-color, #334155);
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 
 .maintenance-kpi-grid .metric-value {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--text-main, #f8fafc);
+  color: var(--ink);
 }
 
 .maintenance-preflight-box {
@@ -5916,7 +5916,7 @@ solar-energy-flow { display: block; }
   transition: stroke .3s ease, opacity .3s ease;
 }
 .power-branch.is-active .power-wire-motion {
-  opacity: 1; animation: energy-particles 1.2s linear infinite;
+  opacity: 1; animation: energy-transfer 1.2s linear infinite;
 }
 .power-branch.is-reversed .power-wire-motion { animation-direction: reverse; }
 
@@ -5961,7 +5961,7 @@ solar-energy-flow { display: block; }
 .power-flow .toolbar { justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 
 /* --- Keyframes ----------------------------------------------------------- */
-@keyframes energy-particles { to { stroke-dashoffset: -44; } }
+@keyframes energy-transfer { to { stroke-dashoffset: -44; } }
 @keyframes node-pulse {
   0%, 100% { box-shadow: 0 0 12px var(--glow-color, transparent), var(--shadow-card); }
   50% { box-shadow: 0 0 24px var(--glow-color, transparent), var(--shadow-card); }

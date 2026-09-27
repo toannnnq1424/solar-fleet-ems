@@ -33,6 +33,25 @@ from solar_fleet.market_trader import (
 # ---------------------------------------------------------------------------
 
 class TestEVFleetCoordinator:
+    @pytest.mark.parametrize("reason", ["disconnected", "off", "target", "headroom", "solar"])
+    def test_next_cycle_clears_previous_allocation(self, reason):
+        coord = EVFleetCoordinator(site_breaker_limit_kw=10, enable_1p3p_switching=False)
+        lp = Loadpoint(charger_id="port", name="Test", connected_vehicle_id="car",
+                       vehicle_soc_pct=20, target_soc_pct=80, mode=ChargingMode.PV)
+        coord.add_loadpoint(lp)
+        assert coord.update(5, 1)["total_ev_power_kw"] > 0
+        if reason == "disconnected":
+            lp.connected_vehicle_id = None
+        elif reason == "off":
+            lp.mode = ChargingMode.OFF
+        elif reason == "target":
+            lp.vehicle_soc_pct = 80
+        result = coord.update(0 if reason == "solar" else 5, 10 if reason == "headroom" else 1)
+        assert result["total_ev_power_kw"] == 0
+        assert lp.is_charging is False
+        assert lp.allocated_current_amps == 0
+        assert lp.actual_power_kw == 0
+
     def test_loadpoint_power_calculation(self):
         lp = Loadpoint(charger_id="cp1", name="Charger 1")
         # 16A on 1-phase: 16 * 230 * 1 / 1000 = 3.68 kW
@@ -196,6 +215,9 @@ class TestEVFleetAndMarketAPI:
                 {"id": "cp2", "name": "Bay 2", "vehicle_id": "car2", "soc_pct": 40.0, "mode": "pv", "priority": 2},
             ],
         }
+        for charger in payload["chargers"]:
+            charger.update(target_soc_pct=80, min_current_amps=6, max_current_amps=32,
+                           voltage_per_phase_v=230, phases=3)
         res = client.post("/api/ev-fleet/optimize-dlm", json=payload, headers=headers)
         assert res.status_code == 200
         data = res.json()

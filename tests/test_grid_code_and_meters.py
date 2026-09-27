@@ -20,6 +20,7 @@ from solar_fleet.grid_code_regulator import (
     FreqWattDroop,
     GridCodeRegulator,
     GridConnectionState,
+    ProtectionRelayLimits,
     VoltVarCurve,
     VoltWattCurve,
 )
@@ -195,7 +196,9 @@ class TestGridCodeAndMeterAPI:
         client, headers = self._login(local)
         res = client.post(
             "/api/grid-code/evaluate",
-            json={"voltage_v": 258.0, "frequency_hz": 50.0, "current_power_kw": 10.0},
+            json={"voltage_v": 258.0, "frequency_hz": 50.0, "current_power_kw": 10.0,
+                  "volt_watt": vars(VoltWattCurve()), "volt_var": vars(VoltVarCurve()),
+                  "freq_watt": vars(FreqWattDroop()), "protection": vars(ProtectionRelayLimits())},
             headers=headers,
         )
         assert res.status_code == 200

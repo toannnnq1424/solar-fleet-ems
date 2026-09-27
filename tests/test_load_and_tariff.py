@@ -47,11 +47,10 @@ class TestLoadPredictor:
         assert profile.base_kw == 1.0
         assert profile.load_factor > 0.0
 
-    def test_persistence_predictor_fallback(self):
+    def test_persistence_predictor_requires_history(self):
         pred = PersistencePredictor()
-        result = pred.predict()
-        assert len(result) == 24
-        assert result[0] == 2.0  # default baseline
+        with pytest.raises(ValueError, match="observed_load_history_required"):
+            pred.predict()
 
     def test_persistence_predictor_with_history(self):
         pred = PersistencePredictor()

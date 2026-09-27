@@ -646,7 +646,7 @@ def normalize_smartess_telemetry(
 class SmartEssLocalClient:
     """Client for communicating with SmartESS / Eybond dataloggers locally.
 
-    Supports simulated loopback mode and live TCP framing.
+    Protocol helpers only; local network transport is not commissioned.
     Preserves idempotent TID incrementation and default read-only safety gates.
     """
 
@@ -655,61 +655,13 @@ class SmartEssLocalClient:
         host: str = "127.0.0.1",
         port: int = 8899,
         collector_pn: str = "EYBOND-WIFI-001",
-        simulated: bool = True,
+        simulated: bool = False,
     ) -> None:
         self.host = host
         self.port = port
         self.collector_pn = collector_pn
         self.simulated = simulated
         self._tid = 1
-
-        # Simulated state
-        self._gs = SmartEssGeneralStatus(
-            grid_voltage_v=229.8,
-            grid_freq_hz=50.0,
-            ac_output_voltage_v=230.1,
-            ac_output_freq_hz=50.0,
-            ac_output_apparent_power_va=1450,
-            ac_output_active_power_w=1380,
-            output_load_percent=28,
-            battery_voltage_v=53.4,
-            battery_voltage_scc_v=53.4,
-            battery_charge_current_a=25,
-            battery_discharge_current_a=0,
-            battery_capacity_percent=88,
-            heatsink_temp_c=36,
-            pv1_power_w=2650,
-            pv1_voltage_v=345.2,
-            pv2_power_w=0,
-            pv2_voltage_v=0.0,
-            device_status="00010001",
-        )
-        self._mod = "Line / Grid Mode"
-        self._piri = SmartEssRatedInfo(
-            ac_input_voltage_rating=230.0,
-            ac_input_current_rating=21.7,
-            ac_output_voltage_rating=230.0,
-            ac_output_freq_rating=50.0,
-            ac_output_active_power_rating=5000,
-            battery_voltage_rating=48.0,
-            battery_recharge_voltage=50.0,
-            battery_under_voltage=42.0,
-            battery_bulk_voltage=56.4,
-            battery_float_voltage=54.0,
-            battery_type=3,  # Pylontech
-            battery_type_name="Pylontech",
-            max_ac_charge_current=30,
-            max_charge_current=60,
-            input_voltage_range=0,
-            output_source_priority=1,
-            output_source_priority_name="Solar > Battery > Utility (SBU)",
-            charger_source_priority=1,
-            charger_source_priority_name="Solar First",
-        )
-        self._et = SmartEssEnergyStats(
-            day_energy_kwh=14.8,
-            total_energy_kwh=4120.5,
-        )
 
     def next_tid(self) -> int:
         """Increment and return next transaction ID."""
@@ -721,14 +673,7 @@ class SmartEssLocalClient:
 
     def poll_telemetry(self, devaddr: int = 1) -> Dict[str, Any]:
         """Poll telemetry from inverter (GS, MOD, PIRI, ET) and normalize to EMS."""
-        return normalize_smartess_telemetry(
-            gs=self._gs,
-            mod_str=self._mod,
-            piri=self._piri,
-            et=self._et,
-            collector_pn=self.collector_pn,
-            devaddr=devaddr,
-        )
+        raise NotImplementedError("local_transport_unavailable; use_registered_eybond_adapter")
 
     def execute_command_safely(
         self,
@@ -737,75 +682,9 @@ class SmartEssLocalClient:
         unlocked: bool = False,
     ) -> Dict[str, Any]:
         """Execute inverter configuration command with readback and safety gate."""
-        if not unlocked:
-            return {
-                "status": "LOCKED_PENDING_HARDWARE_ACCEPTANCE",
-                "command_type": command_type,
-                "params": params,
-                "message": (
-                    "Command is gated behind hardware acceptance verification. "
-                    "Inverter parameter writes are held in read-only state."
-                ),
-            }
-
-        # Build command based on type
-        p17_cmd = ""
-        readback_target = ""
-
-        if command_type == "output_priority":
-            val = int(params.get("priority", 0))
-            p17_cmd = build_output_priority_command(val)
-            readback_target = f"output_source_priority={val}"
-            # Apply to simulated state
-            self._piri.output_source_priority = val
-            self._piri.output_source_priority_name = OUTPUT_SOURCE_PRIORITY_MAP.get(val, f"Priority {val}")
-
-        elif command_type == "charger_priority":
-            val = int(params.get("priority", 0))
-            p17_cmd = build_charger_priority_command(val)
-            readback_target = f"charger_source_priority={val}"
-            self._piri.charger_source_priority = val
-            self._piri.charger_source_priority_name = CHARGER_SOURCE_PRIORITY_MAP.get(val, f"Charger {val}")
-
-        elif command_type == "max_charge_current":
-            val = int(params.get("current_a", 30))
-            p17_cmd = build_max_charge_current_command(val)
-            readback_target = f"max_charge_current={val}A"
-            self._piri.max_charge_current = val
-
-        elif command_type == "max_ac_charge_current":
-            val = int(params.get("current_a", 20))
-            p17_cmd = build_max_ac_charge_current_command(val)
-            readback_target = f"max_ac_charge_current={val}A"
-            self._piri.max_ac_charge_current = val
-
-        elif command_type == "battery_cutoff_voltage":
-            val = float(params.get("voltage_v", 42.0))
-            p17_cmd = build_battery_cutoff_voltage_command(val)
-            readback_target = f"battery_under_voltage={val}V"
-            self._piri.battery_under_voltage = val
-
-        elif command_type == "battery_bulk_float":
-            bulk = float(params.get("bulk_v", 56.4))
-            flt = float(params.get("float_v", 54.0))
-            p17_cmd = build_battery_bulk_float_command(bulk, flt)
-            readback_target = f"bulk={bulk}V, float={flt}V"
-            self._piri.battery_bulk_voltage = bulk
-            self._piri.battery_float_voltage = flt
-
-        else:
-            raise ValueError(f"Unknown command type: {command_type}")
-
-        # Build raw P17 set frame and wrap in Eybond Modbus frame
-        p17_frame = build_p17_set(p17_cmd)
-        eybond_frame = build_forward2device(self.next_tid(), p17_frame)
-
         return {
-            "status": "EXECUTED",
+            "status": "LOCKED_PENDING_HARDWARE_ACCEPTANCE",
             "command_type": command_type,
-            "p17_command": p17_cmd,
-            "raw_p17_hex": p17_frame.hex(),
-            "raw_eybond_hex": eybond_frame.hex(),
-            "readback_verified": True,
-            "readback_state": readback_target,
+            "readback_verified": False,
+            "message": "Use the commissioned command engine; client flags cannot authorize writes.",
         }

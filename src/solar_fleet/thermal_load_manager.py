@@ -299,7 +299,7 @@ class SGReadyController:
             target_state = SGReadyState.STATE_2_NORMAL
 
         # If tank is below minimum floor, prioritize normal heating regardless of surplus
-        if tank.current_temp_c <= tank.min_temp_c and target_state == SGReadyState.STATE_1_LOCK:
+        if not is_grid_peak_lock and tank.current_temp_c <= tank.min_temp_c and target_state == SGReadyState.STATE_1_LOCK:
             target_state = SGReadyState.STATE_2_NORMAL
 
         self._current_state = target_state

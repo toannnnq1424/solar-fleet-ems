@@ -115,11 +115,11 @@ def test_brand_alone_returns_unknown_status(brand: str):
     "sigenergy", "pylontech", "byd", "kaco", "kostal", "srne",
     "must", "anenji", "afore", "kstar", "tsun", "megarevo", "tesla"
 ])
-def test_exact_model_returns_verified_status(brand: str):
-    """Calling get_vendor_registers with a known model returns VERIFIED_AUDITED."""
+def test_exact_model_returns_uncommissioned_reference(brand: str):
+    """A known model is a reference, not hardware verification."""
     known_model = KNOWN_MODELS_PER_VENDOR[brand][0]
     res = get_vendor_registers(brand, model=known_model)
-    assert res["status"] == "VERIFIED_AUDITED"
+    assert res["status"] == "UNCOMMISSIONED_REFERENCE"
     assert res["registers_count"] >= 10
     assert res["alarms_count"] >= 5
     assert len(res["registers"]) == res["registers_count"]

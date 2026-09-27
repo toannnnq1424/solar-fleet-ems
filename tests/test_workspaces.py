@@ -49,6 +49,47 @@ def login(local, name="admin"):
     return {"Origin": ORIGIN, "X-CSRF-Token": response.json()["csrf"]}
 
 
+def test_declared_specs_persist_without_operational_side_effects(local):
+    c, ctl = local
+    headers = login(local)
+    specs = {"plant_type": "RESIDENTIAL", "battery_capacity_kwh": 12.5,
+             "grid_limit_kw": 0, "tariff_type": "FLAT_RATE", "inverter_vendor": "Declared vendor"}
+    response = c.post("/api/sites", json={"name": "SIMULATOR inventory", "declared_specs": specs}, headers=headers)
+    assert response.status_code == 201
+    row = response.json()
+    assert row["declared_specs"] == specs
+    assert row["vendor"] is None
+    assert ctl.store.get("site", row["id"])["declared_specs"] == specs
+    assert ctl.store.get("site_config", row["id"]) is None
+    assert not ctl.store.commands()
+    update = c.post(f"/api/sites/{row['id']}/profile", json={"name": "Renamed"}, headers=headers)
+    assert update.status_code == 200
+    assert update.json()["declared_specs"] == specs
+    assert ctl.store.verify_audit()
+
+
+@pytest.mark.parametrize("specs", [
+    {"battery_capacity_kwh": -1}, {"grid_limit_kw": -1}, {"grid_limit_kw": "NaN"},
+    {"plant_type": "unknown"}, {"tariff_type": "invented"}, {"dispatch": True},
+])
+def test_invalid_declared_specs_rejected(local, specs):
+    c, ctl = local
+    headers = login(local)
+    before = ctl.store.list("site")
+    assert c.post("/api/sites", json={"name": "Invalid", "declared_specs": specs}, headers=headers).status_code == 422
+    assert ctl.store.list("site") == before
+
+
+@pytest.mark.parametrize("account", ["operator", "viewer", "other"])
+def test_declared_specs_require_admin(local, account):
+    c, ctl = local
+    headers = login(local, account)
+    payload = {"name": "Forbidden", "declared_specs": {"grid_limit_kw": 0}}
+    assert c.post("/api/sites", json=payload, headers=headers).status_code == 403
+    assert c.post("/api/sites/sim-site/profile", json=payload, headers=headers).status_code == 403
+    assert not ctl.store.commands()
+
+
 def test_manual_site_metadata_does_not_replace_discovery_identity(local):
     c, ctl = local
     headers = login(local)

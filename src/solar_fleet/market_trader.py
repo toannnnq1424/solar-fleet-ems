@@ -115,6 +115,11 @@ class MarketTrader:
         clearing_prices_by_hour: Dict[int, float],
     ) -> Dict[str, Any]:
         """Simulate market clearing against hourly market clearing prices."""
+        for bid in self._bids.values():
+            if bid.status == OrderStatus.SUBMITTED:
+                price = clearing_prices_by_hour.get(bid.delivery_hour)
+                if price is None or not math.isfinite(price):
+                    raise ValueError("finite_delivery_hour_price_required")
         total_revenue_eur = 0.0
         cleared_count = 0
         rejected_count = 0
@@ -123,7 +128,7 @@ class MarketTrader:
             if bid.status != OrderStatus.SUBMITTED:
                 continue
 
-            clearing_price = clearing_prices_by_hour.get(bid.delivery_hour, 50.0)
+            clearing_price = clearing_prices_by_hour[bid.delivery_hour]
 
             # Buy orders clear if bid price >= clearing price
             if bid.direction == OrderDirection.BUY_CHARGE:

@@ -56,7 +56,7 @@ def test_brand_alone_invariant_preserved():
 def test_get_vendor_registers_query():
     # Exact model provided returns verified registers
     gw_regs = get_vendor_registers("GoodWe", model="GW5K-ET")
-    assert gw_regs["status"] == "VERIFIED_AUDITED"
+    assert gw_regs["status"] == "UNCOMMISSIONED_REFERENCE"
     assert gw_regs["registers_count"] >= 20
     assert gw_regs["alarms_count"] >= 15
     assert "GW5K-ET" in gw_regs["supported_models"]

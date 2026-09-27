@@ -57,9 +57,9 @@ class BatterySpecs:
     def degradation_cost_per_kwh(self) -> float:
         """Levelized cycle degradation cost per kWh throughput.
 
-        Total lifetime throughput = capacity * cycle_life * DOD (approx 80%)
+        Total lifetime throughput = supplied usable capacity * rated cycle life.
         """
-        lifetime_throughput_kwh = self.capacity_kwh * self.rated_cycle_life * 0.80
+        lifetime_throughput_kwh = self.usable_kwh * self.rated_cycle_life
         if lifetime_throughput_kwh <= 0:
             return 0.05
         return self.replacement_cost_usd / lifetime_throughput_kwh
@@ -194,12 +194,13 @@ class PredbatPlanner:
 
             # Decision: Force Charge from Grid?
             # If this is one of the designated cheapest hours and battery is below max SOC
-            if h in cheapest_charge_hours and current_soc < 95.0 and expected_deficit_kwh > 0:
+            if h in cheapest_charge_hours and current_soc < self.battery.max_soc_pct and expected_deficit_kwh > 0:
                 mode = InverterDispatchMode.FORCE_CHARGE_GRID
                 charge_space_kwh = (self.battery.max_soc_pct - current_soc) / 100.0 * self.battery.capacity_kwh
-                p_charge = min(self.battery.max_charge_kw, charge_space_kwh)
+                p_charge = min(self.battery.max_charge_kw, charge_space_kwh / self.battery.charge_efficiency)
                 # Grid import must cover both load and battery charge minus any solar
                 p_grid_import = max(0.0, p_load + p_charge - p_solar)
+                p_grid_export = max(0.0, p_solar - p_load - p_charge)
                 current_energy_kwh += p_charge * self.battery.charge_efficiency
                 current_soc = min(self.battery.max_soc_pct, (current_energy_kwh / self.battery.capacity_kwh) * 100.0)
 
@@ -207,14 +208,14 @@ class PredbatPlanner:
             elif enable_arbitrage and h in profitable_export_hours and current_soc > self.battery.reserve_soc_pct:
                 mode = InverterDispatchMode.FORCE_DISCHARGE_EXPORT
                 avail_energy_kwh = max(0.0, (current_soc - self.battery.reserve_soc_pct) / 100.0 * self.battery.capacity_kwh)
-                p_discharge = min(self.battery.max_discharge_kw, avail_energy_kwh)
+                p_discharge = min(self.battery.max_discharge_kw, avail_energy_kwh * self.battery.discharge_efficiency)
                 # Inverter outputs discharge + solar to cover load, excess exported to grid
-                total_supply = p_discharge * self.battery.discharge_efficiency + p_solar
+                total_supply = p_discharge + p_solar
                 if total_supply >= p_load:
                     p_grid_export = total_supply - p_load
                 else:
                     p_grid_import = p_load - total_supply
-                current_energy_kwh -= p_discharge
+                current_energy_kwh -= p_discharge / self.battery.discharge_efficiency
                 current_soc = max(self.battery.min_soc_pct, (current_energy_kwh / self.battery.capacity_kwh) * 100.0)
 
             # Standard Self-Consumption Mode
@@ -223,7 +224,7 @@ class PredbatPlanner:
                 if net_solar >= 0:
                     # Surplus solar: charge battery first
                     charge_space_kwh = (self.battery.max_soc_pct - current_soc) / 100.0 * self.battery.capacity_kwh
-                    p_charge = min(self.battery.max_charge_kw, net_solar, charge_space_kwh)
+                    p_charge = min(self.battery.max_charge_kw, net_solar, charge_space_kwh / self.battery.charge_efficiency)
                     current_energy_kwh += p_charge * self.battery.charge_efficiency
                     current_soc = min(self.battery.max_soc_pct, (current_energy_kwh / self.battery.capacity_kwh) * 100.0)
                     # Remaining surplus exported to grid
@@ -232,7 +233,7 @@ class PredbatPlanner:
                     # Solar deficit: discharge battery to cover load
                     deficit_kw = -net_solar
                     avail_energy_kwh = max(0.0, (current_soc - self.battery.min_soc_pct) / 100.0 * self.battery.capacity_kwh)
-                    p_discharge = min(self.battery.max_discharge_kw, deficit_kw, avail_energy_kwh)
+                    p_discharge = min(self.battery.max_discharge_kw, deficit_kw, avail_energy_kwh * self.battery.discharge_efficiency)
                     current_energy_kwh -= p_discharge / self.battery.discharge_efficiency
                     current_soc = max(self.battery.min_soc_pct, (current_energy_kwh / self.battery.capacity_kwh) * 100.0)
                     # Remaining deficit imported from grid

@@ -253,11 +253,9 @@ def test_api_goodwe_sems_routes(local):
         json={"account": "demo@example.com", "password": "secret_password"},
         headers=headers,
     )
-    assert res_login.status_code == 200
-    login_data = res_login.json()
-    assert login_data["authenticated"] is True
-    assert "semsportal.com" in login_data["base_url"]
-    assert "token" in login_data
+    assert res_login.status_code == 409
+    assert "authenticated" not in res_login.json()
+    assert "token" not in res_login.json()
 
     # 2. Station detail endpoint
     res_station = client.post(
@@ -265,12 +263,8 @@ def test_api_goodwe_sems_routes(local):
         json={"station_id": "test_gw_st_01"},
         headers=headers,
     )
-    assert res_station.status_code == 200
-    st_data = res_station.json()
-    assert "station_detail" in st_data
-    assert "normalized_fleet_telemetry" in st_data
-    assert st_data["normalized_fleet_telemetry"]["active_power_kw"] > 0
-    assert st_data["normalized_fleet_telemetry"]["soc_pct"] == 86.5
+    assert res_station.status_code == 422
+    assert "provider_payload_required" in res_station.json()["detail"]
 
     # 3. Monthly report endpoint
     res_rep = client.post(
@@ -278,8 +272,5 @@ def test_api_goodwe_sems_routes(local):
         json={"station_id": "test_gw_st_01", "year_month": "2026-09"},
         headers=headers,
     )
-    assert res_rep.status_code == 200
-    rep_data = res_rep.json()
-    assert rep_data["total_records"] >= 1
-    assert len(rep_data["stations"]) >= 1
-    assert rep_data["stations"][0]["month_generation_kwh"] == 1280.5
+    assert res_rep.status_code == 422
+    assert "provider_payload_required" in res_rep.json()["detail"]

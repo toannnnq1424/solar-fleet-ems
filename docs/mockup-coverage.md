@@ -1,8 +1,60 @@
+# Consolidated sidebar continuation — 27 September 2026
+
+Confirmed BE/FE contract fixes: site-scoped devices/firmware, correct firmware
+response fields and retry errors, truthful commissioning navigation, viewer report
+permissions and alert filter labels. Backend notification configuration now uses
+validated partial updates, Vault secrets and global-admin scope; an end-to-end
+notification editor/delivery service is still unbuilt. Catalogue billing scenarios
+validate full explicit inputs and remain advisory, not effective-version billing.
+
+The 15-entry / 26-screen inventory and estimate-versus-completion boundaries below
+remain unchanged. Full Python rerun: 1080 passed, 12 dependency warnings. Full
+browser rerun after maintenance visual correction: 29 passed. Ruff, JavaScript
+syntax, whitespace and package build passed.
+see `sidebar-followup-2026-09-27.md` for the first-run finding, verification logs,
+visual sampling and unresolved engineering. No hardware capability was enabled.
+
+# EV advisory follow-up — 27 September 2026
+
+EMS coordination now distinguishes unknown observation freshness from recent
+user-declared timestamps, rejects supplied stale/future or timezone-naive inputs,
+and shows actual vehicle identity in allocation results. BE/FE and API/browser
+regressions are implemented; this remains a non-persistent advisory calculator,
+not trusted telemetry or commissioned EV control. The 15-sidebar/26-screen scope
+is unchanged. Effective billing, device-specific freshness/provenance and cumulative
+visual acceptance remain unbuilt/unverified as detailed in
+`docs/sidebar-followup-2026-09-27.md`. This batch: 56 targeted Python and 3 browser
+tests passed; full suites were not rerun. No dispatch capability was enabled.
+
+# Plant declaration follow-up — 27 September 2026
+
+Wizard technical fields now persist as inventory-only `declared_specs`; no
+controller limits or billing rates are applied. Benchmarking removes arbitrary
+ranking and unknown-as-inspection labels, formats missing metrics and fixes site
+navigation. Verified: 1054 Python tests (12 warnings), 25 browser tests, Ruff,
+JS syntax, whitespace and build. See `sidebar-followup-2026-09-27.md` for scope;
+this is not completion of all 15 sidebar workflows or hardware commissioning.
+
+# Sidebar metadata follow-up (27 September 2026)
+
+See [the 15-entry follow-up checklist](sidebar-followup-2026-09-27.md) for canonical
+routes, the verified plant metadata/chart changes and explicitly unfinished
+wizard persistence work. This increment does not mark any whole screen complete.
+
 # Đối chiếu 26 mockup và phạm vi sản phẩm
 
 Cập nhật **27/09/2026**, trên snapshot mã được rà soát trước commit. Báo cáo này thay thế các nhận định “hoàn chỉnh luồng mã” trước đó: nhiều nhận định dựa trên số route, nút khóa và dữ liệu dựng sẵn, chưa chứng minh workflow hoạt động. Kết quả hiện tại là **pilot một controller**, không phải nền tảng O&M/EMS trưởng thành và chưa nghiệm thu thiết bị khách hàng. Xem [README dự án](../README.md), [mục lục tài liệu](README.md) và [validation theo ngày](validation.md).
 
 ## Kết luận sau đọc mã và kiểm tra
+
+**Đính chính batch 1 sau audit:** [Real-data remediation](real-data-remediation-2026-09-27.md) thay thế các tuyên bố seed-free/verified ở các phần cũ khi có mâu thuẫn. Giữ nguyên 15 sidebar và ma trận 26 ảnh; chưa hoàn thành rà seed toàn hệ thống.
+
+| Phạm vi / ảnh | Mã hiện có batch 1 | Chưa xây / còn phải sửa | Điều kiện hoàn thành |
+|---|---|---|---|
+| Health — 07, 26 | BE đọc SOH/BMS thật, tích phân theo timestamp/coverage; FE bỏ chỉ số dựng sẵn | Lifetime model với nameplate và lịch sử đủ; cell diagnostics | Không thiếu/sai nguồn, unit, timestamp; hardware acceptance |
+| EMS / lịch — 08, 24 | BE lịch sử EWMA → engine advisory; FE dùng chung kết quả, không giả tạo lịch | Config editor, tariff currency/expiry workflow, dispatch control | Regression dữ liệu thật/cold-start và commissioning trước ghi |
+| Meter/tariff — 14, 23 | Meter boundary và điện nhập quan sát, không đoán phản kháng/tiết kiệm | Billing engine với biểu giá site hiệu lực, reactive interval alignment | Đối chiếu hóa đơn và meter thật |
+| Vendor/native — 13, 16 | Chặn auth/readback giả, cờ bypass; registry review riêng | Toàn bộ seed trong technical tools, local transport, revalidation protocol | Exact evidence/identity + acceptance; không suy từ test fixture |
 
 - Có BE + FE hoạt động cho quản lý dữ liệu nội bộ, tài khoản, một số đường đọc đa hãng, lập lịch nháp/biên dịch, xử lý sự cố và bảo trì. Các phép đo, báo cáo và điều khiển cần profile, quyền và dữ liệu phù hợp.
 - Không có ảnh nào đã được chấp nhận đầy đủ toàn bộ chức năng, hành vi phần cứng và độ khớp UI. Chín ecosystem trong phạm vi không tương đương chín integration hoàn chỉnh.
@@ -188,20 +240,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T04:09:26.392071+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T06:27:57.302086+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 104 | 35,026 | 30,611 |
-| Frontend JavaScript | 31 | 14,889 | 14,191 |
+| Backend Python | 107 | 35,444 | 30,954 |
+| Frontend JavaScript | 33 | 14,487 | 13,808 |
 | Frontend CSS / HTML | 2 | 6,012 | 5,502 |
-| Test BE / simulator / fixture | 74 | 15,301 | 13,007 |
-| Test UI / browser fixture | 6 | 702 | 640 |
+| Test BE / simulator / fixture | 80 | 16,133 | 13,729 |
+| Test UI / browser fixture | 9 | 928 | 842 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **33** | **20,901** | **19,693** |
-| **Tổng code ứng dụng BE + FE** | **137** | **55,927** | **50,304** |
-| **Tổng test / simulator / fixture** | **80** | **16,003** | **13,647** |
-| **Tổng code ứng dụng + test + scripts** | **220** | **72,448** | **64,429** |
+| **Tổng FE (JS + CSS/HTML)** | **35** | **20,499** | **19,310** |
+| **Tổng code ứng dụng BE + FE** | **142** | **55,943** | **50,264** |
+| **Tổng test / simulator / fixture** | **89** | **17,061** | **14,571** |
+| **Tổng code ứng dụng + test + scripts** | **234** | **73,522** | **65,313** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

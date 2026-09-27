@@ -26,13 +26,13 @@ export function renderSubtabOverview(ctx, siteId, data) {
     [['today',l('Hôm nay','Today')],['month',l('Tháng này','This month')],['year',l('Năm nay','This year')]].map(([key,label])=>[label,value(comparisons[key]?.yield_kwh),value(comparisons[key]?.consumption_kwh)])),
     btn(l('Mở biểu đồ theo thời gian','Open measurement chart'),()=>to('data'),'link')));
   const gridCard = card(l('Quy chuẩn lưới điện & Chất lượng điện năng (Grid Code & Power Quality)', 'Grid Code Compliance & Power Quality'),
-    badge(l('Tuân thủ quy chuẩn (Compliant)', 'Compliant'), 'good'),
+    badge(l('Chưa đánh giá quy chuẩn', 'Compliance not assessed'), 'gray'),
     div('overview-kpis',
-      fact(l('Tần số lưới (f):', 'Grid Frequency:'), `${(ef.grid_frequency_hz || 50.02).toFixed(2)} Hz`),
-      fact(l('Điện áp trung bình (V):', 'Avg Grid Voltage:'), `${(ef.grid_voltage_v || 230.4).toFixed(1)} V`),
-      fact(l('Hệ số công suất Cos φ:', 'Power Factor Cos φ:'), badge(`${(ef.power_factor || 0.99).toFixed(2)}`, 'good')),
-      fact(l('Lệch áp 3 pha (VUF):', 'Voltage Unbalance (VUF):'), badge(`${(ef.vuf_pct || 0.8).toFixed(1)}%`, 'good')),
-      fact(l('Chế độ Volt-Watt P(V):', 'Volt-Watt State:'), badge(l('Bình thường (Normal)', 'Normal'), 'gray'))
+      fact(l('Tần số lưới (f):', 'Grid Frequency:'), value(ef.grid_frequency_hz, 'Hz')),
+      fact(l('Điện áp trung bình (V):', 'Avg Grid Voltage:'), value(ef.grid_voltage_v, 'V')),
+      fact(l('Hệ số công suất Cos φ:', 'Power Factor Cos φ:'), badge(value(ef.power_factor, ''), 'good')),
+      fact(l('Lệch áp 3 pha (VUF):', 'Voltage Unbalance (VUF):'), badge(value(ef.vuf_pct, '%'), 'good')),
+      fact(l('Chế độ Volt-Watt P(V):', 'Volt-Watt State:'), badge(l('Chưa xác định', 'Unknown'), 'gray'))
     ),
     btn(l('Mở bộ điều phối quy chuẩn lưới EMS', 'Open EMS Grid Code Regulator'), () => ctx.go('operations', 'main', 'rules'), 'link'));
   root.append(gridCard);

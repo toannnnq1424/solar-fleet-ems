@@ -22,8 +22,8 @@ export function createIncidentCenter(ui) {
 
   async function center() {
     let offset = 0, selected = state.tab || "", current = null, activeTab = "overview";
-    const search = input("search"), severity = select([["", t("all")], ...levels()]),
-      status = select([["", t("all")], ...statuses()]),
+    const search = input("search"), severity = select([["", l("Tất cả mức độ", "All severities")], ...levels()]),
+      status = select([["", l("Tất cả trạng thái", "All statuses")], ...statuses()]),
       assignment = select([["", l("Mọi phân công", "All assignments")], ["unassigned", l("Chưa phân công", "Unassigned")], ["mine", l("Của tôi", "Assigned to me")]]),
       sla = select([["", l("Mọi SLA", "All SLAs")], ["breached", l("Đã quá hạn", "Breached")]]),
       list = div("record-list"), detail = div("stack"), actions = div("stack"),

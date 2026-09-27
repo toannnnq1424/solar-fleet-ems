@@ -634,7 +634,7 @@ class SolisControlCompiler:
         crc = calculate_modbus_crc16(payload)
         wire_bytes = list(payload) + [crc & 0xFF, (crc >> 8) & 0xFF]
 
-        safety_gate = "COMMISSIONED_WRITE_ENABLED" if bypass_safety else "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        safety_gate = "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
 
         return ModbusWriteFrame(
             slave_address=slave_address,
@@ -699,7 +699,7 @@ class SolisControlCompiler:
         crc = calculate_modbus_crc16(payload)
         wire_bytes = list(payload) + [crc & 0xFF, (crc >> 8) & 0xFF]
 
-        safety_gate = "COMMISSIONED_WRITE_ENABLED" if bypass_safety else "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        safety_gate = "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
 
         return ModbusWriteFrame(
             slave_address=slave_address,

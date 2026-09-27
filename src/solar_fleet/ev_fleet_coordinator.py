@@ -15,6 +15,7 @@ Provides:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
@@ -62,10 +63,11 @@ class Loadpoint:
     is_charging: bool = False
     last_phase_switch_time: float = 0.0
     phase_switch_cooldown_seconds: float = 180.0  # 3 minutes anti-chattering
+    voltage_per_phase_v: float = 230.0
 
     @property
     def voltage_per_phase(self) -> float:
-        return 230.0
+        return self.voltage_per_phase_v
 
     def calculate_power_for_current(self, amps: float, phases: ChargePhaseMode) -> float:
         """Calculate kW for given current and phase count."""
@@ -101,13 +103,11 @@ class EVFleetCoordinator:
         # 1. Total site headroom available for EV charging
         site_headroom_kw = max(0.0, self.site_breaker_limit_kw - building_base_load_kw)
 
-        # 2. Check SOC limits: stop any vehicle that has reached target SOC
+        # Reset allocations every cycle, including disconnected and disabled ports.
         for lp in self.loadpoints.values():
-            if lp.connected_vehicle_id and lp.vehicle_soc_pct is not None:
-                if lp.vehicle_soc_pct >= lp.target_soc_pct:
-                    lp.is_charging = False
-                    lp.allocated_current_amps = 0.0
-                    lp.actual_power_kw = 0.0
+            lp.is_charging = False
+            lp.allocated_current_amps = 0.0
+            lp.actual_power_kw = 0.0
 
         # Active chargers requiring allocation
         active_chargers = [
@@ -160,10 +160,14 @@ class EVFleetCoordinator:
             # Convert target power to pilot current (Amps)
             current_amps = (target_power * 1000.0) / (lp.voltage_per_phase * lp.allocated_phases.value)
             clamped_amps = max(lp.min_current_amps, min(lp.max_current_amps, current_amps))
+            # Never round a pilot allocation above the available power budget.
+            clamped_amps = math.floor(clamped_amps * 10) / 10
+            if clamped_amps < lp.min_current_amps:
+                continue
             actual_kw = lp.calculate_power_for_current(clamped_amps, lp.allocated_phases)
 
             # Ensure we do not breach site breaker headroom
-            if actual_kw <= remaining_site_kw:
+            if actual_kw <= remaining_site_kw and (lp.mode != ChargingMode.PV or actual_kw <= remaining_solar_kw):
                 lp.is_charging = True
                 lp.allocated_current_amps = round(clamped_amps, 1)
                 lp.actual_power_kw = round(actual_kw, 2)
@@ -185,6 +189,7 @@ class EVFleetCoordinator:
                 {
                     "charger_id": lp.charger_id,
                     "name": lp.name,
+                    "vehicle_id": lp.connected_vehicle_id,
                     "is_charging": lp.is_charging,
                     "mode": lp.mode.value,
                     "phases": lp.allocated_phases.value,

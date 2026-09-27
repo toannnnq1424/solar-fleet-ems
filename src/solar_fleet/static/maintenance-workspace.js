@@ -114,7 +114,7 @@ export function createMaintenanceWorkspace(ui) {
     const c3 = card(l("Kế hoạch định kỳ", "Preventive Plans"),
       div("row between",
         e("strong", number(pl.total, 0), "metric-value"),
-        pl.due_soon > 0 ? badge(`${pl.due_soon} ` + l("đến hạn 7 ngày", "due in 7d"), "warn") : badge(l("Đang kích hoạt", "Active"), "good")
+        pl.due_soon > 0 ? badge(`${pl.due_soon} ` + l("đến hạn 7 ngày", "due in 7d"), "warn") : badge(pl.active > 0 ? l("Đang kích hoạt", "Active") : l("Chưa có kế hoạch bật", "No enabled plans"), pl.active > 0 ? "good" : "")
       ),
       p(l("Đang chạy: ", "Enabled: ") + `${pl.active}/${pl.total}`)
     );
@@ -122,7 +122,7 @@ export function createMaintenanceWorkspace(ui) {
     const c4 = card(l("Firmware & Nâng cấp OTA", "Firmware & OTA"),
       div("row between",
         e("strong", number(fw.total_requests, 0), "metric-value"),
-        fw.pending_requests > 0 ? badge(`${fw.pending_requests} ` + l("trong hàng đợi", "queued"), "blue") : badge(l("Đã cập nhật", "Up to date"), "good")
+        fw.pending_requests > 0 ? badge(`${fw.pending_requests} ` + l("trong hàng đợi", "queued"), "blue") : badge(l("Không có yêu cầu chờ", "No pending requests"))
       ),
       p(l("Tổng thời gian kỹ thuật: ", "Total logged labor: ") + number(summaryData?.total_labor_minutes || 0, 0) + l(" phút", " min"))
     );
@@ -230,13 +230,8 @@ export function createMaintenanceWorkspace(ui) {
           "Mô hình lão hóa điện hóa: Đánh giá độ phân kỳ điện áp giữa các cell (Cell Voltage Delta), nội trở nội tại (Internal Resistance) và suy hao dung lượng SOH do chu kỳ sạc/xả nhiệt độ cao.",
           "Electrochemical aging analytics: Evaluates cell voltage variance, internal resistance growth, and capacity fade SOH from cycling and thermal stress."
         ),
-        div("overview-kpis",
-          div("fact", e("span", l("Độ lệch áp cell cực đại (ΔV):", "Max Cell Voltage Delta:")), e("b", "18 mV"), badge(l("Bình thường (< 30mV)", "Balanced"), "good")),
-          div("fact", e("span", l("Nội trở ước tính:", "Est. Internal Resistance:")), e("b", "1.24 mΩ"), badge(l("Tốt", "Good"), "good")),
-          div("fact", e("span", l("Trạng thái sức khỏe (SOH):", "State of Health (SOH):")), e("b", "96.4%"), badge(l("Bình thường", "Normal"), "good")),
-          div("fact", e("span", l("Số chu kỳ tương đương:", "Equivalent Full Cycles:")), e("b", "412")),
-          div("fact", e("span", l("Nhiệt độ cell cao nhất:", "Max Cell Temp:")), e("b", "28.5 °C"))
-        ),
+        p(l("Chưa có số đo cell/BMS đã xác minh cho kết luận sức khỏe. Xem dữ liệu theo thiết bị; không suy đoán nội trở hoặc SOH.", "Verified cell/BMS observations are required. Inspect device measurements; resistance and SOH are not inferred.")),
+        btn(l("Xem dữ liệu sức khỏe thiết bị", "Inspect device health observations"), () => go("devices", "", "health")),
         operator() ? btn(l("+ Lập phiếu bảo trì cân bằng cell pin", "+ Work Order for Cell Balancing"), () => newJob(() => go("incidents", "", "jobs"), state.site, "")) : p(l("Chỉ Kỹ thuật viên mới có quyền lập phiếu.", "Technician permissions required."))
       ),
       div("grid three",

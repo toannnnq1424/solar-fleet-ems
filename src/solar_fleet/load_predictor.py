@@ -87,7 +87,7 @@ class PersistencePredictor(LoadPredictor):
 
     def predict(self, target_date: str = "", day_type: str = "weekday") -> List[float]:
         if not self._history:
-            return [2.0] * 24  # Default baseline
+            raise ValueError("observed_load_history_required")
         return list(self._history[-1].values)
 
 
@@ -108,7 +108,7 @@ class SimilarDayPredictor(LoadPredictor):
 
     def predict(self, target_date: str = "", day_type: str = "weekday") -> List[float]:
         if not self._history:
-            return [2.0] * 24
+            raise ValueError("observed_load_history_required")
 
         # Filter by day type
         candidates = [p for p in self._history if p.day_type == day_type]
@@ -190,7 +190,7 @@ class ProfileClusterPredictor(LoadPredictor):
 
     def predict(self, target_date: str = "", day_type: str = "weekday") -> List[float]:
         if not self._centroids:
-            return [2.0] * 24
+            raise ValueError("trained_load_history_required")
 
         if not self._history:
             return list(self._centroids[0])

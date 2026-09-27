@@ -344,7 +344,7 @@ def decode_vendor_alarm(vendor: str, code: int, model: str | None = None) -> dic
     v_clean = vendor.strip().lower() if vendor else ""
     
     # Invariant: brand alone does not identify register or fault semantics.
-    if not model or model.strip().lower() in ("", "unknown", "generic"):
+    if model not in KNOWN_MODELS_PER_VENDOR.get(v_clean, []):
         return {
             "fault_code": code,
             "title": "Unmapped vendor event",
@@ -355,11 +355,6 @@ def decode_vendor_alarm(vendor: str, code: int, model: str | None = None) -> dic
     
     # Model is provided: check against known models
     table = VENDOR_ALARM_TABLES.get(v_clean)
-    if not table:
-        for k, v in VENDOR_ALARM_TABLES.items():
-            if k in v_clean:
-                table = v
-                break
     
     if table and code in table:
         entry = table[code]
@@ -390,13 +385,6 @@ def get_vendor_registers(brand: str, model: str | None = None) -> dict[str, Any]
     alarms = VENDOR_ALARM_TABLES.get(b_clean)
     models = KNOWN_MODELS_PER_VENDOR.get(b_clean, [])
     
-    if not table:
-        for k, v in VENDOR_REGISTER_TABLES.items():
-            if k in b_clean:
-                table = v
-                alarms = VENDOR_ALARM_TABLES.get(k)
-                models = KNOWN_MODELS_PER_VENDOR.get(k, [])
-                break
 
     if not table:
         return {
@@ -412,7 +400,7 @@ def get_vendor_registers(brand: str, model: str | None = None) -> dict[str, Any]
 
     # Invariant: brand alone does not identify register semantics.
     # An exact model is required to return verified registers and alarms.
-    if not model or model.strip().lower() in ("", "unknown", "generic"):
+    if model not in models:
         return {
             "brand": brand,
             "registers": [],
@@ -434,7 +422,7 @@ def get_vendor_registers(brand: str, model: str | None = None) -> dict[str, Any]
 
     return {
         "brand": brand,
-        "status": "VERIFIED_AUDITED",
+        "status": "UNCOMMISSIONED_REFERENCE",
         "registers_count": len(reg_list),
         "alarms_count": len(alarm_list),
         "supported_models": models,

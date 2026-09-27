@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import Depends, HTTPException, Request, Response
+from fastapi import Depends, HTTPException, Response
 from pydantic import ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 from .domain import Model, Role, SafetyError, Sample, utcnow
@@ -24,6 +24,32 @@ from .security import create_user
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
+class NotificationConfigForm(Model):
+    smtp_host: str = Field(default="", max_length=253)
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_user: str = Field(default="", max_length=254)
+    smtp_password: SecretStr | None = None
+    smtp_tls: bool = True
+    from_address: str = Field(default="", max_length=254)
+    recipients_alarm: list[str] = Field(default_factory=list, max_length=100)
+    recipients_report: list[str] = Field(default_factory=list, max_length=100)
+    enabled: bool = False
+    email_enabled: bool = False
+    zalo_webhook: SecretStr | None = None
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: str = Field(default="", max_length=100)
+
+
+class DeclaredSiteSpecs(Model):
+    """User-declared inventory only; never a dispatch or billing configuration."""
+
+    plant_type: Literal["ROOFTOP_CI", "RESIDENTIAL", "GROUND_MOUNT", "AGRIVOLTAICS"] | None = None
+    battery_capacity_kwh: float | None = Field(default=None, ge=0, le=10_000_000, allow_inf_nan=False)
+    grid_limit_kw: float | None = Field(default=None, ge=0, le=10_000_000, allow_inf_nan=False)
+    tariff_type: Literal["TOU_INDUSTRIAL", "TOU_COMMERCIAL", "FLAT_RATE"] | None = None
+    inverter_vendor: str | None = Field(default=None, min_length=1, max_length=80)
+
+
 class SiteForm(Model):
     model_config = ConfigDict(extra="ignore")
     name: str = Field(min_length=1, max_length=160)
@@ -33,6 +59,7 @@ class SiteForm(Model):
     capacity_kwp: float | None = Field(default=None, ge=0, le=10_000_000, allow_inf_nan=False)
     latitude: float | None = Field(default=None, ge=-90, le=90, allow_inf_nan=False)
     longitude: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
+    declared_specs: DeclaredSiteSpecs | None = None
 
     @field_validator("timezone")
     @classmethod
@@ -533,8 +560,11 @@ def install_workspaces(app, controller, user, admin):
         return views.topology(site_id)
 
     @app.get("/api/fleet/devices-overview")
-    async def fleet_devices_overview(who=Depends(user)):
-        rows = [views.equipment(d) for d in controller.devices() if who.can_access(d.site_id)]
+    async def fleet_devices_overview(site_id: str | None = None, who=Depends(user)):
+        if site_id:
+            site_access(site_id, who)
+        rows = [views.equipment(d) for d in controller.devices()
+                if who.can_access(d.site_id) and (not site_id or d.site_id == site_id)]
         return {
             "devices": rows,
             "summary": {
@@ -1361,6 +1391,8 @@ def install_workspaces(app, controller, user, admin):
     @app.get("/api/notifications/config")
     async def notification_config(who=Depends(admin)):
         """Get current notification configuration."""
+        if "*" not in who.site_ids:
+            raise HTTPException(403, "global_admin_required")
         config = store.get("config", "notification") or {}
         return {
             "smtp_host": config.get("smtp_host", ""),
@@ -1373,50 +1405,43 @@ def install_workspaces(app, controller, user, admin):
             "enabled": config.get("enabled", False),
             "channels": {
                 "email": config.get("email_enabled", False),
-                "zalo_webhook": config.get("zalo_webhook", ""),
-                "telegram_bot_token": config.get("telegram_bot_token", ""),
+                "zalo_webhook_configured": bool(config.get("zalo_webhook_configured") or config.get("zalo_webhook")),
+                "telegram_bot_token_configured": bool(config.get("telegram_bot_token_configured") or config.get("telegram_bot_token")),
                 "telegram_chat_id": config.get("telegram_chat_id", ""),
             },
         }
 
     @app.post("/api/notifications/config")
-    async def update_notification_config(request: Request, who=Depends(admin)):
+    async def update_notification_config(body: NotificationConfigForm, who=Depends(admin)):
         """Update notification configuration (SMTP, recipients, channels)."""
-        body = await request.json()
-        allowed_keys = {
-            "smtp_host",
-            "smtp_port",
-            "smtp_user",
-            "smtp_password",
-            "smtp_tls",
-            "from_address",
-            "recipients_alarm",
-            "recipients_report",
-            "enabled",
-            "email_enabled",
-            "zalo_webhook",
-            "telegram_bot_token",
-            "telegram_chat_id",
-        }
-        config = store.get("config", "notification") or {}
-        for k, v in body.items():
-            if k in allowed_keys:
-                config[k] = v
-        config["id"] = "notification"
-        store.put("config", config)
-        store.audit(
-            "settings",
-            who.user.id,
-            "notification_config_updated",
-            {
-                "keys_changed": list(body.keys()),
-            },
-        )
+        if "*" not in who.site_ids:
+            raise HTTPException(403, "global_admin_required")
+        secret_keys = {"smtp_password", "zalo_webhook", "telegram_bot_token"}
+        changes = body.model_dump(exclude_unset=True, exclude=secret_keys)
+        with store.transaction():
+            config = store.get("config", "notification") or {}
+            credentials = {}
+            if store.db.execute("SELECT 1 FROM secrets WHERE id=?", ("notification",)).fetchone():
+                credentials = controller.vault.get("notification")
+            for key in secret_keys:
+                if key in config:
+                    credentials[key] = config.pop(key)
+                if key in body.model_fields_set:
+                    value = getattr(body, key)
+                    credentials[key] = value.get_secret_value() if value else ""
+                config[key + "_configured"] = bool(credentials.get(key))
+            controller.vault.put("notification", credentials)
+            config.update(changes)
+            store.put("config", "notification", config)
+            store.audit("settings", {"event": "notification_config_updated", "operator": who.id,
+                                     "keys_changed": sorted(body.model_fields_set)})
         return {"status": "saved"}
 
     @app.post("/api/notifications/test")
     async def test_notification(who=Depends(admin)):
         """Send a test notification to verify SMTP configuration."""
+        if "*" not in who.site_ids:
+            raise HTTPException(403, "global_admin_required")
         config = store.get("config", "notification") or {}
         if not config.get("smtp_host") or not config.get("from_address"):
             return {"status": "error", "message": "Chưa cấu hình SMTP host và địa chỉ gửi."}
@@ -1450,9 +1475,12 @@ def install_workspaces(app, controller, user, admin):
     # D1: Consolidated Firmware API (shared by Device + Maintenance tabs)
     # ==================================================================
     @app.get("/api/fleet/firmware-matrix")
-    async def firmware_matrix(who=Depends(user)):
+    async def firmware_matrix(site_id: str | None = None, who=Depends(user)):
         """Unified firmware matrix — single source of truth for Device and Maintenance workspaces."""
-        sites = {s["id"]: s for s in store.list("site") if who.can_access(s["id"])}
+        if site_id:
+            site_access(site_id, who)
+        sites = {s["id"]: s for s in store.list("site")
+                 if who.can_access(s["id"]) and (not site_id or s["id"] == site_id)}
         all_devices = [d for d in store.list("device") if d.get("site_id") in sites]
 
         matrix = []
@@ -1485,7 +1513,9 @@ def install_workspaces(app, controller, user, admin):
             vendors_summary[v]["total"] += 1
             vendors_summary[v]["versions"].add(m["current_firmware"])
         for v in vendors_summary:
-            vendors_summary[v]["versions"] = sorted(vendors_summary[v]["versions"])
+            vendors_summary[v]["versions"] = sorted(
+                version for version in vendors_summary[v]["versions"] if version is not None
+            )
 
         return {
             "devices": matrix,

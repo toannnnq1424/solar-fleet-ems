@@ -332,7 +332,7 @@ class GrowattSPHEngine:
         2. Disable Grid First slot 1 (write 0 to reg 1082, FC06).
         """
         cmds: List[GrowattCompiledCommand] = []
-        safety_gate = "COMMISSIONED_WRITE_ENABLED" if bypass_safety else "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        safety_gate = "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
 
         # 1. Disable BF slot 6 (Reg 1026)
         payload_1026 = bytes([slave_id, 0x06, 0x04, 0x02, 0x00, 0x00])  # 1026 = 0x0402
@@ -404,7 +404,7 @@ class GrowattSPHEngine:
         slot_regs = GROWATT_BATT_FIRST_SLOTS[slot_number - 1]
         start_reg = slot_regs[0]
 
-        safety_gate = "COMMISSIONED_WRITE_ENABLED" if bypass_safety else "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        safety_gate = "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
         cmds: List[GrowattCompiledCommand] = []
 
         # 1. FC16 to write [charge_rate, stop_soc, ac_charge_enable] at reg 1090
@@ -489,7 +489,7 @@ class GrowattSPHEngine:
         slot_regs = GROWATT_GRID_FIRST_SLOTS[slot_number - 1]
         start_reg = slot_regs[0]
 
-        safety_gate = "COMMISSIONED_WRITE_ENABLED" if bypass_safety else "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+        safety_gate = "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
         cmds: List[GrowattCompiledCommand] = []
 
         # 1. FC16 to write [discharge_rate, stop_soc] at reg 1070

@@ -363,34 +363,58 @@ def install_forecast_baseline(app, controller, user):
         if not site or not who.can_access(site_id):
             raise HTTPException(404, "site_not_found")
 
-        tz = site.get("timezone", "Asia/Ho_Chi_Minh")
+        from .observed_energy import accepted_points
+        from .predbat_planner import BatterySpecs, PredbatPlanner
+
+        # One reviewed measurement boundary avoids summing overlapping meters.
+        device_id = site.get("dispatch_device_id")
+        device = controller.store.get("device", device_id) if device_id else None
+        if not device or device.get("site_id") != site_id:
+            raise HTTPException(422, "site_dispatch_device_required")
+        trained = forecast(device_id, who)
+        profiles = [trained["metrics"][key] for key in ("pv_w", "load_w")]
+        if any(len(profile["points"]) != 24 or any(p["value_w"] is None for p in profile["points"]) for profile in profiles):
+            raise HTTPException(422, "complete_verified_history_forecast_required")
+        config = site.get("dispatch_config") or {}
+        required = tuple(BatterySpecs.__dataclass_fields__)
+        if any(key not in config for key in required):
+            raise HTTPException(422, "reviewed_battery_dispatch_specifications_required")
+        if any(isinstance(config[k], bool) or not isinstance(config[k], (int, float))
+               or not math.isfinite(config[k]) for k in required):
+            raise HTTPException(422, "finite_battery_specifications_required")
+        specs = BatterySpecs(**{key: config[key] for key in required})
+        if not (0 < specs.usable_kwh <= specs.capacity_kwh and specs.max_charge_kw > 0
+                and specs.max_discharge_kw > 0 and 0 < specs.charge_efficiency <= 1
+                and 0 < specs.discharge_efficiency <= 1 and specs.rated_cycle_life > 0
+                and specs.replacement_cost_usd >= 0
+                and 0 <= specs.min_soc_pct <= specs.reserve_soc_pct < specs.max_soc_pct <= 100):
+            raise HTTPException(422, "invalid_battery_specifications")
         now = utcnow()
-        lat = float(site.get("latitude") or 10.7769)  # Default Ho Chi Minh City
-        lon = float(site.get("longitude") or 106.7009)
-        pv_cap = float(site.get("pv_capacity_kwp") or 50.0)
-        battery_cap = float(site.get("battery_capacity_kwh") or 30.0)
-
-        # 1. 24h PV Forecast using ClearSky Model
-        start_hour = now.replace(minute=0, second=0, microsecond=0)
-        pv_forecast = calculate_clearsky_pv_profile(lat, lon, pv_cap, start_hour, 24)
-
-        # 2. 24h Load Forecast from site historical baseline or synthetic profile
-        load_forecast = []
-        for h in range(24):
-            ch = (start_hour + timedelta(hours=h)).hour
-            # Diurnal industrial commercial load curve
-            load_factor = 0.35 if ch < 6 or ch >= 22 else 0.95 if 8 <= ch <= 17 else 0.65
-            load_w = pv_cap * 1000.0 * 0.7 * load_factor
-            load_forecast.append({
-                "timestamp": (start_hour + timedelta(hours=h)).isoformat(),
-                "value_w": round(load_w, 1),
-            })
-
-        # 3. 24h Economic Dispatch Optimization
-        return optimize_economic_dispatch(
-            pv_profile=pv_forecast,
-            load_profile=load_forecast,
-            battery_capacity_kwh=battery_cap,
-            timezone=tz,
+        rows = controller.store.report_samples(device_id, now - timedelta(minutes=15), now, "battery_soc", 10001)
+        soc = accepted_points(rows, "battery_soc", "%", now - timedelta(minutes=15), now)
+        if not soc or not 0 <= soc[-1][1] <= 100:
+            raise HTTPException(422, "fresh_verified_battery_soc_required")
+        # Rates must be configured per actual UTC hour, with currency and provenance.
+        prices = config.get("hourly_prices", [])
+        timestamps = [point["timestamp"] for point in profiles[0]["points"]]
+        if (config.get("currency") != "USD" or not config.get("tariff_source")
+                or len(prices) != 24 or [p.get("timestamp") for p in prices] != timestamps):
+            raise HTTPException(422, "aligned_effective_usd_tariff_required")
+        for price in prices:
+            for key in ("import_per_kwh", "export_per_kwh"):
+                value = price.get(key)
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                    raise HTTPException(422, "finite_tariff_required")
+        result = PredbatPlanner(specs).plan_horizon(
+            [p["value_w"] / 1000 for p in profiles[0]["points"]],
+            [p["value_w"] / 1000 for p in profiles[1]["points"]],
+            [p["import_per_kwh"] for p in prices],
+            [p["export_per_kwh"] for p in prices],
+            current_soc_pct=soc[-1][1],
         )
-
+        result.update(status="ESTIMATED", dispatch_enabled=False, device_id=device_id,
+                      forecast_method=trained["method"], source_timestamp=soc[-1][0].isoformat(),
+                      tariff_source=config["tariff_source"], currency="USD")
+        for slot, timestamp in zip(result["slots"], timestamps):
+            slot["timestamp"] = timestamp
+        return result

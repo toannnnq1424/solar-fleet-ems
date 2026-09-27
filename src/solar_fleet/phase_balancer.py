@@ -172,6 +172,15 @@ class AsymmetricPhaseBalancer:
         # Enforce total inverter active power and battery limits
         total_p = p_l1 + p_l2 + p_l3
 
+        # The nameplate limit applies even when the battery can deliver more.
+        throughput = abs(p_l1) + abs(p_l2) + abs(p_l3)
+        if throughput > self.limits.max_total_kw:
+            scale = self.limits.max_total_kw / throughput
+            p_l1 *= scale
+            p_l2 *= scale
+            p_l3 *= scale
+            total_p = p_l1 + p_l2 + p_l3
+
         if total_p > self.limits.battery_max_discharge_kw:
             # Scale down proportionally
             scale = self.limits.battery_max_discharge_kw / total_p

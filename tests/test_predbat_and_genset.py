@@ -283,7 +283,10 @@ class TestPhaseDExtendedAPI:
 
     def test_thermal_api(self, local):
         client, headers = self._login(local)
-        cop_res = client.get("/api/thermal/heat-pump-cop?ambient_temp_c=7.0&supply_temp_c=35.0", headers=headers)
+        cop_res = client.post("/api/thermal/heat-pump-cop", json={
+            "ambient_temp_c": 7, "supply_temp_c": 35, "required_thermal_kw": 6,
+            "carnot_efficiency": 0.5, "min_electric_kw": 0.5, "max_electric_kw": 3.5,
+        }, headers=headers)
         assert cop_res.status_code == 200
         assert cop_res.json()["cop"] > 0
 
@@ -293,6 +296,8 @@ class TestPhaseDExtendedAPI:
                 "pv_surplus_kw": 3.0,
                 "grid_price": 0.15,
                 "tank_temp_c": 45.0,
+                "is_grid_peak_lock": False, "surplus_threshold_kw": 1.8, "forced_surplus_kw": 3.5,
+                "min_temp_c": 42, "normal_setpoint_c": 52, "boost_setpoint_c": 65,
             },
             headers=headers,
         )
@@ -304,9 +309,13 @@ class TestPhaseDExtendedAPI:
         res = client.post(
             "/api/phase-balancer/dispatch",
             json={
-                "p_l1": 2.5,
-                "p_l2": 1.0,
-                "p_l3": 0.0,
+                "measurement": {"v_l1": 230, "v_l2": 230, "v_l3": 230,
+                                "i_l1": 11, "i_l2": 5, "i_l3": 0,
+                                "p_l1": 2.5, "p_l2": 1, "p_l3": 0,
+                                "q_l1": 0, "q_l2": 0, "q_l3": 0},
+                "limits": {"max_total_kw": 10, "max_phase_kw": 3.68, "max_phase_kvar": 2.5,
+                           "battery_max_charge_kw": 5, "battery_max_discharge_kw": 5,
+                           "allows_independent_phases": True},
             },
             headers=headers,
         )
@@ -337,7 +346,10 @@ class TestPhaseDExtendedAPI:
         res = client.post(
             "/api/genset/evaluate-dispatch",
             json={
-                "rated_power_kw": 50.0,
+                "specs": vars(GeneratorSpecs()),
+                "initial_state": "off", "elapsed_in_state_seconds": 0, "cumulative_run_seconds": 0,
+                "battery_max_charge_kw": 15,
+                "battery_max_discharge_kw": 15,
                 "microgrid_load_kw": 35.0,
                 "battery_soc_pct": 15.0,
                 "is_grid_available": False,
@@ -356,10 +368,8 @@ class TestPhaseDExtendedAPI:
         res = client.post(
             "/api/genset/black-start-sequence",
             json={
-                "advance_steps": 2,
-                "bus_voltage_v": 0.0,
-                "pv_frequency_hz": 50.0,
-                "critical_load_kw": 8.0,
+                "specs": vars(GeneratorSpecs()),
+                "observations": [{"bus_voltage_v": 0, "pv_frequency_hz": 50, "critical_load_kw": 8}] * 2,
             },
             headers=headers,
         )
@@ -373,9 +383,12 @@ class TestPhaseDExtendedAPI:
         res = client.post(
             "/api/thermal/building-simulation",
             json={
-                "initial_indoor_temp_c": 21.0,
-                "initial_wall_temp_c": 20.0,
+                "building": {"indoor_temp_c": 21, "wall_temp_c": 20,
+                             "air_heat_capacity_kwh_k": 1, "wall_heat_capacity_kwh_k": 5.2,
+                             "r_indoor_wall_k_kw": 1.2, "r_wall_outdoor_k_kw": 2.8,
+                             "solar_aperture_m2": 4.5, "internal_gain_base_kw": 0.35},
                 "outdoor_temps_hourly": [5.0, 7.0, 10.0, 12.0],
+                "solar_ghi_hourly": [0, 50, 200, 400],
                 "heating_thermal_kw": 3.0,
             },
             headers=headers,

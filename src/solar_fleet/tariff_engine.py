@@ -327,41 +327,31 @@ def install_tariff_engine(app, controller, user):
         if not site or not who.can_access(site_id):
             raise HTTPException(404, "site_not_found")
 
-        tz = site.get("timezone", "Asia/Ho_Chi_Minh")
+        from .observed_energy import integrate_directional_power
+
         now = utcnow()
         start = now - timedelta(days=30)
-
-        # Retrieve grid active import samples
-        import_samples = []
-        for dev in controller.store.list("device"):
-            if dev.get("site_id") == site_id:
-                dev_samples = controller.store.report_samples(dev["id"], start, now, "grid_w", 5000)
-                for s in dev_samples:
-                    if s.get("value") is not None and s["value"] > 0:
-                        try:
-                            st = datetime.fromisoformat(s["source_timestamp"])
-                            # Convert 5-min or 15-min sample W to kWh: W * (5/60)/1000
-                            import_samples.append((st, s["value"] * (5.0 / 60.0) / 1000.0))
-                        except Exception:
-                            continue
-
-        # If no telemetry samples exist yet, provide estimated profile based on site capacity
-        if not import_samples:
-            pv_cap = float(site.get("pv_capacity_kwp") or 50.0)
-            base_kw = pv_cap * 0.6
-            for d in range(30):
-                day_start = (now - timedelta(days=30 - d)).replace(minute=0, second=0, microsecond=0)
-                for h in range(24):
-                    st = day_start + timedelta(hours=h)
-                    # Simulated diurnal industrial load
-                    h_factor = 0.4 if h < 6 or h >= 22 else 1.1 if 8 <= h <= 17 else 0.8
-                    import_samples.append((st, base_kw * h_factor))
-
-        return analyze_site_tariff(
-            site_id=site_id,
-            customer_class=customer_class,
-            voltage_tier=voltage_tier,
-            hourly_grid_import_kwh=import_samples,
-            total_reactive_kvarh=sum(kwh for _, kwh in import_samples) * 0.35,  # estimated Q
-            timezone=tz,
-        )
+        # Do not sum overlapping inverter/meter boundaries. The billing meter
+        # must be explicitly selected in site configuration.
+        meter_id = site.get("billing_meter_device_id")
+        meter = controller.store.get("device", meter_id) if meter_id else None
+        if not meter or meter.get("site_id") != site_id:
+            raise HTTPException(422, "site_billing_meter_required")
+        rows = controller.store.report_samples(meter_id, start, now, "grid_import_w", 10001)
+        if len(rows) > 10000:
+            raise HTTPException(422, "tariff_history_limit; reviewed_rollup_required")
+        result = integrate_directional_power(rows, "grid_import_w", start, now)
+        return {
+            "site_id": site_id,
+            "status": "PARTIAL_OBSERVATIONS" if result["energy_kwh"] is not None else "INSUFFICIENT_DATA",
+            "meter_device_id": meter_id,
+            "window_start": start.isoformat(),
+            "window_end": now.isoformat(),
+            "observed_import_kwh": result["energy_kwh"],
+            "coverage": result["coverage"],
+            "total_active_bill_vnd": None,
+            "solar_savings_vnd": None,
+            "power_factor_analysis": None,
+            "peak_shaving_opportunity": None,
+            "reason": "Effective site tariff and aligned reactive-energy measurements required; no assumed rates or reactive power.",
+        }

@@ -218,7 +218,7 @@ def test_control_compiler_power_limitation():
     # 100.00% -> raw 10000 (0x2710)
     frame_max = SolisControlCompiler.compile_power_limitation(100.0, slave_address=1, bypass_safety=True)
     assert frame_max.raw_value == 10000
-    assert frame_max.safety_gate == "COMMISSIONED_WRITE_ENABLED"
+    assert frame_max.safety_gate == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
 
     # Invalid range bounds
     with pytest.raises(ValueError):
