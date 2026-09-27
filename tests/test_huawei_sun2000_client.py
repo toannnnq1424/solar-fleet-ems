@@ -187,37 +187,15 @@ def test_huawei_client_safety_gate():
 
 
 def test_api_huawei_sun2000_endpoints(local):
-    """Verify REST API endpoints for Huawei SUN2000."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # Telemetry
-    r_tel = client.post(
-        "/api/huawei-sun2000/telemetry",
-        json={"host": "192.168.200.1", "port": 502, "slave_unit_id": 1},
-        headers=headers,
-    )
-    assert r_tel.status_code == 200
-    data_tel = r_tel.json()
-    assert "huawei-solar-lib" in data_tel["source"]
-    assert data_tel["telemetry"]["vendor"] == "Huawei"
-    assert data_tel["telemetry"]["model_type"] == "SUN2000-10KTL-M1"
-
-    # Command gated
-    r_cmd = client.post(
-        "/api/huawei-sun2000/command",
-        json={
-            "host": "192.168.200.1",
-            "port": 502,
-            "slave_unit_id": 1,
-            "command_type": "storage_mode",
-            "params": {"mode": "self_consumption"},
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert r_cmd.status_code == 200
-    data_cmd = r_cmd.json()
-    assert data_cmd["result"]["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+    response = client.post("/api/huawei-sun2000/telemetry", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    response = client.post("/api/huawei-sun2000/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()

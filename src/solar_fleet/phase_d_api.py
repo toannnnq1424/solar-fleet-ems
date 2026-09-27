@@ -2382,65 +2382,19 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/growatt-cloud/plants")
     async def growatt_cloud_plants(req: GrowattCloudPlantsRequest, principal=Depends(user)):
-        """List power plants registered in Growatt Cloud OpenAPI V1."""
-        from .growatt_cloud_client import GrowattCloudClient
-
-        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
-        plants = client.list_plants()
-        return {
-            "source": "PyPi_GrowattServer (MIT clean-room independent)",
-            "region": req.region,
-            "plants": plants,
-        }
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/growatt-cloud/devices")
     async def growatt_cloud_devices(req: GrowattCloudDevicesRequest, principal=Depends(user)):
-        """List inverters and dataloggers for specified Growatt plant."""
-        from .growatt_cloud_client import GrowattCloudClient
-
-        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
-        devices = client.list_devices(req.plant_id)
-        return {
-            "source": "PyPi_GrowattServer (MIT clean-room independent)",
-            "plant_id": req.plant_id,
-            "devices": devices,
-        }
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/growatt-cloud/sph-detail")
     async def growatt_cloud_sph_detail(req: GrowattCloudSphDetailRequest, principal=Depends(user)):
-        """Fetch and normalize Growatt SPH hybrid telemetry and parameter state."""
-        from .growatt_cloud_client import GrowattCloudClient
-
-        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
-        detail = client.get_sph_detail(req.device_sn)
-        return {
-            "source": "PyPi_GrowattServer (MIT clean-room independent)",
-            "device_sn": req.device_sn,
-            "telemetry": detail,
-        }
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/growatt-cloud/command")
     async def growatt_cloud_command(req: GrowattCloudCommandRequest, principal=Depends(user)):
-        """Safely execute remote parameter command with hardware acceptance gating."""
-        from .growatt_cloud_client import GrowattCloudClient
-
-        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
-        try:
-            result = client.execute_command_safely(
-                command_type=req.command_type,
-                params=req.params,
-                unlocked=req.unlocked,
-            )
-            return {
-                "source": "PyPi_GrowattServer (MIT clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # Eybond ESP Collector & Voltronic PI30 Endpoints (Project #11)
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.post("/api/eybond-collector/discover")
     async def eybond_collector_discover(req: EybondCollectorDiscoverRequest, principal=Depends(user)):
@@ -2507,123 +2461,23 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/eybond-collector/command")
     async def eybond_collector_command(req: EybondCollectorCommandRequest, principal=Depends(user)):
-        """Safely execute Voltronic PI30 parameter write command with hardware acceptance gate."""
-        from .eybond_collector_engine import VirtualEybondCollector
-
-        collector = VirtualEybondCollector()
-        try:
-            result = collector.execute_command_safely(
-                command_type=req.command_type,
-                params=req.params,
-                unlocked=req.unlocked,
-            )
-            return {
-                "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # GoodWe Local Inverter & Protocol Engine Endpoints (Project #12)
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.post("/api/goodwe-local/telemetry")
     async def goodwe_local_telemetry(req: GoodWeLocalTelemetryRequest, principal=Depends(user)):
-        """Poll and normalize GoodWe local inverter telemetry over UDP/Modbus."""
-        from .goodwe_local_client import GoodWeLocalClient
-
-        client = GoodWeLocalClient(
-            host=req.host,
-            port=req.port,
-            comm_addr=req.comm_addr,
-            model_family=req.model_family,
-            simulated=True,
-        )
-        try:
-            tel = client.poll_telemetry()
-            return {
-                "source": "goodwe-master (MIT clean-room independent)",
-                "telemetry": tel,
-            }
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/goodwe-local/command")
     async def goodwe_local_command(req: GoodWeLocalCommandRequest, principal=Depends(user)):
-        """Safely execute GoodWe local parameter command with hardware acceptance gate."""
-        from .goodwe_local_client import GoodWeLocalClient
-
-        client = GoodWeLocalClient(
-            host=req.host,
-            port=req.port,
-            comm_addr=req.comm_addr,
-            simulated=True,
-        )
-        try:
-            result = client.execute_command_safely(
-                command_type=req.command_type,
-                params=req.params,
-                unlocked=req.unlocked,
-            )
-            return {
-                "source": "goodwe-master (MIT clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # Huawei SUN2000 & LUNA2000 Protocol Engine Endpoints (Project #13)
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.post("/api/huawei-sun2000/telemetry")
     async def huawei_sun2000_telemetry(req: HuaweiSun2000TelemetryRequest, principal=Depends(user)):
-        """Poll and normalize Huawei SUN2000, LUNA2000, and DTSU666-H telemetry."""
-        from .huawei_sun2000_client import HuaweiSun2000Client
-
-        client = HuaweiSun2000Client(
-            host=req.host,
-            port=req.port,
-            slave_unit_id=req.slave_unit_id,
-            simulated=True,
-        )
-        try:
-            tel = client.poll_telemetry()
-            return {
-                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
-                "telemetry": tel,
-            }
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/huawei-sun2000/command")
     async def huawei_sun2000_command(req: HuaweiSun2000CommandRequest, principal=Depends(user)):
-        """Safely execute Huawei SUN2000 / LUNA2000 command with hardware acceptance gate."""
-        from .huawei_sun2000_client import HuaweiSun2000Client
-
-        client = HuaweiSun2000Client(
-            host=req.host,
-            port=req.port,
-            slave_unit_id=req.slave_unit_id,
-            simulated=True,
-        )
-        try:
-            result = client.execute_command_safely(
-                command_type=req.command_type,
-                params=req.params,
-                unlocked=req.unlocked,
-            )
-            return {
-                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # Solarman Multi-Vendor Inverter Profile Engine Endpoints (Project #14)
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.get("/api/solarman-profile/profiles")
     async def solarman_profile_list(principal=Depends(user)):
@@ -2648,53 +2502,11 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/solarman-profile/telemetry")
     async def solarman_profile_telemetry(req: SolarmanProfileTelemetryRequest, principal=Depends(user)):
-        """Poll and decode multi-vendor inverter telemetry using Solarman profile rules."""
-        from .solarman_profile_engine import SolarmanProfileClient
-
-        try:
-            client = SolarmanProfileClient(
-                profile_id=req.profile_id,
-                host=req.host,
-                port=req.port,
-                slave_id=req.slave_id,
-                simulated=True,
-            )
-            tel = client.poll_telemetry()
-            return {
-                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
-                "telemetry": tel,
-            }
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/solarman-profile/command")
     async def solarman_profile_command(req: SolarmanProfileCommandRequest, principal=Depends(user)):
-        """Safely compile Solarman profile parameter write with hardware acceptance gate."""
-        from .solarman_profile_engine import SolarmanProfileClient
-
-        try:
-            client = SolarmanProfileClient(
-                profile_id=req.profile_id,
-                host=req.host,
-                port=req.port,
-                slave_id=req.slave_id,
-                simulated=True,
-            )
-            result = client.execute_command_safely(
-                parameter_name=req.parameter_name,
-                value=req.value,
-                unlocked=req.unlocked,
-            )
-            return {
-                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # Sungrow SHx & SG Inverter Modbus TCP Endpoints (Project #15)
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.get("/api/sungrow-shx/info")
     async def sungrow_shx_info(principal=Depends(user)):
@@ -2736,53 +2548,11 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/sungrow-shx/telemetry")
     async def sungrow_shx_telemetry(req: SungrowShxTelemetryRequest, principal=Depends(user)):
-        """Poll and normalize Sungrow SHx/SG inverter, SBR battery, and meter telemetry."""
-        from .sungrow_shx_client import SungrowShxClient, normalize_sungrow_telemetry
-
-        client = SungrowShxClient(
-            host=req.host,
-            port=req.port,
-            slave_unit_id=req.slave_unit_id,
-            simulated=True,
-        )
-        try:
-            tel = client.read_telemetry()
-            norm = normalize_sungrow_telemetry(tel)
-            return {
-                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
-                "telemetry": tel.__dict__,
-                "normalized": norm,
-            }
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/sungrow-shx/command")
     async def sungrow_shx_command(req: SungrowShxCommandRequest, principal=Depends(user)):
-        """Safely compile and execute Sungrow SHx configuration command with hardware acceptance gate."""
-        from .sungrow_shx_client import SungrowShxClient
-
-        client = SungrowShxClient(
-            host=req.host,
-            port=req.port,
-            slave_unit_id=req.slave_unit_id,
-            simulated=True,
-        )
-        try:
-            result = client.write_parameter(
-                command_type=req.command_type,
-                params=req.params,
-                confirm_hardware_acceptance=req.unlocked,
-            )
-            return {
-                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
-                "result": result,
-            }
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc))
-
-    # -----------------------------------------------------------------------
-    # Deye & SunSynk Multi-Family Inverter MQTT Bridge
-    # -----------------------------------------------------------------------
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.get("/api/deye-mqtt/families")
     async def deye_mqtt_families(principal=Depends(user)):
@@ -2830,119 +2600,11 @@ def install_phase_d_apis(app, controller, user, admin=None):
 
     @app.post("/api/deye-mqtt/telemetry")
     async def deye_mqtt_telemetry(req: DeyeMqttTelemetryRequest, principal=Depends(user)):
-        """Poll and decode Deye multi-family telemetry into typed metrics and MQTT observation topics."""
-        from .deye_mqtt_bridge import (
-            DeyeDeviceFamily,
-            DeyeTelemetrySimulator,
-            normalize_deye_mqtt_telemetry,
-        )
-
-        try:
-            fam = DeyeDeviceFamily(req.family)
-        except ValueError:
-            fam = DeyeDeviceFamily.SG04LP3
-
-        raw_regs = DeyeTelemetrySimulator.generate_simulated_registers(fam)
-        decoded, mqtt_msgs = DeyeTelemetrySimulator.decode_family_telemetry(
-            fam, raw_regs, logger_sn=req.logger_sn
-        )
-        norm = normalize_deye_mqtt_telemetry(fam, decoded, device_id=f"deye_{req.logger_sn}")
-
-        return {
-            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
-            "family": fam.value,
-            "logger_sn": req.logger_sn,
-            "decoded_values": decoded,
-            "mqtt_messages": mqtt_msgs,
-            "normalized": norm,
-        }
+        raise HTTPException(503, detail="LIVE_TRANSPORT_UNAVAILABLE: configure a scoped integration binding; simulator data is not operational telemetry.")
 
     @app.post("/api/deye-mqtt/command")
     async def deye_mqtt_command(req: DeyeMqttCommandRequest, principal=Depends(user)):
-        """Safely compile and execute Deye MQTT configuration command with hardware acceptance gate."""
-        from .deye_mqtt_bridge import (
-            DeyeAtCommandBridge,
-            DeyeCommandCompiler,
-            DeyeTimeOfUseService,
-            DeyeTouSlot,
-            DeyeWriteResult,
-        )
-
-        cmd = req.command_type.lower()
-        params = req.params or {}
-        unlocked = req.unlocked
-
-        if cmd == "workmode":
-            mode = int(params.get("mode", 1))
-            res = DeyeCommandCompiler.compile_workmode(mode, confirm_hardware_acceptance=unlocked)
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
-
-        elif cmd == "solar_sell":
-            enable = bool(params.get("enable", True))
-            res = DeyeCommandCompiler.compile_solar_sell(enable, confirm_hardware_acceptance=unlocked)
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
-
-        elif cmd == "solar_sell_max_power":
-            watts = int(params.get("watts", 5000))
-            res = DeyeCommandCompiler.compile_solar_sell_max_power(watts, confirm_hardware_acceptance=unlocked)
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
-
-        elif cmd == "active_power_regulation":
-            pct = float(params.get("percentage", 100.0))
-            res = DeyeCommandCompiler.compile_active_power_regulation(pct, confirm_hardware_acceptance=unlocked)
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
-
-        elif cmd == "battery_settings":
-            setting_name = str(params.get("setting_name", "grid_charge"))
-            val = int(params.get("value", 1))
-            res = DeyeCommandCompiler.compile_battery_setting(setting_name, val, confirm_hardware_acceptance=unlocked)
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
-
-        elif cmd == "timeofuse":
-            tou_service = DeyeTimeOfUseService()
-            slots_data = params.get("slots", [])
-            for s in slots_data:
-                slot = DeyeTouSlot(
-                    slot_index=int(s.get("slot_index", 1)),
-                    time_hhmm=str(s.get("time_hhmm", "05:00")),
-                    power_watts=int(s.get("power_watts", 3000)),
-                    target_soc=int(s.get("target_soc", 80)),
-                    voltage=float(s.get("voltage", 51.2)),
-                    charge_enabled=bool(s.get("charge_enabled", True)),
-                )
-                tou_service.stage_slot(slot)
-
-            dry_run = bool(params.get("dry_run", not unlocked))
-            batches = tou_service.compile_write_batches(
-                confirm_hardware_acceptance=unlocked,
-                dry_run=dry_run,
-            )
-            return {
-                "source": "deye-inverter-mqtt",
-                "result": [b.__dict__ for b in batches],
-                "staged_slots_count": len(slots_data),
-            }
-
-        elif cmd == "at_command":
-            at_cmd = str(params.get("command", "AT+VER"))
-            bridge = DeyeAtCommandBridge()
-            resp = bridge.execute_command(at_cmd)
-            res = DeyeWriteResult(
-                success=True,
-                command_name=f"at_command:{at_cmd}",
-                target_register=0,
-                raw_value=0,
-                human_readable=f"AT Command: '{at_cmd}' -> Response: '{resp}'",
-                status="EXECUTED_AT_BRIDGE",
-                dry_run=False,
-            )
-            return {"source": "deye-inverter-mqtt", "result": res.__dict__, "dongle_response": resp}
-
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported command '{cmd}'. Must be one of: workmode, solar_sell, solar_sell_max_power, active_power_regulation, battery_settings, timeofuse, at_command",
-            )
+        raise HTTPException(409, detail="UNCOMMISSIONED_CONTROL: use the shared command engine; request flags cannot authorize hardware writes.")
 
     @app.post("/api/deye-mqtt/aggregate")
     async def deye_mqtt_aggregate(req: DeyeMqttAggregateRequest, principal=Depends(user)):

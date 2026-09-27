@@ -208,55 +208,24 @@ def test_goodwe_local_client_simulation_and_safety():
 
 
 def test_api_goodwe_local_telemetry(local):
-    """Verify POST /api/goodwe-local/telemetry."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    resp = client.post(
-        "/api/goodwe-local/telemetry",
-        json={"host": "192.168.1.180", "model_family": "ET"},
-        headers=headers,
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["source"] == "goodwe-master (MIT clean-room independent)"
-    assert data["telemetry"]["vendor"] == "GoodWe"
-    assert data["telemetry"]["battery"]["soc_percent"] == 88
+    response = client.post("/api/goodwe-local/telemetry", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_api_goodwe_local_command(local):
-    """Verify POST /api/goodwe-local/command with safety gate."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # 1. Locked command
-    resp_locked = client.post(
-        "/api/goodwe-local/command",
-        json={
-            "command_type": "export_limit",
-            "params": {"enabled": True, "limit_watts": 4500},
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert resp_locked.status_code == 200
-    res_data = resp_locked.json()["result"]
-    assert res_data["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
-
-    # 2. Unlocked command compiles correctly
-    resp_unlocked = client.post(
-        "/api/goodwe-local/command",
-        json={
-            "command_type": "export_limit",
-            "params": {"enabled": True, "limit_watts": 4500},
-            "unlocked": True,
-        },
-        headers=headers,
-    )
-    assert resp_unlocked.status_code == 200
-    res_unlocked_data = resp_unlocked.json()["result"]
-    assert res_unlocked_data["registers"]["47510"] == 4500
+    response = client.post("/api/goodwe-local/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()

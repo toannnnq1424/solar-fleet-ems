@@ -245,58 +245,15 @@ def test_sungrow_client_safety_gates_and_normalization():
 
 
 def test_api_sungrow_shx_endpoints(local):
-    """Verify REST API endpoints for Sungrow SHx/SG inverter protocol engine."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # 1. Info endpoint
-    resp_info = client.get("/api/sungrow-shx/info", headers=headers)
-    assert resp_info.status_code == 200
-    d_info = resp_info.json()
-    assert "Sungrow-SHx-Inverter-Modbus-Home-Assistant" in d_info["source"]
-    assert len(d_info["supported_models"]) >= 10
-    assert len(d_info["scenes"]) >= 5
-
-    # 2. Telemetry endpoint
-    resp_tel = client.post(
-        "/api/sungrow-shx/telemetry",
-        json={"host": "192.168.1.100", "port": 502, "slave_unit_id": 1},
-        headers=headers,
-    )
-    assert resp_tel.status_code == 200
-    d_tel = resp_tel.json()
-    assert d_tel["telemetry"]["model_name"] == "SH10RT"
-    assert d_tel["normalized"]["vendor"] == "Sungrow"
-    assert d_tel["normalized"]["battery"]["soc_pct"] == 78.5
-
-    # 3. Command endpoint with hardware acceptance lock
-    resp_cmd = client.post(
-        "/api/sungrow-shx/command",
-        json={
-            "command_type": "scene",
-            "params": {"scene_name": "zero_export"},
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert resp_cmd.status_code == 200
-    d_cmd = resp_cmd.json()
-    assert d_cmd["result"]["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
-    assert d_cmd["result"]["executed"] is False
-
-    # 4. Command endpoint with confirmation in simulation
-    resp_cmd2 = client.post(
-        "/api/sungrow-shx/command",
-        json={
-            "command_type": "scene",
-            "params": {"scene_name": "zero_export"},
-            "unlocked": True,
-        },
-        headers=headers,
-    )
-    assert resp_cmd2.status_code == 200
-    d_cmd2 = resp_cmd2.json()
-    assert d_cmd2["result"]["status"] == "SIMULATED_WRITE_COMPLETED"
-    assert d_cmd2["result"]["executed"] is True
+    response = client.post("/api/sungrow-shx/telemetry", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    response = client.post("/api/sungrow-shx/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()

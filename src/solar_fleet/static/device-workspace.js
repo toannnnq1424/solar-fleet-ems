@@ -57,6 +57,17 @@ export async function renderDevicesMainWorkspace(ui) {
   );
   container.append(kpiRow);
 
+  const pendingLiveTabs = new Set([
+    "growatt_cloud", "eybond_esp", "goodwe_local", "huawei_sun2000",
+    "solarman_profiles", "sungrow_shx", "deye_mqtt",
+  ]);
+  if (pendingLiveTabs.has(currentTab)) {
+    container.append(notice(l(
+      "Tích hợp trực tiếp chưa được xác minh. Các đường đọc mô phỏng và điều khiển riêng đã khóa; không có dữ liệu vận hành hoặc xác nhận thực thi từ công cụ này. Dùng tài khoản hãng và binding thiết bị đã cấu hình cho dữ liệu thật; điều khiển phải qua quy trình chung có nghiệm thu.",
+      "Live integration is not verified. Simulated read paths and standalone controls are locked; this tool provides no operational telemetry or execution confirmation. Use configured vendor accounts and device bindings for live data; controls require the shared commissioned workflow."
+    ), "warn"));
+  }
+
   // SUB-TAB 1: INVENTORY
   if (currentTab === "inventory") {
     let viewMode = "card"; // "card" or "table"

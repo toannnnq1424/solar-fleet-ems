@@ -157,95 +157,48 @@ def test_growatt_cloud_client_simulation_and_safety():
 
 
 def test_api_growatt_cloud_plants(local):
-    """Verify POST /api/growatt-cloud/plants."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    resp = client.post(
-        "/api/growatt-cloud/plants",
-        json={"token": "DEMO-KEY", "region": "global"},
-        headers=headers,
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["source"] == "PyPi_GrowattServer (MIT clean-room independent)"
-    assert len(data["plants"]) >= 1
-    assert data["plants"][0]["plant_name"] == "Hanoi Solar Rooftop Plant #1"
+    response = client.post("/api/growatt-cloud/plants", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_api_growatt_cloud_devices(local):
-    """Verify POST /api/growatt-cloud/devices."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    resp = client.post(
-        "/api/growatt-cloud/devices",
-        json={"plant_id": "PLANT-GW-8801"},
-        headers=headers,
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["plant_id"] == "PLANT-GW-8801"
-    assert len(data["devices"]) == 2
-    assert data["devices"][0]["device_type"] == "sph"
+    response = client.post("/api/growatt-cloud/devices", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_api_growatt_cloud_sph_detail(local):
-    """Verify POST /api/growatt-cloud/sph-detail."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    resp = client.post(
-        "/api/growatt-cloud/sph-detail",
-        json={"device_sn": "SPH460001"},
-        headers=headers,
-    )
-    assert resp.status_code == 200
-    tel = resp.json()["telemetry"]
-    assert tel["vendor"] == "Growatt"
-    assert tel["serial_number"] == "SPH460001"
-    assert tel["power_flow"]["solar_power_w"] == 3850.0
-    assert tel["battery"]["soc_percent"] == 86
-    assert tel["configuration"]["priority_mode"] == "Battery First (Forced AC/PV charge)"
+    response = client.post("/api/growatt-cloud/sph-detail", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_api_growatt_cloud_command(local):
-    """Verify POST /api/growatt-cloud/command with safety gate."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # 1. Locked command
-    resp_locked = client.post(
-        "/api/growatt-cloud/command",
-        json={
-            "command_type": "sph_ac_charge",
-            "params": {"enable": True},
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert resp_locked.status_code == 200
-    res_data = resp_locked.json()["result"]
-    assert res_data["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
-
-    # 2. Unlocked command compiles correctly
-    resp_unlocked = client.post(
-        "/api/growatt-cloud/command",
-        json={
-            "command_type": "sph_ac_charge",
-            "params": {"enable": True},
-            "unlocked": True,
-        },
-        headers=headers,
-    )
-    assert resp_unlocked.status_code == 200
-    res_unlocked_data = resp_unlocked.json()["result"]
-    assert res_unlocked_data["parameter_values"]["acChargeEnable"] == 1
+    response = client.post("/api/growatt-cloud/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()

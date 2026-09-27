@@ -367,62 +367,27 @@ def test_phase_d_api_deye_mqtt_families(local):
 
 
 def test_phase_d_api_deye_mqtt_telemetry(local):
-    """Test POST /api/deye-mqtt/telemetry polls and decodes telemetry."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    payload = {
-        "family": "deye_sg01hp3",
-        "logger_sn": "1234567890",
-        "topic_prefix": "deye",
-    }
-    response = client.post("/api/deye-mqtt/telemetry", json=payload, headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["family"] == "deye_sg01hp3"
-    assert data["logger_sn"] == "1234567890"
-    assert "decoded_values" in data
-    assert "mqtt_messages" in data
-    assert len(data["mqtt_messages"]) > 0
-    assert "normalized" in data
-    assert data["normalized"]["pv"]["total_power_w"] > 0
+    response = client.post("/api/deye-mqtt/telemetry", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_phase_d_api_deye_mqtt_command(local):
-    """Test POST /api/deye-mqtt/command executes commands with safety gating."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # WorkMode command (locked)
-    payload_wm = {
-        "family": "deye_sg04lp3",
-        "logger_sn": "1234567890",
-        "command_type": "workmode",
-        "params": {"mode": 2},
-        "unlocked": False,
-    }
-    resp_wm = client.post("/api/deye-mqtt/command", json=payload_wm, headers=headers)
-    assert resp_wm.status_code == 200
-    res_data = resp_wm.json()["result"]
-    assert res_data["success"] is True
-    assert res_data["target_register"] == 142
-    assert res_data["status"] == SAFETY_STATUS_LOCKED
-
-    # AT command
-    payload_at = {
-        "family": "deye_sg04lp3",
-        "logger_sn": "1234567890",
-        "command_type": "at_command",
-        "params": {"command": "AT+VER"},
-        "unlocked": False,
-    }
-    resp_at = client.post("/api/deye-mqtt/command", json=payload_at, headers=headers)
-    assert resp_at.status_code == 200
-    assert resp_at.json()["dongle_response"].startswith("+ok=")
+    response = client.post("/api/deye-mqtt/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()
 
 
 def test_phase_d_api_deye_mqtt_aggregate(local):

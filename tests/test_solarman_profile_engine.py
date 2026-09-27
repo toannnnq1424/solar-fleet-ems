@@ -156,35 +156,15 @@ def test_telemetry_polling_and_normalizer():
 
 
 def test_api_solarman_profile_endpoints(local):
-    """Verify REST API endpoints for Solarman multi-vendor profiles."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # 1. Telemetry
-    resp_tel = client.post(
-        "/api/solarman-profile/telemetry",
-        json={"profile_id": "deye_hybrid", "host": "192.168.1.150"},
-        headers=headers,
-    )
-    assert resp_tel.status_code == 200
-    d_tel = resp_tel.json()
-    assert "home_assistant_solarman" in d_tel["source"]
-    assert d_tel["telemetry"]["model_type"] == "deye_hybrid"
-    assert d_tel["telemetry"]["power_flow"]["solar_power_w"] == 7815.0
-
-    # 2. Command with safety gate
-    resp_cmd = client.post(
-        "/api/solarman-profile/command",
-        json={
-            "profile_id": "deye_hybrid",
-            "parameter_name": "Solar Export Power",
-            "value": 5500,
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert resp_cmd.status_code == 200
-    d_cmd = resp_cmd.json()
-    assert d_cmd["result"]["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
+    response = client.post("/api/solarman-profile/telemetry", headers=headers, json={})
+    assert response.status_code == 503
+    assert "LIVE_TRANSPORT_UNAVAILABLE" in response.json()["detail"]
+    response = client.post("/api/solarman-profile/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()

@@ -1,5 +1,5 @@
 {
-  "measured_at_utc": "2026-09-27T07:12:14.779411+00:00",
+  "measured_at_utc": "2026-09-27T07:49:06.546671+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
@@ -7,8 +7,8 @@
       "key": "backend",
       "label": "Backend Python",
       "files": 115,
-      "lines": 41903,
-      "nonblank": 36596,
+      "lines": 41565,
+      "nonblank": 36290,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -427,8 +427,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2972,
-          "nonblank": 2474
+          "lines": 2634,
+          "nonblank": 2168
         },
         {
           "path": "src/solar_fleet/planning_configuration.py",
@@ -591,8 +591,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 33,
-      "lines": 16968,
-      "nonblank": 16034,
+      "lines": 16979,
+      "nonblank": 16044,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -626,8 +626,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 4801,
-          "nonblank": 4292
+          "lines": 4812,
+          "nonblank": 4302
         },
         {
           "path": "src/solar_fleet/static/dispatch-plan.js",
@@ -783,9 +783,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 88,
-      "lines": 18507,
-      "nonblank": 15709,
+      "files": 89,
+      "lines": 18321,
+      "nonblank": 15539,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -864,8 +864,8 @@
         },
         {
           "path": "tests/test_deye_mqtt_bridge.py",
-          "lines": 446,
-          "nonblank": 360
+          "lines": 411,
+          "nonblank": 328
         },
         {
           "path": "tests/test_dispatch_optimizer.py",
@@ -909,8 +909,8 @@
         },
         {
           "path": "tests/test_eybond_collector_engine.py",
-          "lines": 352,
-          "nonblank": 292
+          "lines": 328,
+          "nonblank": 270
         },
         {
           "path": "tests/test_eybond_solarman_v5.py",
@@ -934,8 +934,8 @@
         },
         {
           "path": "tests/test_goodwe_local_client.py",
-          "lines": 262,
-          "nonblank": 222
+          "lines": 231,
+          "nonblank": 194
         },
         {
           "path": "tests/test_goodwe_sems_client.py",
@@ -954,8 +954,8 @@
         },
         {
           "path": "tests/test_growatt_cloud_client.py",
-          "lines": 251,
-          "nonblank": 208
+          "lines": 204,
+          "nonblank": 166
         },
         {
           "path": "tests/test_growatt_multiphase_modbus.py",
@@ -984,8 +984,8 @@
         },
         {
           "path": "tests/test_huawei_sun2000_client.py",
-          "lines": 223,
-          "nonblank": 190
+          "lines": 201,
+          "nonblank": 170
         },
         {
           "path": "tests/test_incident_center.py",
@@ -1139,8 +1139,8 @@
         },
         {
           "path": "tests/test_solarman_profile_engine.py",
-          "lines": 190,
-          "nonblank": 163
+          "lines": 170,
+          "nonblank": 145
         },
         {
           "path": "tests/test_solarman_v5_protocol.py",
@@ -1174,8 +1174,8 @@
         },
         {
           "path": "tests/test_sungrow_shx_client.py",
-          "lines": 302,
-          "nonblank": 246
+          "lines": 259,
+          "nonblank": 207
         },
         {
           "path": "tests/test_tariff_engine.py",
@@ -1201,6 +1201,11 @@
           "path": "tests/test_vendor_history_contracts.py",
           "lines": 66,
           "nonblank": 56
+        },
+        {
+          "path": "tests/test_vendor_merge_safety.py",
+          "lines": 36,
+          "nonblank": 31
         },
         {
           "path": "tests/test_vendor_registers.py",

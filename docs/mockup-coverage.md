@@ -1,5 +1,12 @@
 # Consolidated sidebar continuation — 27 September 2026
 
+Post-merge safety review: see [default-branch and legacy-source review](master-merge-review-2026-09-27.md).
+The 15 sidebar destinations remain unchanged. Eight incoming simulated read
+routes and seven uncommissioned standalone command routes are explicitly locked;
+the seven affected device subtabs display a shared VI/EN warning. Live transport,
+native field validation and full translation remain unbuilt/unverified for those
+new paths. Existing scoped adapters are not replaced by these tools.
+
 Confirmed BE/FE contract fixes: site-scoped devices/firmware, correct firmware
 response fields and retry errors, truthful commissioning navigation, viewer report
 permissions and alert filter labels. Backend notification configuration now uses
@@ -240,20 +247,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T07:12:14.779411+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T07:49:06.546671+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 115 | 41,903 | 36,596 |
-| Frontend JavaScript | 33 | 16,968 | 16,034 |
+| Backend Python | 115 | 41,565 | 36,290 |
+| Frontend JavaScript | 33 | 16,979 | 16,044 |
 | Frontend CSS / HTML | 2 | 6,020 | 5,509 |
-| Test BE / simulator / fixture | 88 | 18,507 | 15,709 |
+| Test BE / simulator / fixture | 89 | 18,321 | 15,539 |
 | Test UI / browser fixture | 9 | 928 | 842 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **35** | **22,988** | **21,543** |
-| **Tổng code ứng dụng BE + FE** | **150** | **64,891** | **58,139** |
-| **Tổng test / simulator / fixture** | **97** | **19,435** | **16,551** |
-| **Tổng code ứng dụng + test + scripts** | **250** | **84,844** | **75,168** |
+| **Tổng FE (JS + CSS/HTML)** | **35** | **22,999** | **21,553** |
+| **Tổng code ứng dụng BE + FE** | **150** | **64,564** | **57,843** |
+| **Tổng test / simulator / fixture** | **98** | **19,249** | **16,381** |
+| **Tổng code ứng dụng + test + scripts** | **251** | **84,331** | **74,702** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

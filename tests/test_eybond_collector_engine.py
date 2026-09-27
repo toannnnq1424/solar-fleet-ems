@@ -317,36 +317,12 @@ def test_api_eybond_collector_decode_pigs(local):
 
 
 def test_api_eybond_collector_command(local):
-    """Verify POST /api/eybond-collector/command with safety gate."""
+    """Unwired production routes must not expose simulator outcomes."""
     from test_workspaces import login
 
-    client, _ = local
+    client, controller = local
     headers = login(local, "operator")
-
-    # 1. Locked command
-    resp_locked = client.post(
-        "/api/eybond-collector/command",
-        json={
-            "command_type": "output_priority",
-            "params": {"priority": "sbu"},
-            "unlocked": False,
-        },
-        headers=headers,
-    )
-    assert resp_locked.status_code == 200
-    res_data = resp_locked.json()["result"]
-    assert res_data["status"] == "LOCKED_PENDING_HARDWARE_ACCEPTANCE"
-
-    # 2. Unlocked command compiles correctly
-    resp_unlocked = client.post(
-        "/api/eybond-collector/command",
-        json={
-            "command_type": "output_priority",
-            "params": {"priority": "sbu"},
-            "unlocked": True,
-        },
-        headers=headers,
-    )
-    assert resp_unlocked.status_code == 200
-    res_unlocked_data = resp_unlocked.json()["result"]
-    assert res_unlocked_data["command"] == "POP02"
+    response = client.post("/api/eybond-collector/command", headers=headers, json={"command_type": "workmode", "parameter_name": "workmode", "value": 0, "unlocked": True})
+    assert response.status_code == 409
+    assert "UNCOMMISSIONED_CONTROL" in response.json()["detail"]
+    assert not controller.store.commands()
