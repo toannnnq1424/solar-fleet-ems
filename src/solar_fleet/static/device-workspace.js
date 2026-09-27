@@ -19,6 +19,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["deye_hybrid", l("Deye Hybrid SUN (Lưu trữ & 6-Slot TOU)", "Deye Hybrid SUN (Storage & 6-Slot TOU)")],
     ["solarman_v5", l("Giao thức Solarman V5 (Cổng 8899)", "Solarman V5 Protocol (Port 8899)")],
     ["smartess_local", l("SmartESS / Eybond (Wifi & P17)", "SmartESS / Eybond (Wifi & P17)")],
+    ["growatt_cloud", l("Growatt Cloud (OpenAPI V1)", "Growatt Cloud (OpenAPI V1)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -257,6 +258,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: SMARTESS / EYBOND LOCAL WI-FI & P17 INVERTER
   if (currentTab === "smartess_local") {
     await renderSmartEssLocalSubtab(ui, container);
+  }
+
+  // SUB-TAB: GROWATT CLOUD OPENAPI V1
+  if (currentTab === "growatt_cloud") {
+    await renderGrowattCloudSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -2569,6 +2575,253 @@ async function renderSmartEssLocalSubtab(ui, container) {
   essBox.append(frameCard);
 
   container.append(essBox);
+}
+
+async function renderGrowattCloudSubtab(ui, container) {
+  const { e, div, p, card, table, badge, notice } = ui;
+  const button = (label, handler, cls = "secondary") => {
+    const b = e("button", label, `btn btn-${cls}`);
+    b.onclick = handler;
+    return b;
+  };
+
+  const gwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div(
+    "card",
+    div("row justify-between items-center",
+      div("stack",
+        e("h3", l("Cổng kết nối Đám mây Growatt (OpenAPI V1 & ShineServer)", "Growatt Cloud Gateway (OpenAPI V1 & ShineServer)")),
+        p(l(
+          "Tích hợp kiến trúc Growatt Cloud OpenAPI V1 chính thức (Showdoc 262556420217021) dựa trên nghiên cứu độc lập PyPi_GrowattServer. Hỗ trợ đa khu vực (Toàn cầu, Trung Quốc, Bắc Mỹ), chuẩn hóa dữ liệu SPH/MIN về Solar Fleet EMS, và bộ biên dịch tham số an toàn (Default Read-Only Gate).",
+          "Official Growatt OpenAPI V1 cloud integration researched from PyPi_GrowattServer. Supports multi-region endpoints (Global, CN, US), SPH/MIN telemetry normalization, and safe parameter write compilers under hardware acceptance gates."
+        ), "muted")
+      ),
+      badge(l("OpenAPI V1 Độc lập", "Independent OpenAPI V1"), "good")
+    )
+  );
+  gwBox.append(banner);
+
+  // 1. Gateway & Station Explorer
+  const stationCard = card(l("1. Quản lý Nhà máy & Trạm năng lượng (Plant Overview)", "1. Plant & Power Station Explorer"));
+  const stationNotice = p(
+    l("Truy vấn danh mục nhà máy từ máy chủ Growatt Cloud tương ứng theo Token API. Mô phỏng trạm solar tiêu biểu kèm thông số công suất và sản lượng tích lũy.",
+      "Query plant registry from regional Growatt Cloud server using API Token. Simulated plant overview with peak power and generation metrics."),
+    "muted"
+  );
+
+  const authRow = div("row gap-sm items-center");
+  const regionSelect = e("select", null, "input-select");
+  [["global", "Global Server (openapi.growatt.com)"], ["cn", "China Server (openapi-cn.growatt.com)"], ["us", "North America Server (openapi-us.growatt.com)"]].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    regionSelect.append(opt);
+  });
+
+  const tokenInput = e("input", null, "input-text");
+  tokenInput.value = "DEMO-GROWATT-TOKEN-001";
+  tokenInput.placeholder = "API Token";
+  tokenInput.style.minWidth = "260px";
+
+  const plantResults = div("stack");
+
+  const fetchPlantsBtn = button(l("Tải danh mục Trạm (Fetch Plants)", "Fetch Plants"), async () => {
+    try {
+      const res = await ui.api("/growatt-cloud/plants", {
+        method: "POST",
+        body: JSON.stringify({ token: tokenInput.value, region: regionSelect.value }),
+      });
+      const plants = res.plants || [];
+      if (!plants.length) {
+        plantResults.replaceChildren(notice(l("Không tìm thấy trạm nào.", "No plants found."), "info"));
+        return;
+      }
+      const p0 = plants[0];
+      plantResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${p0.plant_name} [${p0.plant_id}]`),
+            badge(`${p0.city}, ${p0.country}`, "blue")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Công suất Đỉnh", "Peak Power")), badge(`${p0.peak_power_kw} kW`, "good")),
+            div("fact", e("span", l("Công suất Hiện tại", "Current Power")), badge(`${p0.current_power_w} W`, "blue")),
+            div("fact", e("span", l("Sản lượng Hôm nay", "Today Energy")), badge(`${p0.today_energy_kwh} kWh`, "secondary")),
+            div("fact", e("span", l("Tổng Sản lượng", "Total Energy")), e("b", `${p0.total_energy_kwh} kWh`)),
+            div("fact", e("span", l("Số Thiết bị", "Device Count")), e("b", `${p0.device_count}`)),
+          )
+        )
+      );
+    } catch (err) {
+      plantResults.replaceChildren(notice(l("Lỗi truy vấn trạm: ", "Error fetching plants: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  authRow.append(regionSelect, tokenInput, fetchPlantsBtn);
+  stationCard.append(stationNotice, authRow, plantResults);
+  gwBox.append(stationCard);
+
+  // 2. Device Explorer & Telemetry Ingestion
+  const devCard = card(l("2. Giám sát Thiết bị & Bóc tách Telemetry SPH Hybrid", "2. Device Explorer & SPH Hybrid Telemetry"));
+  const devNotice = p(
+    l("Truy vấn thiết bị trong trạm và bóc tách dữ liệu SPH Hybrid (dòng điện, công suất PV1/PV2, Pin lưu trữ, Lưới điện, và chế độ ưu tiên hoạt động).",
+      "List plant devices and decode detailed SPH Hybrid telemetry (solar flows, battery voltage/SOC, grid, and priority mode)."),
+    "muted"
+  );
+
+  const devRow = div("row gap-sm items-center");
+  const devSnInput = e("input", null, "input-text");
+  devSnInput.value = "SPH460001";
+  devSnInput.placeholder = "Device SN (SPH...)";
+
+  const devResults = div("stack");
+
+  const fetchDevBtn = button(l("Đọc Telemetry Chi tiết (Read SPH)", "Read SPH Telemetry"), async () => {
+    try {
+      const res = await ui.api("/growatt-cloud/sph-detail", {
+        method: "POST",
+        body: JSON.stringify({ token: tokenInput.value, region: regionSelect.value, device_sn: devSnInput.value }),
+      });
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const bat = tel.battery || {};
+      const cfg = tel.configuration || {};
+
+      devResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${tel.model_type} [SN: ${tel.serial_number}]`),
+            badge(`FW: ${tel.firmware_version}`, "secondary")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Tổng PV", "Total PV")), badge(`${pf.solar_power_w} W`, "good")),
+            div("fact", e("span", l("Lưới AC", "Grid Feed")), badge(`${pf.grid_power_w} W`, "blue")),
+            div("fact", e("span", l("Tải Tiêu thụ", "Home Load")), e("b", `${pf.load_power_w} W`)),
+            div("fact", e("span", l("Pin SOC", "Battery SOC")), badge(`${bat.soc_percent}%`, bat.soc_percent > 30 ? "good" : "warn")),
+            div("fact", e("span", l("Điện áp Pin", "Battery Volt")), e("b", `${bat.voltage_v} V`)),
+            div("fact", e("span", l("Chế độ Ưu tiên", "Priority Mode")), badge(cfg.priority_mode, "blue")),
+          ),
+          div("plant-card-grid",
+            div("plant-visual-card",
+              e("h5", l("Luồng Công suất & MPPT PV", "Power Flow & MPPT Trackers")),
+              table(
+                [l("Thông số", "Parameter"), l("Giá trị", "Value")],
+                [
+                  [l("PV1 (Công suất / Điện áp)", "PV1 Power / Voltage"), `${pf.pv1_power_w} W (${pf.pv1_voltage_v} V)`],
+                  [l("PV2 (Công suất / Điện áp)", "PV2 Power / Voltage"), `${pf.pv2_power_w} W (${pf.pv2_voltage_v} V)`],
+                  [l("Công suất Định mức Biến tần", "Inverter Rated Power"), `${pf.rated_power_w} W`],
+                  [l("Công suất Sạc/Xả Pin", "Battery Charge/Discharge"), `${pf.battery_power_w} W`],
+                  [l("Ngưỡng Ngắt Xả Pin (Cutoff)", "Discharge Cutoff SOC"), `${bat.discharge_min_soc}%`],
+                ]
+              )
+            ),
+            div("plant-visual-card",
+              e("h5", l("Cấu hình Hoạt động & Lịch Trình (TOU)", "Operating Config & TOU Windows")),
+              table(
+                [l("Tham số", "Parameter"), l("Giá trị Cấu hình", "Config Value")],
+                [
+                  [l("Sạc từ Lưới (AC Charging)", "AC Grid Charging"), badge(cfg.ac_charge_enabled ? l("Kích hoạt (ON)", "Enabled") : l("Tắt (OFF)", "Disabled"), cfg.ac_charge_enabled ? "good" : "warn")],
+                  [l("Giới hạn Công suất Sạc", "Charge Power Limit"), `${cfg.charge_power_limit_pct}%`],
+                  [l("Giới hạn Công suất Xả", "Discharge Power Limit"), `${cfg.discharge_power_limit_pct}%`],
+                  [l("Khung giờ Sạc Cưỡng bức (Window 1)", "Forced Charge W1"), `${(cfg.charge_windows && cfg.charge_windows[0]) ? cfg.charge_windows[0].start + ' - ' + cfg.charge_windows[0].stop : 'N/A'}`],
+                  [l("Khung giờ Xả Cưỡng bức (Window 1)", "Forced Discharge W1"), `${(cfg.discharge_windows && cfg.discharge_windows[0]) ? cfg.discharge_windows[0].start + ' - ' + cfg.discharge_windows[0].stop : 'N/A'}`],
+                ]
+              )
+            )
+          )
+        )
+      );
+    } catch (err) {
+      devResults.replaceChildren(notice(l("Lỗi đọc telemetry: ", "Error reading telemetry: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  devRow.append(devSnInput, fetchDevBtn);
+  devCard.append(devNotice, devRow, devResults);
+  gwBox.append(devCard);
+
+  // 3. Safe Cloud Parameter Compiler (Hardware Acceptance Gate)
+  const cmdCard = card(l("3. Bộ biên dịch Tham số Cấu hình Đám mây (Gated Parameter Writing)", "3. Cloud Parameter Compilers & Safety Gates"));
+  const cmdNotice = p(
+    l("Biên dịch lệnh ghi cấu hình từ xa cho biến tần SPH và MIN qua OpenAPI V1 (/v1/device/sph/settings). Mọi lệnh gửi lên đều bị KHÓA theo cơ chế LOCKED_PENDING_HARDWARE_ACCEPTANCE để bảo đảm an toàn điện lưới.",
+      "Compile remote configuration commands for SPH and MIN series via OpenAPI V1. All write operations are strictly locked under LOCKED_PENDING_HARDWARE_ACCEPTANCE safety gating."),
+    "muted"
+  );
+
+  const cmdTypeSelect = e("select", null, "input-select");
+  [
+    ["sph_priority", l("SPH: Chế độ Ưu tiên (Priority Mode)", "SPH: Priority Mode")],
+    ["sph_ac_charge", l("SPH: Bật/Tắt Sạc từ Lưới (AC Charging)", "SPH: AC Grid Charging Toggle")],
+    ["sph_power_limits", l("SPH: Giới hạn Công suất Sạc/Xả", "SPH: Charge/Discharge Power Limits")],
+    ["min_time_segment", l("MIN/TLX: Đoạn lịch trình TOU (Segment 1..9)", "MIN/TLX: TOU Time Segment (1..9)")],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    cmdTypeSelect.append(opt);
+  });
+
+  const cmdControlsRow = div("row gap-sm items-center");
+  const cmdValInput = e("input", null, "input-text");
+  cmdValInput.value = "1";
+  cmdValInput.placeholder = "Giá trị / Mã";
+  cmdValInput.style.maxWidth = "120px";
+
+  const cmdResults = div("stack");
+
+  const compileBtn = button(l("Biên dịch Lệnh (Compile & Test Gate)", "Compile & Test Gate"), async () => {
+    try {
+      const cType = cmdTypeSelect.value;
+      let params = {};
+      if (cType === "sph_priority") {
+        params = { priority_code: parseInt(cmdValInput.value || "1", 10) };
+      } else if (cType === "sph_ac_charge") {
+        params = { enable: cmdValInput.value === "1" || cmdValInput.value.toLowerCase() === "true" };
+      } else if (cType === "sph_power_limits") {
+        params = { charge_pct: parseInt(cmdValInput.value || "80", 10), discharge_pct: 100 };
+      } else if (cType === "min_time_segment") {
+        params = { segment_id: parseInt(cmdValInput.value || "1", 10), batt_mode: 1, start_time: "02:00", end_time: "06:00", enabled: true };
+      }
+
+      const res = await ui.api("/growatt-cloud/command", {
+        method: "POST",
+        body: JSON.stringify({
+          token: tokenInput.value,
+          region: regionSelect.value,
+          command_type: cType,
+          params: params,
+          unlocked: false, // strictly enforce default safety gate
+        }),
+      });
+
+      const r = res.result || {};
+      cmdResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Kiểm tra Cổng An toàn", "Safety Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh", "Command Type"), r.command_type],
+              [l("Tham số truyền", "Parameters"), e("code", JSON.stringify(r.params))],
+              [l("Thông điệp An toàn", "Safety Notice"), r.message || l("Lệnh bị chặn bởi cổng nghiệm thu phần cứng.", "Command blocked by hardware acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      cmdResults.replaceChildren(notice(l("Lỗi biên dịch lệnh: ", "Error compiling command: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  cmdControlsRow.append(cmdTypeSelect, cmdValInput, compileBtn);
+  cmdCard.append(cmdNotice, cmdControlsRow, cmdResults);
+  gwBox.append(cmdCard);
+
+  container.append(gwBox);
 }
 
 // Backward compatibility wrapper

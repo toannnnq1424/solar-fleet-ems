@@ -339,6 +339,39 @@ class GrowattDecodeFaultsRequest(BaseModel):
     fault_registers: dict[int, int] = Field(default_factory=dict, description="Map of fault input register addresses to raw words")
 
 
+class GrowattCloudPlantsRequest(BaseModel):
+    """Request for Growatt Cloud plant listing."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+
+
+class GrowattCloudDevicesRequest(BaseModel):
+    """Request for Growatt Cloud devices in plant."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    plant_id: str = Field(default="PLANT-GW-8801", description="Target plant ID")
+
+
+class GrowattCloudSphDetailRequest(BaseModel):
+    """Request for Growatt Cloud SPH telemetry detail."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    device_sn: str = Field(default="SPH460001", description="Target SPH device serial number")
+
+
+class GrowattCloudCommandRequest(BaseModel):
+    """Request for Growatt Cloud remote parameter write command."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    command_type: str = Field(..., description="Command type: 'sph_priority', 'sph_ac_charge', 'sph_power_limits', 'min_time_segment'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
 
 
 
@@ -2151,6 +2184,68 @@ def install_phase_d_apis(app, controller, user, admin=None):
             }
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Fault decode failed: {exc}")
+
+    # -----------------------------------------------------------------------
+    # Growatt Cloud OpenAPI V1 & ShineServer Endpoints (Project #10)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/growatt-cloud/plants")
+    async def growatt_cloud_plants(req: GrowattCloudPlantsRequest, principal=Depends(user)):
+        """List power plants registered in Growatt Cloud OpenAPI V1."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        plants = client.list_plants()
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "region": req.region,
+            "plants": plants,
+        }
+
+    @app.post("/api/growatt-cloud/devices")
+    async def growatt_cloud_devices(req: GrowattCloudDevicesRequest, principal=Depends(user)):
+        """List inverters and dataloggers for specified Growatt plant."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        devices = client.list_devices(req.plant_id)
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "plant_id": req.plant_id,
+            "devices": devices,
+        }
+
+    @app.post("/api/growatt-cloud/sph-detail")
+    async def growatt_cloud_sph_detail(req: GrowattCloudSphDetailRequest, principal=Depends(user)):
+        """Fetch and normalize Growatt SPH hybrid telemetry and parameter state."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        detail = client.get_sph_detail(req.device_sn)
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "device_sn": req.device_sn,
+            "telemetry": detail,
+        }
+
+    @app.post("/api/growatt-cloud/command")
+    async def growatt_cloud_command(req: GrowattCloudCommandRequest, principal=Depends(user)):
+        """Safely execute remote parameter command with hardware acceptance gating."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "PyPi_GrowattServer (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
 
 

@@ -1321,9 +1321,51 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 6: 112-Bit Comprehensive Fault & Warning Matrix.
    - All write commands remain locked under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
+---
 
+## Detailed Absorption: Project #10 - `PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
 
+- **Repository**: `D:\Downloads\before_project\PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
+- **License**: MIT License (@indykoning & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_cloud_client.py`. Official Growatt OpenAPI V1 showdoc specification (`262556420217021`) and ShineServer communication architecture cleanly abstracted. Password MD5 transformation, multi-region routing (`global`, `cn`, `us`), plant & device registry, SPH hybrid & MIN TL-X telemetry normalizer, and remote parameter compilers independently authored and verified.
+- **Rank**: #10 out of 30 upstream projects (20 files, 4,951 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
 
+### Data & Capabilities Absorbed:
+1. **Multi-Region OpenAPI V1 Cloud Architecture**:
+   - Global Server: `https://openapi.growatt.com`
+   - China Server: `https://openapi-cn.growatt.com`
+   - North America Server: `https://openapi-us.growatt.com`
+   - Official token authentication header and ShinePhone legacy MD5 transformation algorithm.
 
+2. **Plant Registry & Device Discovery**:
+   - Station summary metrics (peak power, today/total generation, current power, city, device counts).
+   - Inverter device registry with datalogger SN mapping, connection health, and device type classification (`sph`, `min`, `mix`, `noah`).
 
+3. **SPH Hybrid & MIN Telemetry Normalizer**:
+   - Dual-MPPT trackers (PV1/PV2 voltages and power outputs).
+   - Battery state: SOC %, pack voltage, charge/discharge powers, discharge minimum cutoff SOC.
+   - Grid feed-in / import power and home load consumption.
+   - Operating priority modes: Load First, Battery First, Grid First.
+   - 3-window forced charge/discharge schedule extraction.
+
+4. **Remote Parameter Writing Compilers & Safety Gating**:
+   - SPH Priority Mode compiler (`priorityChoose`: 0, 1, 2).
+   - SPH AC Charging Toggle compiler (`acChargeEnable`: 0/1).
+   - SPH Charge / Discharge Power Limit compiler (`chargePowerCommand`, `disChargePowerCommand`: 0..100%).
+   - MIN / TLX 9-Segment TOU programmer (`batt_mode`, start/end time HH:MM, segment 1..9).
+   - Strict read-only safety gating under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/growatt-cloud/plants`: Queries regional plant registry.
+   - `POST /api/growatt-cloud/devices`: Lists plant inverters and dataloggers.
+   - `POST /api/growatt-cloud/sph-detail`: Fetches and normalizes live/simulated SPH hybrid telemetry.
+   - `POST /api/growatt-cloud/command`: Compiles remote configuration with hardware acceptance gate.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `growatt_cloud` ("Growatt Cloud (OpenAPI V1)") with 3 interactive sections:
+     * Section 1: Plant & Power Station Explorer (multi-region, token auth, KPI cards).
+     * Section 2: Device Explorer & SPH Hybrid Telemetry (dual-MPPT, battery, grid, load, TOU windows).
+     * Section 3: Cloud Parameter Compilers & Safety Gates (interactive compiler testing).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
