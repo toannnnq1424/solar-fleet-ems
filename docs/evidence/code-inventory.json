@@ -1,5 +1,5 @@
 {
-  "measured_at_utc": "2026-09-27T08:22:23.239122+00:00",
+  "measured_at_utc": "2026-09-27T14:06:15.551579+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
@@ -7,8 +7,8 @@
       "key": "backend",
       "label": "Backend Python",
       "files": 115,
-      "lines": 41585,
-      "nonblank": 36307,
+      "lines": 41593,
+      "nonblank": 36315,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -447,8 +447,8 @@
         },
         {
           "path": "src/solar_fleet/providers.py",
-          "lines": 133,
-          "nonblank": 130
+          "lines": 141,
+          "nonblank": 138
         },
         {
           "path": "src/solar_fleet/reports_api.py",
@@ -591,8 +591,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 33,
-      "lines": 16985,
-      "nonblank": 16050,
+      "lines": 16996,
+      "nonblank": 16061,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -656,8 +656,8 @@
         },
         {
           "path": "src/solar_fleet/static/i18n.js",
-          "lines": 299,
-          "nonblank": 299
+          "lines": 308,
+          "nonblank": 308
         },
         {
           "path": "src/solar_fleet/static/icons.js",
@@ -756,8 +756,8 @@
         },
         {
           "path": "src/solar_fleet/static/workspace.js",
-          "lines": 3473,
-          "nonblank": 3461
+          "lines": 3475,
+          "nonblank": 3463
         }
       ]
     },
@@ -1237,9 +1237,9 @@
     {
       "key": "browser_tests",
       "label": "Test UI / browser fixture",
-      "files": 10,
-      "lines": 960,
-      "nonblank": 871,
+      "files": 11,
+      "lines": 1002,
+      "nonblank": 909,
       "entries": [
         {
           "path": "ui_tests/conftest.py",
@@ -1290,6 +1290,11 @@
           "path": "ui_tests/test_sidebar_contracts.py",
           "lines": 54,
           "nonblank": 45
+        },
+        {
+          "path": "ui_tests/test_vendor_form_labels.py",
+          "lines": 42,
+          "nonblank": 38
         }
       ]
     },

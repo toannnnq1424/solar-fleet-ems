@@ -2013,6 +2013,8 @@ function integrationForm(spec) {
         eu: l("Châu Âu", "Europe"),
         am: l("Châu Mỹ", "Americas"),
         india: l("Ấn Độ", "India"),
+        au: l("Úc", "Australia"),
+        server: l("Máy chủ Growatt (server)", "Growatt server (server)"),
       }[r] || r,
     ]),
   );
@@ -2068,8 +2070,8 @@ function integrationForm(spec) {
   );
   f.finish(
     notice(
-      spec.setup_help?.vi || "1. Chọn đúng vùng dữ liệu. 2. Nhập khóa API được cấp. 3. Lưu rồi đồng bộ để kiểm tra. Không nhập mật khẩu cục bộ của Solar Fleet vào đây.",
-      spec.setup_help?.en || "1. Select your data center. 2. Enter issued API credentials. 3. Save and sync to test. Do not enter your local Solar Fleet password here.",
+      spec.setup_help?.vi || "Chọn đúng vùng dữ liệu và nhập thông tin xác thực của nền tảng hãng theo các trường bên dưới. Không nhập mật khẩu cục bộ của Solar Fleet. Lưu chỉ tạo cấu hình; kiểm tra kết nối và đồng bộ danh mục là bước riêng, không cấp quyền điều khiển thiết bị.",
+      spec.setup_help?.en || "Select the correct data center and enter the vendor platform credentials requested below. Do not enter your local Solar Fleet password. Saving only creates configuration; checking access and synchronizing inventory are separate steps and do not authorize device control.",
     ),
     div(
       "form-grid",

@@ -1,5 +1,11 @@
 # Verified continuation — shared observation time and EMS VI/EN
 
+Account-form follow-up: [VI/EN vendor forms](vendor-form-localization-2026-09-27.md)
+adds meaningful credential labels, explicit GoodWe/Sungrow selection guidance
+and browser checks across eight existing provider forms in both languages.
+No new sidebar responsibility, client or commissioned capability is introduced;
+broader submission/error/permission and visual acceptance remain open.
+
 See [continuation evidence](continuation-observations-2026-09-27.md): shared
 observed-energy arithmetic now uses UTC elapsed time across DST; the existing
 EMS billing-meter card localizes known statuses/explanations and prevents
@@ -264,20 +270,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T08:22:23.239122+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T14:06:15.551579+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 115 | 41,585 | 36,307 |
-| Frontend JavaScript | 33 | 16,985 | 16,050 |
+| Backend Python | 115 | 41,593 | 36,315 |
+| Frontend JavaScript | 33 | 16,996 | 16,061 |
 | Frontend CSS / HTML | 2 | 6,020 | 5,509 |
 | Test BE / simulator / fixture | 89 | 18,370 | 15,580 |
-| Test UI / browser fixture | 10 | 960 | 871 |
+| Test UI / browser fixture | 11 | 1,002 | 909 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **35** | **23,005** | **21,559** |
-| **Tổng code ứng dụng BE + FE** | **150** | **64,590** | **57,866** |
-| **Tổng test / simulator / fixture** | **99** | **19,330** | **16,451** |
-| **Tổng code ứng dụng + test + scripts** | **252** | **84,438** | **74,795** |
+| **Tổng FE (JS + CSS/HTML)** | **35** | **23,016** | **21,570** |
+| **Tổng code ứng dụng BE + FE** | **150** | **64,609** | **57,885** |
+| **Tổng test / simulator / fixture** | **100** | **19,372** | **16,489** |
+| **Tổng code ứng dụng + test + scripts** | **253** | **84,499** | **74,852** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

@@ -42,6 +42,10 @@ PROVIDERS = [
         "implemented": True,
         "regions": ["global", "eu", "au"],
         "fields": ["account", "password", "plant_ids"],
+        "setup_help": {
+            "vi": "Nhập tài khoản SEMS và tối đa 100 ID nhà máy không trùng, phân cách bằng dấu phẩy. Chỉ chọn nhà máy tài khoản được phép truy cập; cấu hình này không tự khám phá mọi nhà máy. Không dùng mật khẩu cục bộ Solar Fleet. Lưu chưa xác nhận kết nối hoặc quyền điều khiển.",
+            "en": "Enter SEMS credentials and up to 100 distinct comma-separated plant IDs. Select only plants accessible to this account; this configuration does not automatically discover every plant. Do not use your local Solar Fleet password. Saving does not verify connectivity or authorize control.",
+        },
         "identity": False,
         "discovery": "plants_devices",
         "read": "native_points",
@@ -54,6 +58,10 @@ PROVIDERS = [
         "implemented": True,
         "regions": ["global"],
         "fields": ["app_key", "app_secret", "user_account", "user_password", "plant_ids", "point_ids"],
+        "setup_help": {
+            "vi": "Nhập thông tin ứng dụng và tài khoản iSolarCloud, tối đa 100 ID nhà máy không trùng và tối đa 200 ID điểm đo dạng số, phân cách bằng dấu phẩy. Chọn ID theo hợp đồng tài khoản/model; không suy ra điểm đo từ tên hãng. Không dùng mật khẩu cục bộ Solar Fleet. Lưu chưa xác nhận kết nối hoặc quyền điều khiển.",
+            "en": "Enter iSolarCloud application and account credentials, up to 100 distinct plant IDs and up to 200 numeric point IDs, comma-separated. Select IDs from the account/model contract; do not infer points from the brand. Do not use your local Solar Fleet password. Saving does not verify connectivity or authorize control.",
+        },
         "identity": False,
         "discovery": "plants_devices",
         "read": "native_points",
