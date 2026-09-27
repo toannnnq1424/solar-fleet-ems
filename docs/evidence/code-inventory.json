@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:24:54.131682+00:00",
+  "measured_at_utc": "2026-09-27T04:34:39.105468+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 106,
-      "lines": 36341,
-      "nonblank": 31752,
+      "files": 107,
+      "lines": 37110,
+      "nonblank": 32410,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -256,6 +256,11 @@
           "nonblank": 167
         },
         {
+          "path": "src/solar_fleet/eybond_collector_engine.py",
+          "lines": 647,
+          "nonblank": 557
+        },
+        {
           "path": "src/solar_fleet/forecast_baseline.py",
           "lines": 396,
           "nonblank": 350
@@ -397,8 +402,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2256,
-          "nonblank": 1865
+          "lines": 2378,
+          "nonblank": 1966
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -546,8 +551,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 15339,
-      "nonblank": 14594,
+      "lines": 15638,
+      "nonblank": 14867,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -576,8 +581,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 2841,
-          "nonblank": 2554
+          "lines": 3140,
+          "nonblank": 2827
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -728,9 +733,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 76,
-      "lines": 15902,
-      "nonblank": 13514,
+      "files": 77,
+      "lines": 16255,
+      "nonblank": 13806,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -831,6 +836,11 @@
           "path": "tests/test_extension_data_stream.py",
           "lines": 389,
           "nonblank": 336
+        },
+        {
+          "path": "tests/test_eybond_collector_engine.py",
+          "lines": 353,
+          "nonblank": 292
         },
         {
           "path": "tests/test_eybond_solarman_v5.py",

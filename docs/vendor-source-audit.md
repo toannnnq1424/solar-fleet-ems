@@ -1369,3 +1369,55 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 3: Cloud Parameter Compilers & Safety Gates (interactive compiler testing).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
+---
+
+## Detailed Absorption: Project #11 - `esp-eybond-collector-main`
+
+- **Repository**: `D:\Downloads\before_project\esp-eybond-collector-main`
+- **License**: Mozilla Public License 2.0 (MPL-2.0).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/eybond_collector_engine.py`. Zero code copied; Eybond 8-byte binary frame codec (`TID`, `DevCode`, `WireLen`, `DevAddr`, `FC`), UDP port 58899 discovery handshake (`set>server=IP:PORT;` -> `rsp>server=2;`), synthetic serial number generator (`V00` + 15 digits from 6-byte MAC), AT command parser/handler (`AT+DTUPN`, `AT+FWVER`, `AT+UART`, `AT+CLDSRVHOST1`, `AT+WFSS`, `AT+LINK`, `AT+SYST`), Voltronic PI30 protocol engine (`QPIGS`, `QPIRI`, `QMOD`, 32-bit `QPIWS` warning bitfield) with CRC16-XMODEM byte-stuffing, and parameter write compilers independently authored and verified.
+- **Rank**: #11 out of 30 upstream projects (58 files, 9,462 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Eybond Binary Header Codec**:
+   - 8-byte big-endian framing: `TID (u16)`, `DevCode (u16)`, `WireLen (u16 = total_len - 6)`, `DevAddr (u8)`, `FC (u8)`.
+   - Function codes: `FC_HEARTBEAT` (0x01), `FC_QUERY_COLLECTOR` (0x02), `FC_SET_COLLECTOR` (0x03), `FC_FORWARD_TO_DEVICE` (0x04).
+   - Bidirectional frame assembly and disassembly.
+
+2. **UDP Discovery & Synthetic Serial Number Generator**:
+   - UDP Port 58899 listener: parses `set>server=IP:PORT;` and formats `rsp>server=2;`.
+   - Synthetic PN generator: transforms 6-byte hardware MAC into 18-character synthetic identifier (`V00...`).
+
+3. **AT Command Interface**:
+   - Interleaved AT command line parser for query (`AT+<CMD>?`) and write (`AT+<CMD>=<VAL>`).
+   - Query response table: `DTUPN`, `FWVER` (0.1.10), `ATVER` (1.11), `UART` (baud/parity), `CLDSRVHOST1` (EMS server endpoint), `WFSS` (RSSI), `LINK`, `SYST` (UTC timestamp).
+   - Write acknowledgment: `AT+<CMD>:W000\r\n`.
+
+4. **Voltronic PI30 / PI17 Protocol Engine & Telemetry Normalizer**:
+   - CRC16-XMODEM checksum calculation with byte-stuffing escape rules (`+1` for `(`, `\r`, `\n`).
+   - `QPIGS` 21-field status parser: Grid V/Hz, Output V/Hz, Active Power W, Apparent VA, Load %, Bus V, Battery V, Battery Charge/Discharge A, Battery SOC %, PV Voltage/Current/Power, Heatsink Temp °C.
+   - `QMOD` operating mode decoder: Line Mode (L), Battery Mode (B), Standby (S), Fault (F), Power Saving (H).
+   - `QPIWS` 32-character warning bitfield decoder mapping 32 discrete fault/warning flags into CRITICAL vs WARNING alarms.
+   - Normalized schema mapping into unified Solar Fleet EMS telemetry structure.
+
+5. **Inverter Parameter Write Compilers with Safety Gating**:
+   - Output Source Priority compiler: `POP00` (Utility First), `POP01` (Solar First), `POP02` (SBU).
+   - Charger Source Priority compiler: `PCP00` (Utility First), `PCP01` (Solar First), `PCP02` (Solar & Utility), `PCP03` (Solar Only).
+   - Maximum Charging Current compiler: `MCHGC0xx` (10..120A).
+   - Battery Voltage Setting compiler: Bulk `PCVV`, Float `PBFT`, Cutoff `PSDV`.
+   - All parameter write actions remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/eybond-collector/discover`: Handles UDP discovery and returns reverse-TCP parameters.
+   - `POST /api/eybond-collector/parse-at`: Parses AT commands and generates standard responses.
+   - `POST /api/eybond-collector/decode-pigs`: Decodes raw `QPIGS` & `QPIWS` telemetry strings into normalized EMS schema.
+   - `POST /api/eybond-collector/command`: Compiles Voltronic inverter controls with hardware acceptance gating.
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `eybond_esp` ("ESP EyeBond Collector (Bridge & PI30)") with 3 interactive sections:
+     * Section 1: ESP Collector Bridge & AT Command Interface (AT queries, UDP 58899 discovery test).
+     * Section 2: Voltronic PI30 Inverter Telemetry & Status (`QPIGS` parser, solar/load/battery KPIs, `QPIWS` alarms).
+     * Section 3: Inverter Parameter Compilers & Safety Gates (`POP`, `PCP`, `MCHGC`, voltages).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+

@@ -20,6 +20,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["solarman_v5", l("Giao thức Solarman V5 (Cổng 8899)", "Solarman V5 Protocol (Port 8899)")],
     ["smartess_local", l("SmartESS / Eybond (Wifi & P17)", "SmartESS / Eybond (Wifi & P17)")],
     ["growatt_cloud", l("Growatt Cloud (OpenAPI V1)", "Growatt Cloud (OpenAPI V1)")],
+    ["eybond_esp", l("ESP EyeBond Collector (Bridge & PI30)", "ESP EyeBond Collector (Bridge & PI30)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -263,6 +264,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: GROWATT CLOUD OPENAPI V1
   if (currentTab === "growatt_cloud") {
     await renderGrowattCloudSubtab(ui, container);
+  }
+
+  // SUB-TAB: ESP EYEBOND COLLECTOR & VOLTRONIC PI30
+  if (currentTab === "eybond_esp") {
+    await renderEybondEspSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -2822,6 +2828,299 @@ async function renderGrowattCloudSubtab(ui, container) {
   gwBox.append(cmdCard);
 
   container.append(gwBox);
+}
+
+async function renderEybondEspSubtab(ui, container) {
+  const { e, div, p, card, table, badge, notice } = ui;
+  const button = (label, handler, cls = "secondary") => {
+    const b = e("button", label, `btn btn-${cls}`);
+    b.onclick = handler;
+    return b;
+  };
+
+  const espBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div(
+    "card",
+    div("row justify-between items-center",
+      div("stack",
+        e("h3", l("Cầu nối Thu thập Dữ liệu ESP EyeBond & Voltronic PI30", "ESP EyeBond Collector Bridge & Voltronic PI30 Engine")),
+        p(l(
+          "Cấu hình thu thập phần cứng mã nguồn mở độc lập (ESP32 / ESP8266 / BK72xx) thay thế cục Wi-Fi SmartESS / Eybond gốc theo esp-eybond-collector. Hỗ trợ bắt tay UDP Port 58899, bộ lệnh giao tiếp AT, bóc tách chuỗi Voltronic QPIGS, ma trận 32 cờ cảnh báo QPIWS, và bộ biên dịch điều khiển an toàn (Gated Control).",
+          "Open-source embedded bridge firmware replacing factory SmartESS/Eybond Wi-Fi dongles (ESP32/ESP8266/BK72xx). Features UDP port 58899 discovery, AT command handler, Voltronic QPIGS telemetry decoder, 32-flag QPIWS alarm matrix, and safety-gated parameter compilers."
+        ), "muted")
+      ),
+      badge(l("Cầu nối ESP / PI30", "ESP / PI30 Bridge"), "good")
+    )
+  );
+  espBox.append(banner);
+
+  // 1. ESP Collector Bridge & Network Status (UDP & AT Commands)
+  const bridgeCard = card(l("1. Trạng thái Bộ thu thập ESP & Giao tiếp Lệnh AT (Bridge & AT Interface)", "1. ESP Collector Bridge & AT Command Interface"));
+  const bridgeNotice = p(
+    l("Bộ thu thập ESP chạy firmware độc lập tự động phản hồi UDP discovery ('set>server=IP:PORT;' -> 'rsp>server=2;') và thiết lập kết nối TCP ngược về Solar Fleet EMS. Bạn có thể tương tác với tập lệnh AT để kiểm tra cấu hình mạng và thông số UART.",
+      "The ESP bridge firmware listens on UDP 58899 for discovery redirect and establishes reverse-TCP to Solar Fleet EMS. Interact with the AT command processor to verify network and UART parameters."),
+    "muted"
+  );
+
+  const atControlsRow = div("row gap-sm items-center");
+  const atSelect = e("select", null, "input-select");
+  [
+    ["AT+DTUPN?", "AT+DTUPN? (Số serial PN bộ thu thập)"],
+    ["AT+FWVER?", "AT+FWVER? (Phiên bản Firmware Bridge)"],
+    ["AT+ATVER?", "AT+ATVER? (Phiên bản giao tiếp AT)"],
+    ["AT+UART?", "AT+UART? (Cấu hình Baudrate & Parity)"],
+    ["AT+CLDSRVHOST1?", "AT+CLDSRVHOST1? (Địa chỉ EMS Server đích)"],
+    ["AT+WFSS?", "AT+WFSS? (Cường độ sóng Wi-Fi RSSI)"],
+    ["AT+LINK?", "AT+LINK? (Trạng thái liên kết TCP)"],
+    ["AT+SYST?", "AT+SYST? (Đồng hồ hệ thống)"],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    atSelect.append(opt);
+  });
+
+  const atResults = div("stack");
+
+  const sendAtBtn = button(l("Gửi Lệnh AT (Send AT)", "Send AT Command"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/parse-at", {
+        method: "POST",
+        body: JSON.stringify({
+          at_line: atSelect.value,
+          profile_pn: "V00123456789012345",
+          firmware_ver: "0.1.10",
+          uart_cfg: "2400,8,1,NONE",
+        }),
+      });
+      atResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", `Phản hồi: ${res.command}`),
+            badge("OK", "good")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Lệnh gửi", "Command Sent"), e("code", atSelect.value)],
+              [l("Kiểu lệnh", "Command Type"), res.is_write ? l("Ghi cấu hình (Write)", "Write") : l("Truy vấn (Query)", "Query")],
+              [l("Chuỗi phản hồi chuẩn", "Collector Response"), badge(res.response, "blue")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      atResults.replaceChildren(notice(l("Lỗi lệnh AT: ", "AT command error: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  const testUdpBtn = button(l("Thử nghiệm UDP 58899 Discovery", "Test UDP Discovery"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/discover", {
+        method: "POST",
+        body: JSON.stringify({ raw_udp_text: "set>server=192.168.1.100:8899;" }),
+      });
+      atResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Bắt tay UDP Port 58899", "UDP Discovery Handshake")),
+            badge("UDP 200 OK", "good")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Máy chủ EMS đích", "Target Server Host"), res.server_host],
+              [l("Cổng TCP kết nối ngược", "Reverse TCP Port"), `${res.server_port}`],
+              [l("Gói phản hồi Handshake", "Handshake Response"), badge(res.udp_reply, "good")],
+              [l("Ghi chú", "Note"), l("ESP Collector nhận được lệnh sẽ lập tức khởi tạo luồng TCP ngược về EMS", "ESP Collector initiates reverse TCP stream to EMS upon receiving redirect")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      atResults.replaceChildren(notice(l("Lỗi kiểm tra UDP: ", "UDP discovery error: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  atControlsRow.append(atSelect, sendAtBtn, testUdpBtn);
+  bridgeCard.append(bridgeNotice, atControlsRow, atResults);
+  espBox.append(bridgeCard);
+
+  // 2. Voltronic PI30 Inverter Telemetry & Power Flow
+  const telCard = card(l("2. Bóc tách Telemetry Inverter Voltronic PI30 (QPIGS & QPIWS)", "2. Voltronic PI30 Inverter Telemetry & Status"));
+  const telNotice = p(
+    l("Giải mã chuỗi phản hồi trạng thái toàn diện QPIGS (21 trường đo đạc) cùng ma trận 32 cờ cảnh báo lỗi QPIWS của các dòng biến tần Axpert / Bluesun / PowMr / EASun.",
+      "Decode QPIGS general status telemetry (21 measurement fields) and 32-bit QPIWS warning matrix from Axpert/Bluesun/PowMr/EASun inverters."),
+    "muted"
+  );
+
+  const telInputRow = div("row gap-sm items-center");
+  const qpigsInput = e("input", null, "input-text");
+  qpigsInput.value = "239.5 49.9 239.5 49.9 0927 0924 015 396 53.20 000 100 0028 002.2 315.9 00.00 00000 00010000 00 00 00665 000";
+  qpigsInput.placeholder = "Chuỗi QPIGS";
+  qpigsInput.style.minWidth = "380px";
+
+  const modeSelect = e("select", null, "input-select");
+  [
+    ["L", "Chế độ Lưới (Line Mode - L)"],
+    ["B", "Chế độ Pin (Battery Mode - B)"],
+    ["S", "Chế độ Chờ (Standby Mode - S)"],
+    ["F", "Chế độ Lỗi (Fault Mode - F)"],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    modeSelect.append(opt);
+  });
+
+  const telResults = div("stack");
+
+  const decodeBtn = button(l("Bóc tách Telemetry (Decode QPIGS)", "Decode QPIGS"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/decode-pigs", {
+        method: "POST",
+        body: JSON.stringify({
+          raw_qpigs: qpigsInput.value,
+          mode_char: modeSelect.value,
+          qpiws_flags: "00000100000000000000000000000000",
+          collector_pn: "V00123456789012345",
+          inverter_sn: "INV-AXPERT-5KW",
+        }),
+      });
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const bat = tel.battery || {};
+      const grid = tel.grid || {};
+      const diag = tel.diagnostics || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${tel.vendor} [${tel.model}]`),
+            badge(tel.operating_mode, "blue")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Công suất PV", "Solar PV")), badge(`${pf.solar_power_w} W`, "good")),
+            div("fact", e("span", l("Công suất Tải AC", "Load Active")), badge(`${pf.load_power_w} W`, "blue")),
+            div("fact", e("span", l("Điện áp Pin", "Battery Volt")), e("b", `${bat.voltage_v} V`)),
+            div("fact", e("span", l("Dung lượng SOC", "Battery SOC")), badge(`${bat.soc_percent}%`, bat.soc_percent > 30 ? "good" : "warn")),
+            div("fact", e("span", l("Nhiệt độ Tản nhiệt", "Heatsink Temp")), e("b", `${diag.heatsink_temperature_c} °C`)),
+            div("fact", e("span", l("Cảnh báo hoạt động", "Active Warnings")), badge(`${diag.active_warnings_count}`, diag.active_warnings_count ? "warn" : "good")),
+          ),
+          div("plant-card-grid",
+            div("plant-visual-card",
+              e("h5", l("Chi tiết Nguồn điện & Tải AC", "Grid & Load Details")),
+              table(
+                [l("Thông số", "Parameter"), l("Giá trị", "Value")],
+                [
+                  [l("Điện áp & Tần số Lưới vào", "Grid Voltage & Frequency"), `${grid.voltage_v} V / ${grid.frequency_hz} Hz`],
+                  [l("Điện áp & Tần số Ngõ ra AC", "Output Voltage & Frequency"), `${grid.output_voltage_v} V / ${grid.output_frequency_hz} Hz`],
+                  [l("Công suất Biểu kiến Tải", "Load Apparent Power"), `${pf.load_apparent_va} VA (${pf.load_percent}%)`],
+                  [l("Dòng & Điện áp MPPT PV", "PV Input Current & Voltage"), `${pf.pv_current_a} A / ${pf.pv_voltage_v} V`],
+                  [l("Điện áp Bus DC trung gian", "DC Bus Voltage"), `${bat.bus_voltage_v} V`],
+                ]
+              )
+            ),
+            div("plant-visual-card",
+              e("h5", l("Trạng thái Cảnh báo & Mã Lỗi (QPIWS)", "Alarm Status & Diagnostics")),
+              table(
+                [l("Vị trí Bit", "Bit"), l("Mã Cảnh báo", "Alarm Code"), l("Mức độ", "Severity")],
+                (diag.alarms && diag.alarms.length) ?
+                  diag.alarms.map(a => [`Bit ${a.bit}`, a.code, badge(a.severity, a.severity === "CRITICAL" ? "bad" : "warn")]) :
+                  [["—", l("Không có lỗi hoặc cảnh báo", "No active faults or warnings"), badge(l("Bình thường", "Normal"), "good")]]
+              )
+            )
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi bóc tách telemetry: ", "Error decoding telemetry: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  telInputRow.append(qpigsInput, modeSelect, decodeBtn);
+  telCard.append(telNotice, telInputRow, telResults);
+  espBox.append(telCard);
+
+  // 3. Voltronic Safe Parameter Compilers & Hardware Gate
+  const cmdCard = card(l("3. Bộ biên dịch Tham số Cấu hình Biến tần (Gated PI30 Controls)", "3. Inverter Parameter Compilers & Safety Gates"));
+  const cmdNotice = p(
+    l("Biên dịch lệnh cài đặt tham số Voltronic PI30 (POP, PCP, MCHGC, điện áp sạc) với mã kiểm tra CRC16-XMODEM và cơ chế Byte-Stuffing. Mọi lệnh ghi đều bị KHÓA theo cơ chế LOCKED_PENDING_HARDWARE_ACCEPTANCE.",
+      "Compile Voltronic PI30 parameter write commands with CRC16-XMODEM checksum and byte stuffing. All write actions are strictly locked under LOCKED_PENDING_HARDWARE_ACCEPTANCE."),
+    "muted"
+  );
+
+  const ctrlTypeSelect = e("select", null, "input-select");
+  [
+    ["output_priority", l("Ưu tiên Nguồn Xuất (POP: SBU / Solar First / Utility First)", "Output Priority (POP)")],
+    ["charger_priority", l("Ưu tiên Nguồn Sạc (PCP: Solar Only / Solar First / Utility First)", "Charger Priority (PCP)")],
+    ["charge_current", l("Dòng sạc tối đa (MCHGC: 10..120A)", "Max Charge Current (MCHGC)")],
+    ["battery_voltages", l("Điện áp Bulk / Float / Cutoff (PCVV, PBFT, PSDV)", "Battery Voltages (PCVV/PBFT/PSDV)")],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    ctrlTypeSelect.append(opt);
+  });
+
+  const ctrlParamInput = e("input", null, "input-text");
+  ctrlParamInput.value = "sbu";
+  ctrlParamInput.placeholder = "Tham số (sbu, 60, ...)";
+  ctrlParamInput.style.maxWidth = "160px";
+
+  const ctrlResults = div("stack");
+
+  const compileCtrlBtn = button(l("Biên dịch Lệnh (Compile & Test Gate)", "Compile & Test Gate"), async () => {
+    try {
+      const cType = ctrlTypeSelect.value;
+      let params = {};
+      if (cType === "output_priority") {
+        params = { priority: ctrlParamInput.value || "sbu" };
+      } else if (cType === "charger_priority") {
+        params = { priority: ctrlParamInput.value || "solar_only" };
+      } else if (cType === "charge_current") {
+        params = { current_a: parseInt(ctrlParamInput.value || "60", 10) };
+      } else if (cType === "battery_voltages") {
+        params = { bulk_v: 56.4, float_v: 54.0, cutoff_v: 42.0 };
+      }
+
+      const res = await ui.api("/eybond-collector/command", {
+        method: "POST",
+        body: JSON.stringify({
+          command_type: cType,
+          params: params,
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Cổng Nghiệm thu Phần cứng", "Hardware Acceptance Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh điều khiển", "Command Type"), r.command_type],
+              [l("Tham số truyền", "Parameters"), e("code", JSON.stringify(r.params))],
+              [l("Thông điệp An toàn", "Safety Notice"), r.message || l("Lệnh bị chặn bởi cổng nghiệm thu phần cứng.", "Command blocked by hardware acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch lệnh: ", "Error compiling command: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const ctrlRow = div("row gap-sm items-center");
+  ctrlRow.append(ctrlTypeSelect, ctrlParamInput, compileCtrlBtn);
+  cmdCard.append(cmdNotice, ctrlRow, ctrlResults);
+  espBox.append(cmdCard);
+
+  container.append(espBox);
 }
 
 // Backward compatibility wrapper

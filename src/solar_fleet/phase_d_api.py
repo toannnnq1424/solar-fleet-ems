@@ -372,6 +372,42 @@ class GrowattCloudCommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class EybondCollectorDiscoverRequest(BaseModel):
+    """Request for Eybond UDP discovery packet handling."""
+
+    raw_udp_text: str = Field(default="set>server=192.168.1.100:8899;", description="Raw UDP discovery string")
+
+
+class EybondCollectorAtRequest(BaseModel):
+    """Request for Eybond AT command parsing and execution."""
+
+    at_line: str = Field(default="AT+DTUPN?", description="AT command line")
+    profile_pn: str = Field(default="V00123456789012345", description="Collector synthetic PN")
+    firmware_ver: str = Field(default="0.1.10", description="Bridge firmware version")
+    uart_cfg: str = Field(default="2400,8,1,NONE", description="UART baud and parity string")
+
+
+class EybondCollectorDecodePigsRequest(BaseModel):
+    """Request for decoding Voltronic QPIGS and QPIWS telemetry strings."""
+
+    raw_qpigs: str = Field(
+        default="239.5 49.9 239.5 49.9 0927 0924 015 396 53.20 000 100 0028 002.2 315.9 00.00 00000 00010000 00 00 00665 000",
+        description="Raw QPIGS response string without CRC or parentheses",
+    )
+    mode_char: str = Field(default="L", description="Voltronic operating mode char ('P', 'S', 'L', 'B', 'F', 'H')")
+    qpiws_flags: str = Field(default="00000000000000000000000000000000", description="32-character QPIWS warning flags")
+    collector_pn: str = Field(default="V00123456789012345", description="Collector PN")
+    inverter_sn: str = Field(default="553555355535552", description="Inverter serial number")
+
+
+class EybondCollectorCommandRequest(BaseModel):
+    """Request for compiling Voltronic inverter control command."""
+
+    command_type: str = Field(..., description="Command type: 'output_priority', 'charger_priority', 'charge_current', 'battery_voltages'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
 
 
 
@@ -2242,6 +2278,92 @@ def install_phase_d_apis(app, controller, user, admin=None):
             )
             return {
                 "source": "PyPi_GrowattServer (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Eybond ESP Collector & Voltronic PI30 Endpoints (Project #11)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/eybond-collector/discover")
+    async def eybond_collector_discover(req: EybondCollectorDiscoverRequest, principal=Depends(user)):
+        """Handle Eybond UDP discovery packet and return reverse-TCP handshake response."""
+        from .eybond_collector_engine import build_udp_discovery_reply, parse_udp_discovery_redirect
+
+        res = parse_udp_discovery_redirect(req.raw_udp_text.encode("utf-8"))
+        if not res:
+            raise HTTPException(status_code=400, detail="Invalid UDP discovery payload. Expected 'set>server=IP:PORT;'")
+        host, port = res
+        reply = build_udp_discovery_reply()
+        return {
+            "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+            "server_host": host,
+            "server_port": port,
+            "udp_reply": reply.decode("ascii"),
+        }
+
+    @app.post("/api/eybond-collector/parse-at")
+    async def eybond_collector_parse_at(req: EybondCollectorAtRequest, principal=Depends(user)):
+        """Parse Eybond AT command line and generate standard collector response."""
+        from .eybond_collector_engine import handle_at_command, parse_at_command
+
+        parsed = parse_at_command(req.at_line)
+        if not parsed:
+            raise HTTPException(status_code=400, detail="Invalid AT command line. Expected 'AT+<CMD>?' or 'AT+<CMD>=<VAL>'")
+        cmd, is_write, val = parsed
+        reply = handle_at_command(
+            cmd=cmd,
+            is_write=is_write,
+            val=val,
+            profile_pn=req.profile_pn,
+            firmware_ver=req.firmware_ver,
+            uart_cfg=req.uart_cfg,
+        )
+        return {
+            "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+            "command": cmd,
+            "is_write": is_write,
+            "value": val,
+            "response": reply.strip(),
+        }
+
+    @app.post("/api/eybond-collector/decode-pigs")
+    async def eybond_collector_decode_pigs(req: EybondCollectorDecodePigsRequest, principal=Depends(user)):
+        """Decode Voltronic QPIGS and QPIWS telemetry into Solar Fleet EMS schema."""
+        from .eybond_collector_engine import normalize_eybond_pi30_telemetry, parse_qpigs_response
+
+        try:
+            qpigs = parse_qpigs_response(req.raw_qpigs)
+            tel = normalize_eybond_pi30_telemetry(
+                collector_pn=req.collector_pn,
+                inverter_sn=req.inverter_sn,
+                qpigs=qpigs,
+                mode_char=req.mode_char,
+                qpiws_flags=req.qpiws_flags,
+            )
+            return {
+                "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/eybond-collector/command")
+    async def eybond_collector_command(req: EybondCollectorCommandRequest, principal=Depends(user)):
+        """Safely execute Voltronic PI30 parameter write command with hardware acceptance gate."""
+        from .eybond_collector_engine import VirtualEybondCollector
+
+        collector = VirtualEybondCollector()
+        try:
+            result = collector.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
                 "result": result,
             }
         except ValueError as exc:
