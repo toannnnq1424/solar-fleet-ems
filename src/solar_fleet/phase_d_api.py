@@ -458,8 +458,218 @@ class SmartEssParseFrameRequest(BaseModel):
     raw_frame_hex: str = Field(..., description="Hex string of raw Eybond Modbus binary frame")
 
 
+class GrowattMultiphaseDecodeTelemetryRequest(BaseModel):
+    """Request for decoding Growatt 1-phase or 3-phase SPH registers."""
+
+    input_registers: dict[int, int] = Field(default_factory=dict, description="Map of input register address to raw value")
+    holding_registers: dict[int, int] = Field(default_factory=dict, description="Map of holding register address to raw value")
 
 
+class GrowattCompileExportLimitRequest(BaseModel):
+    """Request for compiling Growatt export limitation (zero feed-in) registers 122 & 123."""
+
+    enable: bool = Field(default=True, description="Enable or disable export limitation")
+    limit_rate_percent: float = Field(default=100.0, ge=0.0, le=100.0, description="Export limit rate in % (0.1% resolution)")
+
+
+class GrowattCompileWindowRequest(BaseModel):
+    """Request for compiling Growatt Grid First or Battery First time window."""
+
+    window_type: str = Field(default="battery_first", description="'grid_first' or 'battery_first'")
+    window_index: int = Field(default=1, ge=1, le=3, description="Window index (1..3)")
+    start_time: str = Field(default="02:00", description="Start time 'HH:MM'")
+    stop_time: str = Field(default="06:00", description="Stop time 'HH:MM'")
+    enable: bool = Field(default=True, description="Enable or disable this time window")
+    rate_percent: int = Field(default=100, ge=0, le=100, description="Charge or discharge rate in %")
+    stop_soc_percent: int = Field(default=100, ge=0, le=100, description="Target stop SOC in %")
+    ac_charge_enable: bool = Field(default=True, description="Enable AC grid charging (Battery First only)")
+
+
+class GrowattDecodeFaultsRequest(BaseModel):
+    """Request for decoding Growatt 112-bit fault registers 1001..1007."""
+
+    fault_registers: dict[int, int] = Field(default_factory=dict, description="Map of fault input register addresses to raw words")
+
+
+class GrowattCloudPlantsRequest(BaseModel):
+    """Request for Growatt Cloud plant listing."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+
+
+class GrowattCloudDevicesRequest(BaseModel):
+    """Request for Growatt Cloud devices in plant."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    plant_id: str = Field(default="PLANT-GW-8801", description="Target plant ID")
+
+
+class GrowattCloudSphDetailRequest(BaseModel):
+    """Request for Growatt Cloud SPH telemetry detail."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    device_sn: str = Field(default="SPH460001", description="Target SPH device serial number")
+
+
+class GrowattCloudCommandRequest(BaseModel):
+    """Request for Growatt Cloud remote parameter write command."""
+
+    token: str = Field(default="DEMO-GROWATT-TOKEN-001", description="Growatt OpenAPI V1 token")
+    region: str = Field(default="global", description="Growatt cloud region: 'global', 'cn', 'us'")
+    command_type: str = Field(..., description="Command type: 'sph_priority', 'sph_ac_charge', 'sph_power_limits', 'min_time_segment'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class EybondCollectorDiscoverRequest(BaseModel):
+    """Request for Eybond UDP discovery packet handling."""
+
+    raw_udp_text: str = Field(default="set>server=192.168.1.100:8899;", description="Raw UDP discovery string")
+
+
+class EybondCollectorAtRequest(BaseModel):
+    """Request for Eybond AT command parsing and execution."""
+
+    at_line: str = Field(default="AT+DTUPN?", description="AT command line")
+    profile_pn: str = Field(default="V00123456789012345", description="Collector synthetic PN")
+    firmware_ver: str = Field(default="0.1.10", description="Bridge firmware version")
+    uart_cfg: str = Field(default="2400,8,1,NONE", description="UART baud and parity string")
+
+
+class EybondCollectorDecodePigsRequest(BaseModel):
+    """Request for decoding Voltronic QPIGS and QPIWS telemetry strings."""
+
+    raw_qpigs: str = Field(
+        default="239.5 49.9 239.5 49.9 0927 0924 015 396 53.20 000 100 0028 002.2 315.9 00.00 00000 00010000 00 00 00665 000",
+        description="Raw QPIGS response string without CRC or parentheses",
+    )
+    mode_char: str = Field(default="L", description="Voltronic operating mode char ('P', 'S', 'L', 'B', 'F', 'H')")
+    qpiws_flags: str = Field(default="00000000000000000000000000000000", description="32-character QPIWS warning flags")
+    collector_pn: str = Field(default="V00123456789012345", description="Collector PN")
+    inverter_sn: str = Field(default="553555355535552", description="Inverter serial number")
+
+
+class EybondCollectorCommandRequest(BaseModel):
+    """Request for compiling Voltronic inverter control command."""
+
+    command_type: str = Field(..., description="Command type: 'output_priority', 'charger_priority', 'charge_current', 'battery_voltages'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class GoodWeLocalTelemetryRequest(BaseModel):
+    """Request for polling GoodWe local inverter telemetry."""
+
+    host: str = Field(default="192.168.1.180", description="Inverter IP address on local network")
+    port: int = Field(default=8899, description="Inverter local UDP/TCP port")
+    comm_addr: int = Field(default=247, description="Modbus slave communication address (default 247/0xF7 or 127/0x7F)")
+    model_family: str = Field(default="ET", description="Inverter series family: 'ET', 'ES', 'DT'")
+
+
+class GoodWeLocalCommandRequest(BaseModel):
+    """Request for executing GoodWe local configuration command."""
+
+    host: str = Field(default="192.168.1.180", description="Inverter IP address on local network")
+    port: int = Field(default=8899, description="Inverter local UDP/TCP port")
+    comm_addr: int = Field(default=247, description="Modbus slave communication address")
+    command_type: str = Field(..., description="Command type: 'operation_mode', 'export_limit', 'battery_cutoff_soc', 'eco_mode_window'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class HuaweiSun2000TelemetryRequest(BaseModel):
+    """Request for polling Huawei SUN2000 & LUNA2000 telemetry."""
+
+    host: str = Field(default="192.168.200.1", description="Inverter IP address on local network / SDongle / AP")
+    port: int = Field(default=502, description="Modbus TCP port (default 502)")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID (1..16)")
+
+
+class HuaweiSun2000CommandRequest(BaseModel):
+    """Request for executing Huawei SUN2000 & LUNA2000 configuration command."""
+
+    host: str = Field(default="192.168.200.1", description="Inverter IP address on local network")
+    port: int = Field(default=502, description="Modbus TCP port")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID")
+    command_type: str = Field(..., description="Command type: 'active_power_derating', 'storage_mode', 'export_limit', 'cutoff_soc', 'charge_from_grid', 'luna_tou_period'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class SolarmanProfileTelemetryRequest(BaseModel):
+    """Request for polling multi-vendor inverter telemetry via Solarman profile."""
+
+    profile_id: str = Field(default="deye_hybrid", description="Profile ID: 'deye_hybrid', 'sofar_g3hyd', 'solis_hybrid'")
+    host: str = Field(default="192.168.1.150", description="Data logger IP address on local network")
+    port: int = Field(default=8899, description="Solarman port (default 8899)")
+    slave_id: int = Field(default=1, description="Modbus slave address")
+
+
+class SolarmanProfileCommandRequest(BaseModel):
+    """Request for compiling and verifying Solarman profile parameter write."""
+
+    profile_id: str = Field(default="deye_hybrid", description="Profile ID: 'deye_hybrid', 'sofar_g3hyd', 'solis_hybrid'")
+    host: str = Field(default="192.168.1.150", description="Data logger IP address")
+    port: int = Field(default=8899, description="Solarman port")
+    slave_id: int = Field(default=1, description="Modbus slave address")
+    parameter_name: str = Field(..., description="Parameter name defined in profile, e.g. 'Solar Export Power', 'Work Mode', 'Battery Min SOC'")
+    value: Any = Field(..., description="Value to write")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class SungrowShxTelemetryRequest(BaseModel):
+    """Request for polling Sungrow SHx/SG inverter & SBR battery telemetry."""
+
+    host: str = Field(default="192.168.1.100", description="Sungrow inverter / WiNet-S LAN IP address")
+    port: int = Field(default=502, description="Modbus TCP port (default 502)")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID (default 1)")
+
+
+class SungrowShxCommandRequest(BaseModel):
+    """Request for compiling and executing Sungrow SHx configuration command."""
+
+    host: str = Field(default="192.168.1.100", description="Sungrow inverter IP address")
+    port: int = Field(default=502, description="Modbus TCP port")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID")
+    command_type: str = Field(
+        ...,
+        description="Command type: 'ems_mode', 'forced_charge_discharge', 'soc_limits', 'export_limit', 'active_power_limitation', 'power_switch', 'scene'",
+    )
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class DeyeMqttTelemetryRequest(BaseModel):
+    """Request for polling and decoding Deye multi-family telemetry."""
+
+    family: str = Field(default="deye_sg04lp3", description="Deye family: 'deye_sg01hp3', 'deye_sg04lp3', 'deye_sg02lp1', 'deye_string', 'deye_micro', 'igen_dtsd422', 'deye_hybrid'")
+    logger_sn: str = Field(default="1234567890", description="Deye logger serial number")
+    topic_prefix: str = Field(default="deye", description="MQTT base topic prefix")
+
+
+class DeyeMqttCommandRequest(BaseModel):
+    """Request for compiling and executing Deye MQTT configuration command."""
+
+    family: str = Field(default="deye_sg04lp3", description="Deye family")
+    logger_sn: str = Field(default="1234567890", description="Deye logger serial number")
+    command_type: str = Field(
+        ...,
+        description="Command type: 'workmode', 'solar_sell', 'solar_sell_max_power', 'active_power_regulation', 'battery_settings', 'timeofuse', 'at_command'",
+    )
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class DeyeMqttAggregateRequest(BaseModel):
+    """Request for computing multi-inverter parallel cluster aggregated telemetry."""
+
+    inverters: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="List of inverter telemetry items with keys: logger_id, ac_power_w, day_energy_kwh, total_energy_kwh, battery_power_w",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2076,9 +2286,687 @@ def install_phase_d_apis(app, controller, user, admin=None):
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Failed to parse frame: {exc}")
 
+    # -----------------------------------------------------------------------
+    # Growatt Multi-Phase & Export Limitation Endpoints (Project #9)
+    # -----------------------------------------------------------------------
 
+    @app.post("/api/growatt-multiphase/decode-telemetry")
+    async def growatt_multiphase_decode_telemetry(req: GrowattMultiphaseDecodeTelemetryRequest, principal=Depends(user)):
+        """Decode Growatt 1-phase or 3-phase SPH telemetry, DTC, and normalized EMS payload."""
+        from .growatt_multiphase_modbus import decode_growatt_multiphase_telemetry
 
+        try:
+            in_regs = {int(k): int(v) for k, v in req.input_registers.items()}
+            hold_regs = {int(k): int(v) for k, v in req.holding_registers.items()}
+            tel = decode_growatt_multiphase_telemetry(in_regs, hold_regs)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Telemetry decode failed: {exc}")
 
+    @app.post("/api/growatt-multiphase/compile-export-limit")
+    async def growatt_multiphase_compile_export_limit(req: GrowattCompileExportLimitRequest, principal=Depends(user)):
+        """Compile Growatt export limitation / zero feed-in registers 122 & 123."""
+        from .growatt_multiphase_modbus import compile_export_limitation_command
 
+        try:
+            res = compile_export_limitation_command(enable=req.enable, limit_rate_pct=req.limit_rate_percent)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "command": res,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
+    @app.post("/api/growatt-multiphase/compile-window")
+    async def growatt_multiphase_compile_window(req: GrowattCompileWindowRequest, principal=Depends(user)):
+        """Compile Growatt Grid First or Battery First time window registers."""
+        from .growatt_multiphase_modbus import (
+            compile_battery_first_window_command,
+            compile_grid_first_window_command,
+        )
 
+        try:
+            if req.window_type == "grid_first":
+                res = compile_grid_first_window_command(
+                    window_index=req.window_index,
+                    start_time=req.start_time,
+                    stop_time=req.stop_time,
+                    enable=req.enable,
+                    discharge_rate_pct=req.rate_percent,
+                    stop_soc_pct=req.stop_soc_percent,
+                )
+            elif req.window_type == "battery_first":
+                res = compile_battery_first_window_command(
+                    window_index=req.window_index,
+                    start_time=req.start_time,
+                    stop_time=req.stop_time,
+                    enable=req.enable,
+                    ac_charge_enable=req.ac_charge_enable,
+                    charge_rate_pct=req.rate_percent,
+                    stop_soc_pct=req.stop_soc_percent,
+                )
+            else:
+                raise HTTPException(status_code=400, detail=f"Unsupported window type '{req.window_type}'. Expected 'grid_first' or 'battery_first'")
+
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "command": res,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/growatt-multiphase/decode-faults")
+    async def growatt_multiphase_decode_faults(req: GrowattDecodeFaultsRequest, principal=Depends(user)):
+        """Decode Growatt 112-bit fault and warning registers 1001..1007."""
+        from .growatt_multiphase_modbus import decode_fault_registers
+
+        try:
+            f_regs = {int(k): int(v) for k, v in req.fault_registers.items()}
+            alarms = decode_fault_registers(f_regs)
+            return {
+                "source": "ha-growatt-modbus (MIT clean-room independent)",
+                "alarms": [
+                    {"register": a.register, "bit": a.bit, "code": a.code, "severity": a.severity}
+                    for a in alarms
+                ],
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Fault decode failed: {exc}")
+
+    # -----------------------------------------------------------------------
+    # Growatt Cloud OpenAPI V1 & ShineServer Endpoints (Project #10)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/growatt-cloud/plants")
+    async def growatt_cloud_plants(req: GrowattCloudPlantsRequest, principal=Depends(user)):
+        """List power plants registered in Growatt Cloud OpenAPI V1."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        plants = client.list_plants()
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "region": req.region,
+            "plants": plants,
+        }
+
+    @app.post("/api/growatt-cloud/devices")
+    async def growatt_cloud_devices(req: GrowattCloudDevicesRequest, principal=Depends(user)):
+        """List inverters and dataloggers for specified Growatt plant."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        devices = client.list_devices(req.plant_id)
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "plant_id": req.plant_id,
+            "devices": devices,
+        }
+
+    @app.post("/api/growatt-cloud/sph-detail")
+    async def growatt_cloud_sph_detail(req: GrowattCloudSphDetailRequest, principal=Depends(user)):
+        """Fetch and normalize Growatt SPH hybrid telemetry and parameter state."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        detail = client.get_sph_detail(req.device_sn)
+        return {
+            "source": "PyPi_GrowattServer (MIT clean-room independent)",
+            "device_sn": req.device_sn,
+            "telemetry": detail,
+        }
+
+    @app.post("/api/growatt-cloud/command")
+    async def growatt_cloud_command(req: GrowattCloudCommandRequest, principal=Depends(user)):
+        """Safely execute remote parameter command with hardware acceptance gating."""
+        from .growatt_cloud_client import GrowattCloudClient
+
+        client = GrowattCloudClient(token=req.token, region=req.region, simulated=True)
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "PyPi_GrowattServer (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Eybond ESP Collector & Voltronic PI30 Endpoints (Project #11)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/eybond-collector/discover")
+    async def eybond_collector_discover(req: EybondCollectorDiscoverRequest, principal=Depends(user)):
+        """Handle Eybond UDP discovery packet and return reverse-TCP handshake response."""
+        from .eybond_collector_engine import build_udp_discovery_reply, parse_udp_discovery_redirect
+
+        res = parse_udp_discovery_redirect(req.raw_udp_text.encode("utf-8"))
+        if not res:
+            raise HTTPException(status_code=400, detail="Invalid UDP discovery payload. Expected 'set>server=IP:PORT;'")
+        host, port = res
+        reply = build_udp_discovery_reply()
+        return {
+            "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+            "server_host": host,
+            "server_port": port,
+            "udp_reply": reply.decode("ascii"),
+        }
+
+    @app.post("/api/eybond-collector/parse-at")
+    async def eybond_collector_parse_at(req: EybondCollectorAtRequest, principal=Depends(user)):
+        """Parse Eybond AT command line and generate standard collector response."""
+        from .eybond_collector_engine import handle_at_command, parse_at_command
+
+        parsed = parse_at_command(req.at_line)
+        if not parsed:
+            raise HTTPException(status_code=400, detail="Invalid AT command line. Expected 'AT+<CMD>?' or 'AT+<CMD>=<VAL>'")
+        cmd, is_write, val = parsed
+        reply = handle_at_command(
+            cmd=cmd,
+            is_write=is_write,
+            val=val,
+            profile_pn=req.profile_pn,
+            firmware_ver=req.firmware_ver,
+            uart_cfg=req.uart_cfg,
+        )
+        return {
+            "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+            "command": cmd,
+            "is_write": is_write,
+            "value": val,
+            "response": reply.strip(),
+        }
+
+    @app.post("/api/eybond-collector/decode-pigs")
+    async def eybond_collector_decode_pigs(req: EybondCollectorDecodePigsRequest, principal=Depends(user)):
+        """Decode Voltronic QPIGS and QPIWS telemetry into Solar Fleet EMS schema."""
+        from .eybond_collector_engine import normalize_eybond_pi30_telemetry, parse_qpigs_response
+
+        try:
+            qpigs = parse_qpigs_response(req.raw_qpigs)
+            tel = normalize_eybond_pi30_telemetry(
+                collector_pn=req.collector_pn,
+                inverter_sn=req.inverter_sn,
+                qpigs=qpigs,
+                mode_char=req.mode_char,
+                qpiws_flags=req.qpiws_flags,
+            )
+            return {
+                "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/eybond-collector/command")
+    async def eybond_collector_command(req: EybondCollectorCommandRequest, principal=Depends(user)):
+        """Safely execute Voltronic PI30 parameter write command with hardware acceptance gate."""
+        from .eybond_collector_engine import VirtualEybondCollector
+
+        collector = VirtualEybondCollector()
+        try:
+            result = collector.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # GoodWe Local Inverter & Protocol Engine Endpoints (Project #12)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/goodwe-local/telemetry")
+    async def goodwe_local_telemetry(req: GoodWeLocalTelemetryRequest, principal=Depends(user)):
+        """Poll and normalize GoodWe local inverter telemetry over UDP/Modbus."""
+        from .goodwe_local_client import GoodWeLocalClient
+
+        client = GoodWeLocalClient(
+            host=req.host,
+            port=req.port,
+            comm_addr=req.comm_addr,
+            model_family=req.model_family,
+            simulated=True,
+        )
+        try:
+            tel = client.poll_telemetry()
+            return {
+                "source": "goodwe-master (MIT clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/goodwe-local/command")
+    async def goodwe_local_command(req: GoodWeLocalCommandRequest, principal=Depends(user)):
+        """Safely execute GoodWe local parameter command with hardware acceptance gate."""
+        from .goodwe_local_client import GoodWeLocalClient
+
+        client = GoodWeLocalClient(
+            host=req.host,
+            port=req.port,
+            comm_addr=req.comm_addr,
+            simulated=True,
+        )
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "goodwe-master (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Huawei SUN2000 & LUNA2000 Protocol Engine Endpoints (Project #13)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/huawei-sun2000/telemetry")
+    async def huawei_sun2000_telemetry(req: HuaweiSun2000TelemetryRequest, principal=Depends(user)):
+        """Poll and normalize Huawei SUN2000, LUNA2000, and DTSU666-H telemetry."""
+        from .huawei_sun2000_client import HuaweiSun2000Client
+
+        client = HuaweiSun2000Client(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            tel = client.poll_telemetry()
+            return {
+                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/huawei-sun2000/command")
+    async def huawei_sun2000_command(req: HuaweiSun2000CommandRequest, principal=Depends(user)):
+        """Safely execute Huawei SUN2000 / LUNA2000 command with hardware acceptance gate."""
+        from .huawei_sun2000_client import HuaweiSun2000Client
+
+        client = HuaweiSun2000Client(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Solarman Multi-Vendor Inverter Profile Engine Endpoints (Project #14)
+    # -----------------------------------------------------------------------
+
+    @app.get("/api/solarman-profile/profiles")
+    async def solarman_profile_list(principal=Depends(user)):
+        """List all available Solarman multi-vendor inverter profiles."""
+        from .solarman_profile_engine import PROFILE_REGISTRY
+
+        profiles = [
+            {
+                "profile_id": pid,
+                "vendor": p.vendor,
+                "family_name": p.family_name,
+                "default_slave_id": p.default_slave_id,
+                "request_ranges_count": len(p.requests),
+                "parameters_count": len(p.parameters),
+            }
+            for pid, p in PROFILE_REGISTRY.items()
+        ]
+        return {
+            "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
+            "profiles": profiles,
+        }
+
+    @app.post("/api/solarman-profile/telemetry")
+    async def solarman_profile_telemetry(req: SolarmanProfileTelemetryRequest, principal=Depends(user)):
+        """Poll and decode multi-vendor inverter telemetry using Solarman profile rules."""
+        from .solarman_profile_engine import SolarmanProfileClient
+
+        try:
+            client = SolarmanProfileClient(
+                profile_id=req.profile_id,
+                host=req.host,
+                port=req.port,
+                slave_id=req.slave_id,
+                simulated=True,
+            )
+            tel = client.poll_telemetry()
+            return {
+                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/solarman-profile/command")
+    async def solarman_profile_command(req: SolarmanProfileCommandRequest, principal=Depends(user)):
+        """Safely compile Solarman profile parameter write with hardware acceptance gate."""
+        from .solarman_profile_engine import SolarmanProfileClient
+
+        try:
+            client = SolarmanProfileClient(
+                profile_id=req.profile_id,
+                host=req.host,
+                port=req.port,
+                slave_id=req.slave_id,
+                simulated=True,
+            )
+            result = client.execute_command_safely(
+                parameter_name=req.parameter_name,
+                value=req.value,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Sungrow SHx & SG Inverter Modbus TCP Endpoints (Project #15)
+    # -----------------------------------------------------------------------
+
+    @app.get("/api/sungrow-shx/info")
+    async def sungrow_shx_info(principal=Depends(user)):
+        """Retrieve Sungrow supported models, running states, and EMS scenes."""
+        from .sungrow_shx_client import (
+            SUNGROW_DEVICE_TYPES,
+            SUNGROW_EMS_MODES,
+            SUNGROW_FORCED_CMDS,
+            SUNGROW_RUNNING_STATES,
+        )
+
+        return {
+            "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+            "supported_models": [
+                {"code_hex": f"0x{code:04X}", "model": name}
+                for code, name in sorted(SUNGROW_DEVICE_TYPES.items())
+            ],
+            "ems_modes": [
+                {"key": k, "code": v[0], "name": v[1]}
+                for k, v in SUNGROW_EMS_MODES.items()
+            ],
+            "forced_commands": [
+                {"key": k, "code_hex": f"0x{v[0]:02X}", "name": v[1]}
+                for k, v in SUNGROW_FORCED_CMDS.items()
+            ],
+            "running_states_sample": [
+                {"code_hex": f"0x{code:04X}", "state": name}
+                for code, name in sorted(SUNGROW_RUNNING_STATES.items())[:10]
+            ],
+            "scenes": [
+                "self_consumption",
+                "zero_export",
+                "max_export",
+                "battery_bypass",
+                "forced_charge",
+                "forced_discharge",
+            ],
+        }
+
+    @app.post("/api/sungrow-shx/telemetry")
+    async def sungrow_shx_telemetry(req: SungrowShxTelemetryRequest, principal=Depends(user)):
+        """Poll and normalize Sungrow SHx/SG inverter, SBR battery, and meter telemetry."""
+        from .sungrow_shx_client import SungrowShxClient, normalize_sungrow_telemetry
+
+        client = SungrowShxClient(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            tel = client.read_telemetry()
+            norm = normalize_sungrow_telemetry(tel)
+            return {
+                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+                "telemetry": tel.__dict__,
+                "normalized": norm,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/sungrow-shx/command")
+    async def sungrow_shx_command(req: SungrowShxCommandRequest, principal=Depends(user)):
+        """Safely compile and execute Sungrow SHx configuration command with hardware acceptance gate."""
+        from .sungrow_shx_client import SungrowShxClient
+
+        client = SungrowShxClient(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            result = client.write_parameter(
+                command_type=req.command_type,
+                params=req.params,
+                confirm_hardware_acceptance=req.unlocked,
+            )
+            return {
+                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Deye & SunSynk Multi-Family Inverter MQTT Bridge
+    # -----------------------------------------------------------------------
+
+    @app.get("/api/deye-mqtt/families")
+    async def deye_mqtt_families(principal=Depends(user)):
+        """Enumerate supported Deye and SunSynk device families and command schemas."""
+        from .deye_mqtt_bridge import DEYE_FAMILY_CATALOG, DeyeDeviceFamily
+
+        descriptions = {
+            DeyeDeviceFamily.SG01HP3: "High-Voltage 3-Phase Hybrid (6..50kW) (stack 150..800V, BMS stack regs 210..250)",
+            DeyeDeviceFamily.SG04LP3: "Low-Voltage 3-Phase Hybrid (5..12kW) (48V battery, regs 142..177, 500..653)",
+            DeyeDeviceFamily.SG02LP1: "Low-Voltage 1-Phase Hybrid (3.6..8kW) (regs 3..114, 150..279, BMS 312..319)",
+            DeyeDeviceFamily.SG03LP1: "Low-Voltage 1-Phase Hybrid (extended models)",
+            DeyeDeviceFamily.STRING: "Grid-Tied String Inverter (PV1..PV4, 3-Phase Grid AC, regs 60..116, 198..210)",
+            DeyeDeviceFamily.MICRO: "Microinverters (SUN300..SUN2000G3, individual DC inputs, AC grid output)",
+            DeyeDeviceFamily.IGEN_DTSD422: "IGEN DTSD-422-D3 Smart Power Meter (CT1..CT3 power, bidirectional energy)",
+            DeyeDeviceFamily.HYBRID: "Classic Hybrid Inverter",
+            DeyeDeviceFamily.AGGREGATED: "Multi-Inverter Cluster Data Aggregation (summed active power & daily energy)",
+        }
+
+        families_data = []
+        for fam in DeyeDeviceFamily:
+            sensors = DEYE_FAMILY_CATALOG.get(fam, [])
+            sample_topics = [s.mqtt_topic_suffix for s in sensors[:5]]
+            families_data.append({
+                "family": fam.value,
+                "name": fam.name,
+                "description": descriptions.get(fam, fam.value),
+                "sensor_count": len(sensors),
+                "sample_topics": sample_topics,
+            })
+
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "supported_families": families_data,
+            "supported_commands": [
+                "workmode",
+                "solar_sell",
+                "solar_sell_max_power",
+                "active_power_regulation",
+                "battery_settings",
+                "timeofuse",
+                "at_command",
+            ],
+            "at_commands_supported": ["AT+WNTYPE", "AT+WSKEY", "AT+MID", "AT+VER", "AT+Z", "AT+H"],
+        }
+
+    @app.post("/api/deye-mqtt/telemetry")
+    async def deye_mqtt_telemetry(req: DeyeMqttTelemetryRequest, principal=Depends(user)):
+        """Poll and decode Deye multi-family telemetry into typed metrics and MQTT observation topics."""
+        from .deye_mqtt_bridge import (
+            DeyeDeviceFamily,
+            DeyeTelemetrySimulator,
+            normalize_deye_mqtt_telemetry,
+        )
+
+        try:
+            fam = DeyeDeviceFamily(req.family)
+        except ValueError:
+            fam = DeyeDeviceFamily.SG04LP3
+
+        raw_regs = DeyeTelemetrySimulator.generate_simulated_registers(fam)
+        decoded, mqtt_msgs = DeyeTelemetrySimulator.decode_family_telemetry(
+            fam, raw_regs, logger_sn=req.logger_sn
+        )
+        norm = normalize_deye_mqtt_telemetry(fam, decoded, device_id=f"deye_{req.logger_sn}")
+
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "family": fam.value,
+            "logger_sn": req.logger_sn,
+            "decoded_values": decoded,
+            "mqtt_messages": mqtt_msgs,
+            "normalized": norm,
+        }
+
+    @app.post("/api/deye-mqtt/command")
+    async def deye_mqtt_command(req: DeyeMqttCommandRequest, principal=Depends(user)):
+        """Safely compile and execute Deye MQTT configuration command with hardware acceptance gate."""
+        from .deye_mqtt_bridge import (
+            DeyeAtCommandBridge,
+            DeyeCommandCompiler,
+            DeyeTimeOfUseService,
+            DeyeTouSlot,
+            DeyeWriteResult,
+        )
+
+        cmd = req.command_type.lower()
+        params = req.params or {}
+        unlocked = req.unlocked
+
+        if cmd == "workmode":
+            mode = int(params.get("mode", 1))
+            res = DeyeCommandCompiler.compile_workmode(mode, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "solar_sell":
+            enable = bool(params.get("enable", True))
+            res = DeyeCommandCompiler.compile_solar_sell(enable, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "solar_sell_max_power":
+            watts = int(params.get("watts", 5000))
+            res = DeyeCommandCompiler.compile_solar_sell_max_power(watts, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "active_power_regulation":
+            pct = float(params.get("percentage", 100.0))
+            res = DeyeCommandCompiler.compile_active_power_regulation(pct, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "battery_settings":
+            setting_name = str(params.get("setting_name", "grid_charge"))
+            val = int(params.get("value", 1))
+            res = DeyeCommandCompiler.compile_battery_setting(setting_name, val, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "timeofuse":
+            tou_service = DeyeTimeOfUseService()
+            slots_data = params.get("slots", [])
+            for s in slots_data:
+                slot = DeyeTouSlot(
+                    slot_index=int(s.get("slot_index", 1)),
+                    time_hhmm=str(s.get("time_hhmm", "05:00")),
+                    power_watts=int(s.get("power_watts", 3000)),
+                    target_soc=int(s.get("target_soc", 80)),
+                    voltage=float(s.get("voltage", 51.2)),
+                    charge_enabled=bool(s.get("charge_enabled", True)),
+                )
+                tou_service.stage_slot(slot)
+
+            dry_run = bool(params.get("dry_run", not unlocked))
+            batches = tou_service.compile_write_batches(
+                confirm_hardware_acceptance=unlocked,
+                dry_run=dry_run,
+            )
+            return {
+                "source": "deye-inverter-mqtt",
+                "result": [b.__dict__ for b in batches],
+                "staged_slots_count": len(slots_data),
+            }
+
+        elif cmd == "at_command":
+            at_cmd = str(params.get("command", "AT+VER"))
+            bridge = DeyeAtCommandBridge()
+            resp = bridge.execute_command(at_cmd)
+            res = DeyeWriteResult(
+                success=True,
+                command_name=f"at_command:{at_cmd}",
+                target_register=0,
+                raw_value=0,
+                human_readable=f"AT Command: '{at_cmd}' -> Response: '{resp}'",
+                status="EXECUTED_AT_BRIDGE",
+                dry_run=False,
+            )
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__, "dongle_response": resp}
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported command '{cmd}'. Must be one of: workmode, solar_sell, solar_sell_max_power, active_power_regulation, battery_settings, timeofuse, at_command",
+            )
+
+    @app.post("/api/deye-mqtt/aggregate")
+    async def deye_mqtt_aggregate(req: DeyeMqttAggregateRequest, principal=Depends(user)):
+        """Aggregate telemetry from multiple inverters in a parallel cluster."""
+        from .deye_mqtt_bridge import DeyeMultiInverterAggregator
+
+        aggregator = DeyeMultiInverterAggregator()
+        inverters = req.inverters or [
+            {"logger_id": "inv_master", "ac_power_w": 5200.0, "day_energy_kwh": 26.5, "total_energy_kwh": 8200.0, "battery_power_w": 2000.0},
+            {"logger_id": "inv_slave_1", "ac_power_w": 4800.0, "day_energy_kwh": 24.2, "total_energy_kwh": 7650.0, "battery_power_w": 1800.0},
+            {"logger_id": "inv_slave_2", "ac_power_w": 4950.0, "day_energy_kwh": 25.1, "total_energy_kwh": 7900.0, "battery_power_w": 1900.0},
+        ]
+
+        for inv in inverters:
+            aggregator.record_inverter_metrics(
+                logger_id=str(inv.get("logger_id", "inv")),
+                ac_active_power_w=float(inv.get("ac_power_w", 0.0)),
+                daily_energy_kwh=float(inv.get("day_energy_kwh", 0.0)),
+                total_energy_kwh=float(inv.get("total_energy_kwh", 0.0)),
+                battery_power_w=float(inv.get("battery_power_w", 0.0)),
+            )
+
+        cluster_summary = aggregator.get_aggregated_cluster_metrics()
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "aggregated": cluster_summary,
+        }

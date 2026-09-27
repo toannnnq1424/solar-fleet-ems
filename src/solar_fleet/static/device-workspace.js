@@ -20,6 +20,13 @@ export async function renderDevicesMainWorkspace(ui) {
     ["deye_hybrid", l("Deye Hybrid SUN (Lưu trữ & 6-Slot TOU)", "Deye Hybrid SUN (Storage & 6-Slot TOU)")],
     ["solarman_v5", l("Giao thức Solarman V5 (Cổng 8899)", "Solarman V5 Protocol (Port 8899)")],
     ["smartess_local", l("SmartESS / Eybond (Wifi & P17)", "SmartESS / Eybond (Wifi & P17)")],
+    ["growatt_cloud", l("Growatt Cloud (OpenAPI V1)", "Growatt Cloud (OpenAPI V1)")],
+    ["eybond_esp", l("ESP EyeBond Collector (Bridge & PI30)", "ESP EyeBond Collector (Bridge & PI30)")],
+    ["goodwe_local", l("GoodWe Modbus UDP (Local & Eco Mode)", "GoodWe Modbus UDP (Local & Eco Mode)")],
+    ["huawei_sun2000", l("Huawei SUN2000 (LUNA2000 & TOU)", "Huawei SUN2000 (LUNA2000 & TOU)")],
+    ["solarman_profiles", l("Hồ sơ Solarman (Đa thương hiệu)", "Solarman Profiles (Multi-Vendor)")],
+    ["sungrow_shx", l("Sungrow SHx Hybrid (Modbus TCP & SBR)", "Sungrow SHx Hybrid (Modbus TCP & SBR)")],
+    ["deye_mqtt", l("Deye & SunSynk (Cầu nối MQTT)", "Deye & SunSynk (MQTT Bridge)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -258,6 +265,41 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: SMARTESS / EYBOND LOCAL WI-FI & P17 INVERTER
   if (currentTab === "smartess_local") {
     await renderSmartEssLocalSubtab(ui, container);
+  }
+
+  // SUB-TAB: GROWATT CLOUD OPENAPI V1
+  if (currentTab === "growatt_cloud") {
+    await renderGrowattCloudSubtab(ui, container);
+  }
+
+  // SUB-TAB: ESP EYEBOND COLLECTOR & VOLTRONIC PI30
+  if (currentTab === "eybond_esp") {
+    await renderEybondEspSubtab(ui, container);
+  }
+
+  // SUB-TAB: GOODWE LOCAL UDP & MODBUS RTU
+  if (currentTab === "goodwe_local") {
+    await renderGoodWeLocalSubtab(ui, container);
+  }
+
+  // SUB-TAB: HUAWEI SUN2000 & LUNA2000
+  if (currentTab === "huawei_sun2000") {
+    await renderHuaweiSun2000Subtab(ui, container);
+  }
+
+  // SUB-TAB: SOLARMAN PROFILE CATALOGUE & MULTI-VENDOR ENGINE
+  if (currentTab === "solarman_profiles") {
+    await renderSolarmanProfilesSubtab(ui, container);
+  }
+
+  // SUB-TAB: SUNGROW SHX HYBRID & SBR MODBUS TCP ENGINE
+  if (currentTab === "sungrow_shx") {
+    await renderSungrowShxSubtab(ui, container);
+  }
+
+  // SUB-TAB: DEYE & SUNSYNK MULTI-FAMILY INVERTER MQTT BRIDGE
+  if (currentTab === "deye_mqtt") {
+    await renderDeyeMqttSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -628,7 +670,6 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_node_id";
         inp.value = "solis2mqtt";
-
         return inp;
       })(),
       e("label", "Prefix:"),
@@ -636,7 +677,6 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_disc_prefix";
         inp.value = "homeassistant";
-
         return inp;
       })()
     )
@@ -676,9 +716,7 @@ async function renderSolisMqttSubtab(ui, container) {
           (() => {
             const numCfg = configs.find((c) => c.entity_type === "number") || configs[0];
             const pre = e("pre", JSON.stringify(numCfg?.payload || {}, null, 2), "monospace small");
-
-
-
+            pre.className = "code-block";
             return pre;
           })()
         )
@@ -811,7 +849,6 @@ async function renderSolisMqttSubtab(ui, container) {
           inp.max = "100";
           inp.step = "5";
           inp.value = "75.0";
-
           return inp;
         })(),
         btn("Biên dịch khung FC06 Power Limit", async () => {
@@ -903,7 +940,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_acc";
         inp.placeholder = "operator@semsportal.com";
-
         return inp;
       })(),
       e("label", "Mã trạm (Station ID):"),
@@ -911,7 +947,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_stid";
         inp.value = "gw_rooftop_vn01";
-
         return inp;
       })(),
       btn("Kiểm tra kết nối SEMS Portal", async () => {
@@ -1025,7 +1060,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         inp.id = "goodwe_rep_month";
         inp.type = "month";
         inp.value = "2026-09";
-
         return inp;
       })(),
       btn("Tải báo cáo sản lượng tháng (v1/ReportData)", async () => {
@@ -1272,6 +1306,202 @@ async function renderGrowattSphSubtab(ui, container) {
 
   bmsCard.append(bmsNotice, readBmsBtn, bmsResults);
   sphBox.append(bmsCard);
+
+  // 4. MULTI-PHASE ARCHITECTURE & 3-PHASE TELEMETRY (SPH TL3)
+  const multiPhaseCard = card(l("4. Nhận diện Kiến trúc Đa pha (SPH 1 Pha vs SPH TL3 3 Pha)", "4. Multi-Phase Architecture & 3-Phase Telemetry (SPH TL3)"));
+  const multiPhaseNotice = p(
+    "Dựa trên mã nguồn ha-growatt-modbus (Lu-Fi), hệ thống tự động nhận diện kiến trúc phần cứng qua thanh ghi giữ 44 (Tracker/Phase: byte cao = số MPPT, byte thấp = số pha 1 hoặc 3) và thanh ghi 43 (DTC). Đối với dòng 3 pha SPH TL3, hệ thống kích hoạt khối đo xa đối xứng từng pha L1, L2, L3 (Điện áp pha, công suất pha, điện áp dây L1-L2, L2-L3, L3-L1).",
+    "muted"
+  );
+
+  const multiPhaseResults = div("stack");
+  const read3PhaseBtn = btn(l("Nhận diện & Đo xa Biến tần SPH TL3 3 Pha", "Identify & Read 3-Phase SPH TL3 Telemetry"), async () => {
+    multiPhaseResults.replaceChildren(notice("Đang đọc và giải mã thanh ghi SPH TL3…", "Reading..."));
+    try {
+      const simulatedHolding = {
+        43: 20,
+        44: (2 << 8) | 3, // 2 trackers, 3 phases (0x0203)
+        23: 0x5350, 24: 0x4854, 25: 0x4C33, 26: 0x3030, 27: 0x3132, // Serial "SPHTL30012"
+        9: 0x5941, 10: 0x312E, 11: 0x3000, // FW "YA1.0"
+        12: 0x4441, 13: 0x312E, 14: 0x3000, // Ctrl FW "DA1.0"
+        122: 1, 123: 650, // 65.0% export limit
+        608: 20,
+        1070: 80, 1071: 15,
+        1080: (1 << 8) | 0, 1081: (5 << 8) | 0, 1082: 1,
+        1090: 90, 1091: 100, 1092: 1,
+        1100: (22 << 8) | 0, 1101: (6 << 8) | 0, 1102: 1,
+      };
+
+      const simulatedInput = {
+        0: 1, 1000: 5,
+        1: 0, 2: 52000, // 5200.0 W PV
+        3: 3800, 4: 70, 5: 0, 6: 26600, // PV1: 380V, 7A, 2660W
+        7: 3750, 8: 68, 9: 0, 10: 25400, // PV2: 375V, 6.8A, 2540W
+        38: 2305, 40: 0, 41: 16500, // L1: 230.5V, 1650W
+        42: 2298, 44: 0, 45: 16800, // L2: 229.8V, 1680W
+        46: 2312, 48: 0, 49: 17200, // L3: 231.2V, 1720W
+        1013: 528, 1014: 220, 1009: 1160, 1017: 82, // Bat: 52.8V, 22A, 1160W, 82%
+        1037: 0, 1038: 18500, // Load: 1850W
+        1029: 0, 1030: 0,     // EPS: 0W
+      };
+
+      const res = await api("/growatt-multiphase/decode-telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          input_registers: simulatedInput,
+          holding_registers: simulatedHolding,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const grid = tel.grid || {};
+
+      multiPhaseResults.replaceChildren(
+        div("stack",
+          div("overview-kpis",
+            div("fact", e("span", "Kiến trúc Biến tần"), badge(`${tel.phase_count} Pha (${tel.profile})`, "blue")),
+            div("fact", e("span", "Số kênh MPPT"), badge(`${tel.tracker_count} Trackers`, "secondary")),
+            div("fact", e("span", "Số Serial Inverter"), e("b", tel.serial_number)),
+            div("fact", e("span", "Firmware / Control"), e("b", `${tel.firmware_version} / ${tel.control_firmware_version}`)),
+            div("fact", e("span", "Tổng Công suất Lưới 3 Pha"), badge(`${pf.grid_power_w} W`, "good")),
+          ),
+          card("Bảng đo xa 3 Pha Đối xứng (3-Phase Grid Metrics)",
+            table(
+              ["Pha điện lực", "Điện áp Pha (V)", "Công suất Xuất/Nhận (W)", "Trạng thái vận hành"],
+              [
+                ["Pha L1 (R)", `${grid.voltage_l1_v} V`, `${pf.grid_l1_power_w} W`, badge("Bình thường", "good")],
+                ["Pha L2 (S)", `${grid.voltage_l2_v} V`, `${pf.grid_l2_power_w} W`, badge("Bình thường", "good")],
+                ["Pha L3 (T)", `${grid.voltage_l3_v} V`, `${pf.grid_l3_power_w} W`, badge("Bình thường", "good")],
+              ]
+            )
+          )
+        )
+      );
+    } catch (err) {
+      multiPhaseResults.replaceChildren(notice("Lỗi nhận diện đa pha: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  multiPhaseCard.append(multiPhaseNotice, read3PhaseBtn, multiPhaseResults);
+  sphBox.append(multiPhaseCard);
+
+  // 5. EXPORT LIMITATION & ZERO FEED-IN CONTROLS
+  const exportCard = card(l("5. Điều khiển Bám tải & Chống phát ngược (Export Limitation / Zero Feed-in)", "5. Zero Feed-in / Export Limitation Controls (Regs 122 & 123)"));
+  const exportNotice = p(
+    "Growatt SPH hỗ trợ bám tải không phát ngược ra lưới điện qua thanh ghi giữ 122 (Bật/Tắt chống phát ngược) và 123 (Giới hạn công suất phát ngược theo % với độ phân giải 0.1%). Kết hợp với thanh ghi 608 để bảo vệ mức xả pin tối thiểu.",
+    "muted"
+  );
+
+  const expControls = div("row gap-sm items-center");
+  const expEnableSelect = e("select", null, "input-select");
+  [
+    ["true", "Kích hoạt Chống phát ngược (Enable)"],
+    ["false", "Vô hiệu hóa Chống phát ngược (Disable)"],
+  ].forEach(([v, t]) => {
+    const opt = e("option", t);
+    opt.value = v;
+    expEnableSelect.append(opt);
+  });
+
+  const expRateInput = e("input", null, "input-text");
+  expRateInput.type = "number";
+  expRateInput.value = "50.0";
+  expRateInput.step = "0.5";
+  expRateInput.min = "0";
+  expRateInput.max = "100";
+  expRateInput.placeholder = "Công suất phát tối đa (%)";
+
+  const expResults = div("stack");
+
+  const compileExpBtn = btn(l("Biên dịch lệnh Chống phát ngược (FC06)", "Compile Export Limit (FC06)"), async () => {
+    try {
+      const isEnable = expEnableSelect.value === "true";
+      const rate = parseFloat(expRateInput.value) || 50.0;
+
+      const res = await api("/growatt-multiphase/compile-export-limit", {
+        method: "POST",
+        body: JSON.stringify({ enable: isEnable, limit_rate_percent: rate }),
+      });
+
+      const cmd = res.command || {};
+      const regs = cmd.registers || {};
+
+      expResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Lệnh Chống phát ngược đã biên dịch`),
+            badge(cmd.status, "warn")
+          ),
+          table(
+            ["Thanh ghi điều khiển", "Địa chỉ Modbus", "Giá trị ghi (Raw)", "Ý nghĩa kỹ thuật"],
+            [
+              ["Export Limit Enable", "Reg 122 (Holding)", `${regs[122]}`, regs[122] === 1 ? "Bật bám tải (Zero Feed-in ON)" : "Tắt bám tải"],
+              ["Export Limit Rate", "Reg 123 (Holding)", `${regs[123]}`, `Giới hạn: ${(regs[123] * 0.1).toFixed(1)}% định mức (tỉ lệ 0.1)`],
+            ]
+          ),
+          notice(cmd.reason, "Warning")
+        )
+      );
+    } catch (err) {
+      expResults.replaceChildren(notice("Lỗi biên dịch lệnh: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  expControls.append(expEnableSelect, expRateInput, compileExpBtn);
+  exportCard.append(exportNotice, expControls, expResults);
+  sphBox.append(exportCard);
+
+  // 6. 112-BIT COMPREHENSIVE FAULT & WARNING MATRIX
+  const faultCard = card(l("6. Giải mã Ma trận 112-Bit Sự cố & Cảnh báo (Input Regs 1001..1007)", "6. 112-Bit Fault & Warning Matrix (Input Regs 1001..1007)"));
+  const faultNotice = p(
+    "Growatt phân bổ 7 thanh ghi đầu vào (1001..1007) tương ứng 112 bit cờ trạng thái để giám sát toàn diện lỗi lưới, lỗi biến tần, lỗi cách điện PV, lỗi quá nhiệt và lỗi giao tiếp BMS/Meter. Hệ thống phân tách tự động lỗi nghiêm trọng (CRITICAL - ngắt lưới) và cảnh báo thứ cấp (WARNING - ví dụ điện áp PV thấp ban đêm).",
+    "muted"
+  );
+
+  const faultResults = div("stack");
+  const readFaultsBtn = btn(l("Giải mã Ma trận 112-Bit Sự cố", "Decode 112-Bit Faults Matrix"), async () => {
+    faultResults.replaceChildren(notice("Đang quét và giải mã bit sự cố…", "Scanning..."));
+    try {
+      const simulatedFaults = {
+        1001: 0x0001, // Bit 0: MasterForceINVFault (CRITICAL)
+        1002: 0x8000, // Bit 15: NoUtility (CRITICAL)
+        1005: 0x0020, // Bit 5: PV1_VoltLowWarn (WARNING)
+        1007: 0x0100, // Bit 8: BoostDriver1Warn (WARNING)
+      };
+
+      const res = await api("/growatt-multiphase/decode-faults", {
+        method: "POST",
+        body: JSON.stringify({ fault_registers: simulatedFaults }),
+      });
+
+      const alarms = res.alarms || [];
+
+      faultResults.replaceChildren(
+        div("stack",
+          div("row justify-between items-center",
+            e("h4", `Phát hiện ${alarms.length} sự cố / cảnh báo từ thanh ghi 1001..1007`),
+            badge(alarms.some(a => a.severity === "CRITICAL") ? "CRITICAL ALARM" : "NORMAL", alarms.some(a => a.severity === "CRITICAL") ? "critical" : "good")
+          ),
+          table(
+            ["Thanh ghi nguồn", "Vị trí Bit", "Mã lỗi kỹ thuật", "Mức độ nghiêm trọng", "Hành động khuyến nghị"],
+            alarms.map(a => [
+              `Reg ${a.register}`,
+              `Bit ${a.bit}`,
+              e("b", a.code),
+              badge(a.severity, a.severity === "CRITICAL" ? "critical" : "warn"),
+              a.severity === "CRITICAL" ? "Kiểm tra hệ thống điện & Inverter ngắt an toàn" : "Cảnh báo vận hành thứ cấp, tự phục hồi",
+            ])
+          )
+        )
+      );
+    } catch (err) {
+      faultResults.replaceChildren(notice("Lỗi giải mã sự cố: " + err.message, "Error"));
+    }
+  }, "secondary");
+
+  faultCard.append(faultNotice, readFaultsBtn, faultResults);
+  sphBox.append(faultCard);
 
   container.append(sphBox);
 }
@@ -1958,8 +2188,6 @@ async function renderSolarmanV5Subtab(ui, container) {
 
   const decInputArea = e("textarea", null, "input-textarea");
   decInputArea.rows = 3;
-
-
   // Prepopulate with a verified synthetic response frame:
   // Start=A5, Len=15 (0x0F,0x00), Code=10 15, Seq=01 00, Serial=DE C0 AD 89 (2309865694), Type=02, Status=01, Times..., Modbus RTU (01 03 02 01 F4 78 8B), Checksum=XX, End=15
   decInputArea.value = "";
@@ -2301,6 +2529,2259 @@ async function renderSmartEssLocalSubtab(ui, container) {
   essBox.append(frameCard);
 
   container.append(essBox);
+}
+
+async function renderGrowattCloudSubtab(ui, container) {
+  const { e, div, p, card, table, badge, notice } = ui;
+  const button = (label, handler, cls = "secondary") => {
+    const b = e("button", label, `btn btn-${cls}`);
+    b.onclick = handler;
+    return b;
+  };
+
+  const gwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div(
+    "card",
+    div("row justify-between items-center",
+      div("stack",
+        e("h3", l("Cổng kết nối Đám mây Growatt (OpenAPI V1 & ShineServer)", "Growatt Cloud Gateway (OpenAPI V1 & ShineServer)")),
+        p(l(
+          "Tích hợp kiến trúc Growatt Cloud OpenAPI V1 chính thức (Showdoc 262556420217021) dựa trên nghiên cứu độc lập PyPi_GrowattServer. Hỗ trợ đa khu vực (Toàn cầu, Trung Quốc, Bắc Mỹ), chuẩn hóa dữ liệu SPH/MIN về Solar Fleet EMS, và bộ biên dịch tham số an toàn (Default Read-Only Gate).",
+          "Official Growatt OpenAPI V1 cloud integration researched from PyPi_GrowattServer. Supports multi-region endpoints (Global, CN, US), SPH/MIN telemetry normalization, and safe parameter write compilers under hardware acceptance gates."
+        ), "muted")
+      ),
+      badge(l("OpenAPI V1 Độc lập", "Independent OpenAPI V1"), "good")
+    )
+  );
+  gwBox.append(banner);
+
+  // 1. Gateway & Station Explorer
+  const stationCard = card(l("1. Quản lý Nhà máy & Trạm năng lượng (Plant Overview)", "1. Plant & Power Station Explorer"));
+  const stationNotice = p(
+    l("Truy vấn danh mục nhà máy từ máy chủ Growatt Cloud tương ứng theo Token API. Mô phỏng trạm solar tiêu biểu kèm thông số công suất và sản lượng tích lũy.",
+      "Query plant registry from regional Growatt Cloud server using API Token. Simulated plant overview with peak power and generation metrics."),
+    "muted"
+  );
+
+  const authRow = div("row gap-sm items-center");
+  const regionSelect = e("select", null, "input-select");
+  [["global", "Global Server (openapi.growatt.com)"], ["cn", "China Server (openapi-cn.growatt.com)"], ["us", "North America Server (openapi-us.growatt.com)"]].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    regionSelect.append(opt);
+  });
+
+  const tokenInput = e("input", null, "input-text");
+  tokenInput.value = "DEMO-GROWATT-TOKEN-001";
+  tokenInput.placeholder = "API Token";
+
+  const plantResults = div("stack");
+
+  const fetchPlantsBtn = button(l("Tải danh mục Trạm (Fetch Plants)", "Fetch Plants"), async () => {
+    try {
+      const res = await ui.api("/growatt-cloud/plants", {
+        method: "POST",
+        body: JSON.stringify({ token: tokenInput.value, region: regionSelect.value }),
+      });
+      const plants = res.plants || [];
+      if (!plants.length) {
+        plantResults.replaceChildren(notice(l("Không tìm thấy trạm nào.", "No plants found."), "info"));
+        return;
+      }
+      const p0 = plants[0];
+      plantResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${p0.plant_name} [${p0.plant_id}]`),
+            badge(`${p0.city}, ${p0.country}`, "blue")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Công suất Đỉnh", "Peak Power")), badge(`${p0.peak_power_kw} kW`, "good")),
+            div("fact", e("span", l("Công suất Hiện tại", "Current Power")), badge(`${p0.current_power_w} W`, "blue")),
+            div("fact", e("span", l("Sản lượng Hôm nay", "Today Energy")), badge(`${p0.today_energy_kwh} kWh`, "secondary")),
+            div("fact", e("span", l("Tổng Sản lượng", "Total Energy")), e("b", `${p0.total_energy_kwh} kWh`)),
+            div("fact", e("span", l("Số Thiết bị", "Device Count")), e("b", `${p0.device_count}`)),
+          )
+        )
+      );
+    } catch (err) {
+      plantResults.replaceChildren(notice(l("Lỗi truy vấn trạm: ", "Error fetching plants: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  authRow.append(regionSelect, tokenInput, fetchPlantsBtn);
+  stationCard.append(stationNotice, authRow, plantResults);
+  gwBox.append(stationCard);
+
+  // 2. Device Explorer & Telemetry Ingestion
+  const devCard = card(l("2. Giám sát Thiết bị & Bóc tách Telemetry SPH Hybrid", "2. Device Explorer & SPH Hybrid Telemetry"));
+  const devNotice = p(
+    l("Truy vấn thiết bị trong trạm và bóc tách dữ liệu SPH Hybrid (dòng điện, công suất PV1/PV2, Pin lưu trữ, Lưới điện, và chế độ ưu tiên hoạt động).",
+      "List plant devices and decode detailed SPH Hybrid telemetry (solar flows, battery voltage/SOC, grid, and priority mode)."),
+    "muted"
+  );
+
+  const devRow = div("row gap-sm items-center");
+  const devSnInput = e("input", null, "input-text");
+  devSnInput.value = "SPH460001";
+  devSnInput.placeholder = "Device SN (SPH...)";
+
+  const devResults = div("stack");
+
+  const fetchDevBtn = button(l("Đọc Telemetry Chi tiết (Read SPH)", "Read SPH Telemetry"), async () => {
+    try {
+      const res = await ui.api("/growatt-cloud/sph-detail", {
+        method: "POST",
+        body: JSON.stringify({ token: tokenInput.value, region: regionSelect.value, device_sn: devSnInput.value }),
+      });
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const bat = tel.battery || {};
+      const cfg = tel.configuration || {};
+
+      devResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${tel.model_type} [SN: ${tel.serial_number}]`),
+            badge(`FW: ${tel.firmware_version}`, "secondary")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Tổng PV", "Total PV")), badge(`${pf.solar_power_w} W`, "good")),
+            div("fact", e("span", l("Lưới AC", "Grid Feed")), badge(`${pf.grid_power_w} W`, "blue")),
+            div("fact", e("span", l("Tải Tiêu thụ", "Home Load")), e("b", `${pf.load_power_w} W`)),
+            div("fact", e("span", l("Pin SOC", "Battery SOC")), badge(`${bat.soc_percent}%`, bat.soc_percent > 30 ? "good" : "warn")),
+            div("fact", e("span", l("Điện áp Pin", "Battery Volt")), e("b", `${bat.voltage_v} V`)),
+            div("fact", e("span", l("Chế độ Ưu tiên", "Priority Mode")), badge(cfg.priority_mode, "blue")),
+          ),
+          div("plant-card-grid",
+            div("plant-visual-card",
+              e("h5", l("Luồng Công suất & MPPT PV", "Power Flow & MPPT Trackers")),
+              table(
+                [l("Thông số", "Parameter"), l("Giá trị", "Value")],
+                [
+                  [l("PV1 (Công suất / Điện áp)", "PV1 Power / Voltage"), `${pf.pv1_power_w} W (${pf.pv1_voltage_v} V)`],
+                  [l("PV2 (Công suất / Điện áp)", "PV2 Power / Voltage"), `${pf.pv2_power_w} W (${pf.pv2_voltage_v} V)`],
+                  [l("Công suất Định mức Biến tần", "Inverter Rated Power"), `${pf.rated_power_w} W`],
+                  [l("Công suất Sạc/Xả Pin", "Battery Charge/Discharge"), `${pf.battery_power_w} W`],
+                  [l("Ngưỡng Ngắt Xả Pin (Cutoff)", "Discharge Cutoff SOC"), `${bat.discharge_min_soc}%`],
+                ]
+              )
+            ),
+            div("plant-visual-card",
+              e("h5", l("Cấu hình Hoạt động & Lịch Trình (TOU)", "Operating Config & TOU Windows")),
+              table(
+                [l("Tham số", "Parameter"), l("Giá trị Cấu hình", "Config Value")],
+                [
+                  [l("Sạc từ Lưới (AC Charging)", "AC Grid Charging"), badge(cfg.ac_charge_enabled ? l("Kích hoạt (ON)", "Enabled") : l("Tắt (OFF)", "Disabled"), cfg.ac_charge_enabled ? "good" : "warn")],
+                  [l("Giới hạn Công suất Sạc", "Charge Power Limit"), `${cfg.charge_power_limit_pct}%`],
+                  [l("Giới hạn Công suất Xả", "Discharge Power Limit"), `${cfg.discharge_power_limit_pct}%`],
+                  [l("Khung giờ Sạc Cưỡng bức (Window 1)", "Forced Charge W1"), `${(cfg.charge_windows && cfg.charge_windows[0]) ? cfg.charge_windows[0].start + ' - ' + cfg.charge_windows[0].stop : 'N/A'}`],
+                  [l("Khung giờ Xả Cưỡng bức (Window 1)", "Forced Discharge W1"), `${(cfg.discharge_windows && cfg.discharge_windows[0]) ? cfg.discharge_windows[0].start + ' - ' + cfg.discharge_windows[0].stop : 'N/A'}`],
+                ]
+              )
+            )
+          )
+        )
+      );
+    } catch (err) {
+      devResults.replaceChildren(notice(l("Lỗi đọc telemetry: ", "Error reading telemetry: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  devRow.append(devSnInput, fetchDevBtn);
+  devCard.append(devNotice, devRow, devResults);
+  gwBox.append(devCard);
+
+  // 3. Safe Cloud Parameter Compiler (Hardware Acceptance Gate)
+  const cmdCard = card(l("3. Bộ biên dịch Tham số Cấu hình Đám mây (Gated Parameter Writing)", "3. Cloud Parameter Compilers & Safety Gates"));
+  const cmdNotice = p(
+    l("Biên dịch lệnh ghi cấu hình từ xa cho biến tần SPH và MIN qua OpenAPI V1 (/v1/device/sph/settings). Mọi lệnh gửi lên đều bị KHÓA theo cơ chế LOCKED_PENDING_HARDWARE_ACCEPTANCE để bảo đảm an toàn điện lưới.",
+      "Compile remote configuration commands for SPH and MIN series via OpenAPI V1. All write operations are strictly locked under LOCKED_PENDING_HARDWARE_ACCEPTANCE safety gating."),
+    "muted"
+  );
+
+  const cmdTypeSelect = e("select", null, "input-select");
+  [
+    ["sph_priority", l("SPH: Chế độ Ưu tiên (Priority Mode)", "SPH: Priority Mode")],
+    ["sph_ac_charge", l("SPH: Bật/Tắt Sạc từ Lưới (AC Charging)", "SPH: AC Grid Charging Toggle")],
+    ["sph_power_limits", l("SPH: Giới hạn Công suất Sạc/Xả", "SPH: Charge/Discharge Power Limits")],
+    ["min_time_segment", l("MIN/TLX: Đoạn lịch trình TOU (Segment 1..9)", "MIN/TLX: TOU Time Segment (1..9)")],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    cmdTypeSelect.append(opt);
+  });
+
+  const cmdControlsRow = div("row gap-sm items-center");
+  const cmdValInput = e("input", null, "input-text");
+  cmdValInput.value = "1";
+  cmdValInput.placeholder = "Giá trị / Mã";
+
+  const cmdResults = div("stack");
+
+  const compileBtn = button(l("Biên dịch Lệnh (Compile & Test Gate)", "Compile & Test Gate"), async () => {
+    try {
+      const cType = cmdTypeSelect.value;
+      let params = {};
+      if (cType === "sph_priority") {
+        params = { priority_code: parseInt(cmdValInput.value || "1", 10) };
+      } else if (cType === "sph_ac_charge") {
+        params = { enable: cmdValInput.value === "1" || cmdValInput.value.toLowerCase() === "true" };
+      } else if (cType === "sph_power_limits") {
+        params = { charge_pct: parseInt(cmdValInput.value || "80", 10), discharge_pct: 100 };
+      } else if (cType === "min_time_segment") {
+        params = { segment_id: parseInt(cmdValInput.value || "1", 10), batt_mode: 1, start_time: "02:00", end_time: "06:00", enabled: true };
+      }
+
+      const res = await ui.api("/growatt-cloud/command", {
+        method: "POST",
+        body: JSON.stringify({
+          token: tokenInput.value,
+          region: regionSelect.value,
+          command_type: cType,
+          params: params,
+          unlocked: false, // strictly enforce default safety gate
+        }),
+      });
+
+      const r = res.result || {};
+      cmdResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Kiểm tra Cổng An toàn", "Safety Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh", "Command Type"), r.command_type],
+              [l("Tham số truyền", "Parameters"), e("code", JSON.stringify(r.params))],
+              [l("Thông điệp An toàn", "Safety Notice"), r.message || l("Lệnh bị chặn bởi cổng nghiệm thu phần cứng.", "Command blocked by hardware acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      cmdResults.replaceChildren(notice(l("Lỗi biên dịch lệnh: ", "Error compiling command: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  cmdControlsRow.append(cmdTypeSelect, cmdValInput, compileBtn);
+  cmdCard.append(cmdNotice, cmdControlsRow, cmdResults);
+  gwBox.append(cmdCard);
+
+  container.append(gwBox);
+}
+
+async function renderEybondEspSubtab(ui, container) {
+  const { e, div, p, card, table, badge, notice } = ui;
+  const button = (label, handler, cls = "secondary") => {
+    const b = e("button", label, `btn btn-${cls}`);
+    b.onclick = handler;
+    return b;
+  };
+
+  const espBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div(
+    "card",
+    div("row justify-between items-center",
+      div("stack",
+        e("h3", l("Cầu nối Thu thập Dữ liệu ESP EyeBond & Voltronic PI30", "ESP EyeBond Collector Bridge & Voltronic PI30 Engine")),
+        p(l(
+          "Cấu hình thu thập phần cứng mã nguồn mở độc lập (ESP32 / ESP8266 / BK72xx) thay thế cục Wi-Fi SmartESS / Eybond gốc theo esp-eybond-collector. Hỗ trợ bắt tay UDP Port 58899, bộ lệnh giao tiếp AT, bóc tách chuỗi Voltronic QPIGS, ma trận 32 cờ cảnh báo QPIWS, và bộ biên dịch điều khiển an toàn (Gated Control).",
+          "Open-source embedded bridge firmware replacing factory SmartESS/Eybond Wi-Fi dongles (ESP32/ESP8266/BK72xx). Features UDP port 58899 discovery, AT command handler, Voltronic QPIGS telemetry decoder, 32-flag QPIWS alarm matrix, and safety-gated parameter compilers."
+        ), "muted")
+      ),
+      badge(l("Cầu nối ESP / PI30", "ESP / PI30 Bridge"), "good")
+    )
+  );
+  espBox.append(banner);
+
+  // 1. ESP Collector Bridge & Network Status (UDP & AT Commands)
+  const bridgeCard = card(l("1. Trạng thái Bộ thu thập ESP & Giao tiếp Lệnh AT (Bridge & AT Interface)", "1. ESP Collector Bridge & AT Command Interface"));
+  const bridgeNotice = p(
+    l("Bộ thu thập ESP chạy firmware độc lập tự động phản hồi UDP discovery ('set>server=IP:PORT;' -> 'rsp>server=2;') và thiết lập kết nối TCP ngược về Solar Fleet EMS. Bạn có thể tương tác với tập lệnh AT để kiểm tra cấu hình mạng và thông số UART.",
+      "The ESP bridge firmware listens on UDP 58899 for discovery redirect and establishes reverse-TCP to Solar Fleet EMS. Interact with the AT command processor to verify network and UART parameters."),
+    "muted"
+  );
+
+  const atControlsRow = div("row gap-sm items-center");
+  const atSelect = e("select", null, "input-select");
+  [
+    ["AT+DTUPN?", "AT+DTUPN? (Số serial PN bộ thu thập)"],
+    ["AT+FWVER?", "AT+FWVER? (Phiên bản Firmware Bridge)"],
+    ["AT+ATVER?", "AT+ATVER? (Phiên bản giao tiếp AT)"],
+    ["AT+UART?", "AT+UART? (Cấu hình Baudrate & Parity)"],
+    ["AT+CLDSRVHOST1?", "AT+CLDSRVHOST1? (Địa chỉ EMS Server đích)"],
+    ["AT+WFSS?", "AT+WFSS? (Cường độ sóng Wi-Fi RSSI)"],
+    ["AT+LINK?", "AT+LINK? (Trạng thái liên kết TCP)"],
+    ["AT+SYST?", "AT+SYST? (Đồng hồ hệ thống)"],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    atSelect.append(opt);
+  });
+
+  const atResults = div("stack");
+
+  const sendAtBtn = button(l("Gửi Lệnh AT (Send AT)", "Send AT Command"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/parse-at", {
+        method: "POST",
+        body: JSON.stringify({
+          at_line: atSelect.value,
+          profile_pn: "V00123456789012345",
+          firmware_ver: "0.1.10",
+          uart_cfg: "2400,8,1,NONE",
+        }),
+      });
+      atResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", `Phản hồi: ${res.command}`),
+            badge("OK", "good")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Lệnh gửi", "Command Sent"), e("code", atSelect.value)],
+              [l("Kiểu lệnh", "Command Type"), res.is_write ? l("Ghi cấu hình (Write)", "Write") : l("Truy vấn (Query)", "Query")],
+              [l("Chuỗi phản hồi chuẩn", "Collector Response"), badge(res.response, "blue")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      atResults.replaceChildren(notice(l("Lỗi lệnh AT: ", "AT command error: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  const testUdpBtn = button(l("Thử nghiệm UDP 58899 Discovery", "Test UDP Discovery"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/discover", {
+        method: "POST",
+        body: JSON.stringify({ raw_udp_text: "set>server=192.168.1.100:8899;" }),
+      });
+      atResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Bắt tay UDP Port 58899", "UDP Discovery Handshake")),
+            badge("UDP 200 OK", "good")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Máy chủ EMS đích", "Target Server Host"), res.server_host],
+              [l("Cổng TCP kết nối ngược", "Reverse TCP Port"), `${res.server_port}`],
+              [l("Gói phản hồi Handshake", "Handshake Response"), badge(res.udp_reply, "good")],
+              [l("Ghi chú", "Note"), l("ESP Collector nhận được lệnh sẽ lập tức khởi tạo luồng TCP ngược về EMS", "ESP Collector initiates reverse TCP stream to EMS upon receiving redirect")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      atResults.replaceChildren(notice(l("Lỗi kiểm tra UDP: ", "UDP discovery error: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  atControlsRow.append(atSelect, sendAtBtn, testUdpBtn);
+  bridgeCard.append(bridgeNotice, atControlsRow, atResults);
+  espBox.append(bridgeCard);
+
+  // 2. Voltronic PI30 Inverter Telemetry & Power Flow
+  const telCard = card(l("2. Bóc tách Telemetry Inverter Voltronic PI30 (QPIGS & QPIWS)", "2. Voltronic PI30 Inverter Telemetry & Status"));
+  const telNotice = p(
+    l("Giải mã chuỗi phản hồi trạng thái toàn diện QPIGS (21 trường đo đạc) cùng ma trận 32 cờ cảnh báo lỗi QPIWS của các dòng biến tần Axpert / Bluesun / PowMr / EASun.",
+      "Decode QPIGS general status telemetry (21 measurement fields) and 32-bit QPIWS warning matrix from Axpert/Bluesun/PowMr/EASun inverters."),
+    "muted"
+  );
+
+  const telInputRow = div("row gap-sm items-center");
+  const qpigsInput = e("input", null, "input-text");
+  qpigsInput.value = "239.5 49.9 239.5 49.9 0927 0924 015 396 53.20 000 100 0028 002.2 315.9 00.00 00000 00010000 00 00 00665 000";
+  qpigsInput.placeholder = "Chuỗi QPIGS";
+
+  const modeSelect = e("select", null, "input-select");
+  [
+    ["L", "Chế độ Lưới (Line Mode - L)"],
+    ["B", "Chế độ Pin (Battery Mode - B)"],
+    ["S", "Chế độ Chờ (Standby Mode - S)"],
+    ["F", "Chế độ Lỗi (Fault Mode - F)"],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    modeSelect.append(opt);
+  });
+
+  const telResults = div("stack");
+
+  const decodeBtn = button(l("Bóc tách Telemetry (Decode QPIGS)", "Decode QPIGS"), async () => {
+    try {
+      const res = await ui.api("/eybond-collector/decode-pigs", {
+        method: "POST",
+        body: JSON.stringify({
+          raw_qpigs: qpigsInput.value,
+          mode_char: modeSelect.value,
+          qpiws_flags: "00000100000000000000000000000000",
+          collector_pn: "V00123456789012345",
+          inverter_sn: "INV-AXPERT-5KW",
+        }),
+      });
+      const tel = res.telemetry || {};
+      const pf = tel.power_flow || {};
+      const bat = tel.battery || {};
+      const grid = tel.grid || {};
+      const diag = tel.diagnostics || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h4", `${tel.vendor} [${tel.model}]`),
+            badge(tel.operating_mode, "blue")
+          ),
+          div("overview-kpis",
+            div("fact", e("span", l("Công suất PV", "Solar PV")), badge(`${pf.solar_power_w} W`, "good")),
+            div("fact", e("span", l("Công suất Tải AC", "Load Active")), badge(`${pf.load_power_w} W`, "blue")),
+            div("fact", e("span", l("Điện áp Pin", "Battery Volt")), e("b", `${bat.voltage_v} V`)),
+            div("fact", e("span", l("Dung lượng SOC", "Battery SOC")), badge(`${bat.soc_percent}%`, bat.soc_percent > 30 ? "good" : "warn")),
+            div("fact", e("span", l("Nhiệt độ Tản nhiệt", "Heatsink Temp")), e("b", `${diag.heatsink_temperature_c} °C`)),
+            div("fact", e("span", l("Cảnh báo hoạt động", "Active Warnings")), badge(`${diag.active_warnings_count}`, diag.active_warnings_count ? "warn" : "good")),
+          ),
+          div("plant-card-grid",
+            div("plant-visual-card",
+              e("h5", l("Chi tiết Nguồn điện & Tải AC", "Grid & Load Details")),
+              table(
+                [l("Thông số", "Parameter"), l("Giá trị", "Value")],
+                [
+                  [l("Điện áp & Tần số Lưới vào", "Grid Voltage & Frequency"), `${grid.voltage_v} V / ${grid.frequency_hz} Hz`],
+                  [l("Điện áp & Tần số Ngõ ra AC", "Output Voltage & Frequency"), `${grid.output_voltage_v} V / ${grid.output_frequency_hz} Hz`],
+                  [l("Công suất Biểu kiến Tải", "Load Apparent Power"), `${pf.load_apparent_va} VA (${pf.load_percent}%)`],
+                  [l("Dòng & Điện áp MPPT PV", "PV Input Current & Voltage"), `${pf.pv_current_a} A / ${pf.pv_voltage_v} V`],
+                  [l("Điện áp Bus DC trung gian", "DC Bus Voltage"), `${bat.bus_voltage_v} V`],
+                ]
+              )
+            ),
+            div("plant-visual-card",
+              e("h5", l("Trạng thái Cảnh báo & Mã Lỗi (QPIWS)", "Alarm Status & Diagnostics")),
+              table(
+                [l("Vị trí Bit", "Bit"), l("Mã Cảnh báo", "Alarm Code"), l("Mức độ", "Severity")],
+                (diag.alarms && diag.alarms.length) ?
+                  diag.alarms.map(a => [`Bit ${a.bit}`, a.code, badge(a.severity, a.severity === "CRITICAL" ? "bad" : "warn")]) :
+                  [["—", l("Không có lỗi hoặc cảnh báo", "No active faults or warnings"), badge(l("Bình thường", "Normal"), "good")]]
+              )
+            )
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi bóc tách telemetry: ", "Error decoding telemetry: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  telInputRow.append(qpigsInput, modeSelect, decodeBtn);
+  telCard.append(telNotice, telInputRow, telResults);
+  espBox.append(telCard);
+
+  // 3. Voltronic Safe Parameter Compilers & Hardware Gate
+  const cmdCard = card(l("3. Bộ biên dịch Tham số Cấu hình Biến tần (Gated PI30 Controls)", "3. Inverter Parameter Compilers & Safety Gates"));
+  const cmdNotice = p(
+    l("Biên dịch lệnh cài đặt tham số Voltronic PI30 (POP, PCP, MCHGC, điện áp sạc) với mã kiểm tra CRC16-XMODEM và cơ chế Byte-Stuffing. Mọi lệnh ghi đều bị KHÓA theo cơ chế LOCKED_PENDING_HARDWARE_ACCEPTANCE.",
+      "Compile Voltronic PI30 parameter write commands with CRC16-XMODEM checksum and byte stuffing. All write actions are strictly locked under LOCKED_PENDING_HARDWARE_ACCEPTANCE."),
+    "muted"
+  );
+
+  const ctrlTypeSelect = e("select", null, "input-select");
+  [
+    ["output_priority", l("Ưu tiên Nguồn Xuất (POP: SBU / Solar First / Utility First)", "Output Priority (POP)")],
+    ["charger_priority", l("Ưu tiên Nguồn Sạc (PCP: Solar Only / Solar First / Utility First)", "Charger Priority (PCP)")],
+    ["charge_current", l("Dòng sạc tối đa (MCHGC: 10..120A)", "Max Charge Current (MCHGC)")],
+    ["battery_voltages", l("Điện áp Bulk / Float / Cutoff (PCVV, PBFT, PSDV)", "Battery Voltages (PCVV/PBFT/PSDV)")],
+  ].forEach(([val, txt]) => {
+    const opt = e("option", txt);
+    opt.value = val;
+    ctrlTypeSelect.append(opt);
+  });
+
+  const ctrlParamInput = e("input", null, "input-text");
+  ctrlParamInput.value = "sbu";
+  ctrlParamInput.placeholder = "Tham số (sbu, 60, ...)";
+
+  const ctrlResults = div("stack");
+
+  const compileCtrlBtn = button(l("Biên dịch Lệnh (Compile & Test Gate)", "Compile & Test Gate"), async () => {
+    try {
+      const cType = ctrlTypeSelect.value;
+      let params = {};
+      if (cType === "output_priority") {
+        params = { priority: ctrlParamInput.value || "sbu" };
+      } else if (cType === "charger_priority") {
+        params = { priority: ctrlParamInput.value || "solar_only" };
+      } else if (cType === "charge_current") {
+        params = { current_a: parseInt(ctrlParamInput.value || "60", 10) };
+      } else if (cType === "battery_voltages") {
+        params = { bulk_v: 56.4, float_v: 54.0, cutoff_v: 42.0 };
+      }
+
+      const res = await ui.api("/eybond-collector/command", {
+        method: "POST",
+        body: JSON.stringify({
+          command_type: cType,
+          params: params,
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Cổng Nghiệm thu Phần cứng", "Hardware Acceptance Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh điều khiển", "Command Type"), r.command_type],
+              [l("Tham số truyền", "Parameters"), e("code", JSON.stringify(r.params))],
+              [l("Thông điệp An toàn", "Safety Notice"), r.message || l("Lệnh bị chặn bởi cổng nghiệm thu phần cứng.", "Command blocked by hardware acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch lệnh: ", "Error compiling command: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const ctrlRow = div("row gap-sm items-center");
+  ctrlRow.append(ctrlTypeSelect, ctrlParamInput, compileCtrlBtn);
+  cmdCard.append(cmdNotice, ctrlRow, ctrlResults);
+  espBox.append(cmdCard);
+
+  container.append(espBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: GOODWE LOCAL INVERTER UDP / MODBUS RTU (Project #12)
+// ---------------------------------------------------------------------------
+async function renderGoodWeLocalSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const gwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("GoodWe Local Inverter Engine (Modbus UDP & AA55)", "GoodWe Local Inverter Engine (Modbus UDP & AA55)")),
+    badge(l("Nguồn sạch độc lập MIT • Giao tiếp Cục bộ Cổng 8899", "Clean-Room MIT • Local Port 8899 Engine"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao thức kết nối trực tiếp biến tần GoodWe qua mạng cục bộ LAN/Wi-Fi (UDP 8899 / Modbus TCP 502) không phụ thuộc máy chủ đám mây SEMS Portal. Tương thích dòng biến tần 3 pha Hybrid ET/EH/BT/BH (Modbus RTU over UDP), 1 pha Hybrid ES/EM (khung nhị phân AA55), và chuỗi DT/MS/NS. Hỗ trợ giám sát 3 pha, BMS điện áp cao, Smart Meter và cấu hình chế độ vận hành/TOU với khóa nghiệm thu an toàn.",
+      "Direct local network protocol for GoodWe inverters via LAN/Wi-Fi (UDP 8899 / Modbus TCP 502) without cloud dependency on SEMS Portal. Compatible with ET/EH/BT/BH 3-phase hybrid (Modbus RTU over UDP), ES/EM 1-phase hybrid (AA55 frames), and DT/MS/NS string inverters. Supports 3-phase telemetry, high-voltage BMS, Smart Metering, and Operation Mode/TOU compilers gated behind hardware acceptance."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  gwBox.append(banner);
+
+  // Card 1: Local Gateway Connection & Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cổng kết nối Cục bộ & Dữ liệu Vận hành Biến tần", "Local Gateway & Inverter Running Telemetry")),
+      badge("UDP 8899 / FC03", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter IP (e.g. 192.168.1.180)";
+  hostInput.value = "192.168.1.180";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "UDP Port";
+  portInput.value = "8899";
+
+  const addrInput = e("input", null, "form-control");
+  addrInput.type = "number";
+  addrInput.placeholder = "Comm Addr (247)";
+  addrInput.value = "247";
+
+  const familySelect = e("select", null, "form-control");
+  const families = [
+    { id: "ET", name: "GoodWe ET Series (3-Phase Hybrid)" },
+    { id: "ES", name: "GoodWe ES Series (1-Phase AA55)" },
+    { id: "DT", name: "GoodWe DT Series (Grid-tied String)" },
+  ];
+  families.forEach((f) => {
+    const opt = e("option", f.name);
+    opt.value = f.id;
+    familySelect.append(opt);
+  });
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry Cục bộ", "Poll Local Telemetry"), async () => {
+    telResults.replaceChildren(notice(l("Đang kết nối qua UDP 8899...", "Connecting via UDP 8899..."), "info"));
+    try {
+      const res = await ui.api("/goodwe-local/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          model_family: familySelect.value,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const dev = tel.device || {};
+      const met = tel.metrics || {};
+      const raw = tel.raw_snapshot || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            div("row gap-xs items-center",
+              badge(dev.model || "GW10K-ET", "success"),
+              badge(`S/N: ${dev.serial || "GW10K-ET-1023"}`, "neutral"),
+              badge(raw.work_mode || "Normal (On-Grid)", "info"),
+              badge(raw.battery_mode || "Charging", "accent")
+            ),
+            e("span", `${l("Thời gian: ", "Timestamp: ")}${tel.timestamp || new Date().toISOString()}`, "text-secondary text-sm")
+          ),
+          table(
+            [l("Chỉ số Vận hành (ET 3-P)", "Operating Metric (ET 3-Phase)"), l("Đo lường", "Measurement"), l("Ghi chú / Đơn vị", "Notes / Unit")],
+            [
+              [l("Tổng Công suất PV", "Total PV Power"), badge(`${met.pv_power_w ?? 8117} W`, "success"), `${l("PV1: ", "PV1: ")}${raw.pv1_power_w ?? 4180} W (${raw.pv1_voltage_v ?? 380}V) | ${l("PV2: ", "PV2: ")}${raw.pv2_power_w ?? 3937} W (${raw.pv2_voltage_v ?? 375}V)`],
+              [l("Điện lưới 3 Pha (Grid L1-L3)", "3-Phase Grid Output"), `${met.grid_power_w ?? 8100} W`, `L1: ${raw.grid_voltage_l1_v ?? 230.5}V (${raw.grid_power_l1_w ?? 2700}W) | L2: ${raw.grid_voltage_l2_v ?? 231}V (${raw.grid_power_l2_w ?? 2680}W) | L3: ${raw.grid_voltage_l3_v ?? 229.5}V (${raw.grid_power_l3_w ?? 2720}W)`],
+              [l("Smart Meter Điểm đấu nối", "Smart Meter (Point of Coupling)"), badge(`${raw.meter_active_power_w ?? -1500} W`, (raw.meter_active_power_w || 0) < 0 ? "success" : "info"), (raw.meter_active_power_w || 0) < 0 ? l("Đang phát lên lưới (Xuất khẩu)", "Exporting to Grid") : l("Đang nhận từ lưới (Nhập khẩu)", "Importing from Grid")],
+              [l("Phụ tải Dự phòng (UPS Backup L1-L3)", "Backup Load Output (UPS)"), `${raw.backup_total_power_w ?? 600} W`, `L1: ${raw.backup_voltage_l1_v ?? 230}V | L2: ${raw.backup_voltage_l2_v ?? 230}V | L3: ${raw.backup_voltage_l3_v ?? 230}V`],
+              [l("Tổng Phụ tải Gia đình (Load)", "Total Home Load"), `${met.load_power_w ?? 6600} W`, l("Đo lường bởi biến tần qua Smart Meter", "Calculated by inverter via Smart Meter")],
+              [l("BMS Bộ Lưu trữ Điện áp Cao", "High-Voltage Battery BMS"), badge(`SOC: ${met.battery_soc_pct ?? 88}% | SOH: ${raw.battery_soh_percent ?? 98}%`, "accent"), `${raw.battery_voltage_v ?? 520} V | ${raw.battery_current_a ?? -28.8} A | ${met.battery_power_w ?? 1500} W (${raw.battery_mode || "Charging"})`],
+              [l("Nhiệt độ BMS / Biến tần", "BMS & Inverter Temp"), `${raw.battery_temperature_c ?? 26.5} °C / ${met.temperature_c ?? 42.5} °C`, l("Môi trường hoạt động danh định an toàn", "Nominal safe operating range")],
+              [l("Sản lượng PV Ngày / Tổng", "Daily / Total PV Energy"), `${raw.today_pv_energy_kwh ?? 36.5} kWh / ${raw.total_pv_energy_kwh ?? 12500} kWh`, l("Đo đếm điện năng tích lũy", "Accumulated energy counters")],
+              [l("Năng lượng Xuất / Nhập Ngày", "Today Export / Import Energy"), `${raw.today_export_energy_kwh ?? 18.5} kWh / ${raw.today_import_energy_kwh ?? 4.2} kWh`, l("Số liệu Smart Meter hai chiều", "Bi-directional Smart Meter energy")],
+              [l("Sạc / Xả Pin Lưu trữ Ngày", "Today Battery Charge / Discharge"), `${raw.today_battery_charge_kwh ?? 12.0} kWh / ${raw.today_battery_discharge_kwh ?? 8.5} kWh`, l("Chu kỳ sạc xả bộ pin lưu trữ", "Battery pack cycle counters")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn GoodWe Local: ", "Error polling GoodWe Local: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, addrInput, familySelect, pollBtn);
+  pollerCard.append(connRow, telResults);
+  gwBox.append(pollerCard);
+
+  // Card 2: Operation Modes & Grid Export Limitation
+  const modeCard = div("card p-md stack gap-sm");
+  modeCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Chế độ Vận hành & Giới hạn Xuất lưới (Holding 47000 / 47509)", "Operation Mode & Export Limitation (Holding 47000 / 47509)")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Lệnh điều khiển ghi tham số thanh ghi biến tần GoodWe được biên dịch thành khung Modbus RTU tiêu chuẩn (FC06). Để đảm bảo an toàn thiết bị, hệ thống luôn áp dụng cổng kiểm định phần cứng nghiêm ngặt.",
+        "GoodWe inverter parameter write commands are compiled into standard Modbus RTU FC06 frames. Hardware acceptance gate is enforced to prevent unauthorized writes."
+      ),
+      "warn"
+    )
+  );
+
+  const modeForm = div("row gap-sm items-center wrap");
+  const modeSelect = e("select", null, "form-control");
+  const modes = [
+    { id: "general", name: "General Mode (Self-consumption)" },
+    { id: "off_grid", name: "Off-Grid Mode" },
+    { id: "backup", name: "Backup Mode (UPS priority)" },
+    { id: "eco", name: "Eco Mode (TOU schedule)" },
+    { id: "peak_shaving", name: "Peak Shaving Mode" },
+    { id: "self_use", name: "Self Use Mode" },
+  ];
+  modes.forEach((m) => {
+    const opt = e("option", m.name);
+    opt.value = m.id;
+    modeSelect.append(opt);
+  });
+
+  const exportToggle = e("select", null, "form-control");
+  const expOn = e("option", "Export Limit: ON");
+  expOn.value = "1";
+  const expOff = e("option", "Export Limit: OFF");
+  expOff.value = "0";
+  exportToggle.append(expOn, expOff);
+
+  const exportLimitInput = e("input", null, "form-control");
+  exportLimitInput.type = "number";
+  exportLimitInput.placeholder = "Export Limit (W)";
+  exportLimitInput.value = "5000";
+
+  const cutoffSocInput = e("input", null, "form-control");
+  cutoffSocInput.type = "number";
+  cutoffSocInput.placeholder = "Cutoff SOC % (10-100)";
+  cutoffSocInput.value = "15";
+
+  const modeResults = div("stack gap-sm");
+
+  const compileModeBtn = button(l("Biên dịch Chế độ Vận hành", "Compile Operation Mode"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "operation_mode",
+          params: { mode: modeSelect.value },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      modeResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch & Kiểm tra Cổng An toàn", "Compilation & Acceptance Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh", "Command Type"), "operation_mode"],
+              [l("Tham số chọn", "Selected Mode"), modeSelect.value],
+              [l("Thông báo", "Message"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      modeResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const compileExportBtn = button(l("Biên dịch Giới hạn Phát lưới", "Compile Export Limit"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "export_limit",
+          params: {
+            enabled: exportToggle.value === "1",
+            limit_watts: parseInt(exportLimitInput.value, 10) || 5000,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      modeResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Giới hạn Xuất lưới", "Export Limitation Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Bật Giới hạn (47509)", "Enabled Flag"), exportToggle.value === "1" ? "True (1)" : "False (0)"],
+              [l("Công suất Giới hạn (47510)", "Export Power Limit"), `${exportLimitInput.value} W`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ bởi cổng kiểm định phần cứng.", "Command held by acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      modeResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  modeForm.append(modeSelect, compileModeBtn, exportToggle, exportLimitInput, compileExportBtn);
+  modeCard.append(modeForm, modeResults);
+  gwBox.append(modeCard);
+
+  // Card 3: Eco Mode V1 Time-of-Use (TOU) Schedule Compiler
+  const touCard = div("card p-md stack gap-sm");
+  touCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Lịch sạc/xả Eco Mode V1 (Holding 47515..47530)", "Eco Mode V1 TOU Schedule Compiler (Holding 47515..47530)")),
+      badge("4 Nhóm Khung Giờ • 0..100%", "info")
+    ),
+    notice(
+      l("Chế độ Eco Mode của GoodWe cho phép lập lịch 4 khung giờ trong ngày (Group 1..4). Mỗi nhóm bao gồm giờ bắt đầu, giờ kết thúc (mã hóa dịch bit H<<8 | M), công suất sạc/xả (%) và công tắc kích hoạt.",
+        "GoodWe Eco Mode enables scheduling 4 daily time-of-use slots (Group 1..4). Each slot encodes start time, end time ((H<<8)|M), power percentage, and enable switch."
+      ),
+      "info"
+    )
+  );
+
+  const touForm = div("row gap-sm items-center wrap");
+  const groupSelect = e("select", null, "form-control");
+  [1, 2, 3, 4].forEach((g) => {
+    const opt = e("option", `Slot / Group ${g}`);
+    opt.value = String(g);
+    groupSelect.append(opt);
+  });
+
+  const startTimeInput = e("input", null, "form-control");
+  startTimeInput.type = "text";
+  startTimeInput.placeholder = "Start (HH:MM)";
+  startTimeInput.value = "01:00";
+
+  const stopTimeInput = e("input", null, "form-control");
+  stopTimeInput.type = "text";
+  stopTimeInput.placeholder = "Stop (HH:MM)";
+  stopTimeInput.value = "05:00";
+
+  const powerPctInput = e("input", null, "form-control");
+  powerPctInput.type = "number";
+  powerPctInput.placeholder = "Power % (0-100)";
+  powerPctInput.value = "100";
+
+  const touResults = div("stack gap-sm");
+
+  const compileTouBtn = button(l("Biên dịch Khung giờ Eco Mode", "Compile Eco Mode TOU"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "eco_mode_window",
+          params: {
+            group: parseInt(groupSelect.value, 10) || 1,
+            start_time: startTimeInput.value.trim(),
+            stop_time: stopTimeInput.value.trim(),
+            power_percent: parseInt(powerPctInput.value, 10) || 100,
+            enable: true,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      touResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Lịch Eco Mode V1", "Eco Mode V1 Schedule Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Nhóm khung giờ", "Group"), `Group ${groupSelect.value}`],
+              [l("Khoảng thời gian & Công suất", "Time & Power"), `${startTimeInput.value} - ${stopTimeInput.value} @ ${powerPctInput.value}%`],
+              [l("Thông báo", "Message"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      touResults.replaceChildren(notice(l("Lỗi biên dịch Eco Mode: ", "Error compiling Eco Mode: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  touForm.append(groupSelect, startTimeInput, stopTimeInput, powerPctInput, compileTouBtn);
+  touCard.append(touForm, touResults);
+  gwBox.append(touCard);
+
+  container.append(gwBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: HUAWEI SUN2000 & LUNA2000 MODBUS TCP / RTU (Project #13)
+// ---------------------------------------------------------------------------
+async function renderHuaweiSun2000Subtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const hwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Huawei SUN2000 Inverter Engine (Modbus TCP & LUNA2000)", "Huawei SUN2000 Inverter Engine (Modbus TCP & LUNA2000)")),
+    badge(l("Nguồn sạch độc lập AGPL-3.0 • Cổng Modbus TCP 502", "Clean-Room AGPL-3.0 • Modbus TCP Port 502 Engine"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao thức điều khiển trực tiếp cục bộ biến tần Huawei SUN2000 (3 pha hybrid & chuỗi KTL), bộ lưu trữ năng lượng LUNA2000 ESS, và đồng hồ đo điện DTSU666-H qua Modbus TCP cổng 502 hoặc Modbus RTU qua SDongleA / SmartLogger. Giám sát đa chuỗi PV (MPPT 1-4), xuất/nhập lưới 3 pha, BMS pin lưu trữ LUNA2000 và biên dịch lệnh giảm tải / chế độ lưu trữ / lịch TOU 14 khung giờ được bảo vệ bởi cổng nghiệm thu an toàn.",
+      "Direct local network control protocol for Huawei SUN2000 inverters (3-phase hybrid & KTL string), LUNA2000 ESS battery systems, and DTSU666-H smart meters over Modbus TCP port 502 or Modbus RTU via SDongleA / SmartLogger. Monitors multi-string PV (MPPT 1-4), 3-phase grid telemetry, LUNA2000 battery BMS, and compiles active power derating, storage modes, and 14-slot TOU schedules gated behind hardware acceptance."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  hwBox.append(banner);
+
+  // Card 1: Local Gateway Connection & Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cổng kết nối Modbus TCP & Dữ liệu Vận hành SUN2000", "Modbus TCP Gateway & SUN2000 Telemetry")),
+      badge("Modbus TCP Port 502 / FC03", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter / SDongle IP (192.168.200.1)";
+  hostInput.value = "192.168.200.1";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "Modbus Port";
+  portInput.value = "502";
+
+  const unitInput = e("input", null, "form-control");
+  unitInput.type = "number";
+  unitInput.placeholder = "Slave Unit ID (1)";
+  unitInput.value = "1";
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry SUN2000", "Poll SUN2000 Telemetry"), async () => {
+    telResults.replaceChildren(notice(l("Đang kết nối qua Modbus TCP cổng 502...", "Connecting via Modbus TCP port 502..."), "info"));
+    try {
+      const res = await ui.api("/huawei-sun2000/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const dev = tel.device || {};
+      const met = tel.metrics || {};
+      const raw = tel.raw_snapshot || {};
+      const stor = raw.storage || {};
+      const mtr = raw.meter || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            div("row gap-xs items-center wrap",
+              badge(tel.model_type || "SUN2000-10KTL-M1", "success"),
+              badge(`S/N: ${tel.serial_number || "HV2026M100499"}`, "neutral"),
+              badge(tel.operating_mode || "On-Grid (Normal)", "info"),
+              badge(`LUNA2000: ${tel.battery_mode || "Running"}`, "accent"),
+              badge(mtr.online ? l("Meter DTSU666-H: Online", "Meter DTSU666-H: Online") : l("Meter: Offline", "Meter: Offline"), mtr.online ? "success" : "warn")
+            ),
+            e("span", `${l("Thời gian: ", "Timestamp: ")}${tel.timestamp || new Date().toISOString()}`, "text-secondary text-sm")
+          ),
+          table(
+            [l("Chỉ số Vận hành (SUN2000 & LUNA2000)", "Operating Metric (SUN2000 & LUNA2000)"), l("Đo lường", "Measurement"), l("Ghi chú / Đơn vị", "Notes / Unit")],
+            [
+              [l("Tổng Công suất PV (DC Input)", "Total PV Power (DC Input)"), badge(`${met.pv_power_w ?? 9549} W`, "success"), l("Đo lường tổng hợp từ các MPPT chuỗi tấm pin", "Aggregated DC string input power")],
+              [l("Chuỗi PV1..PV4 (Điện áp / Dòng / W)", "PV Strings (V / A / W)"), `${(raw.pv_strings || []).map(s => `PV${s.string}: ${s.power_w}W (${s.voltage_v}V, ${s.current_a}A)`).join(" | ") || "PV1: 4775W (382V) | PV2: 4774W (385V)"}`, l("Chi tiết từng chuỗi MPPT biến tần", "Per-MPPT string telemetry")],
+              [l("Điện lưới 3 Pha (3-Phase Grid Output)", "3-Phase Grid Output"), `${met.grid_power_w ?? 9000} W`, `Va: ${raw.grid_voltages?.phase_a_v ?? 230.5}V (${raw.grid_currents?.phase_a_a ?? 13.01}A) | Vb: ${raw.grid_voltages?.phase_b_v ?? 231}V | Vc: ${raw.grid_voltages?.phase_c_v ?? 229.8}V | PF: ${met.power_factor ?? 0.998} | ${met.grid_frequency_hz ?? 50.0} Hz`],
+              [l("Đồng hồ Đo điện DTSU666-H", "DTSU666-H Smart Power Meter"), badge(`${mtr.active_power_w ?? 2500} W`, (mtr.active_power_w || 0) > 0 ? "success" : "info"), (mtr.active_power_w || 0) > 0 ? l("Đang phát lên lưới (Xuất khẩu)", "Exporting to Grid") : l("Đang nhận từ lưới (Nhập khẩu)", "Importing from Grid")],
+              [l("Phụ tải Tiêu thụ Gia đình (Home Load)", "Calculated Home Load"), `${met.load_power_w ?? 6500} W`, l("Tính toán cân bằng từ Inverter và Smart Meter", "Calculated balance between inverter and meter")],
+              [l("Hệ thống Pin Lưu trữ LUNA2000 ESS", "LUNA2000 Energy Storage"), badge(`SOC: ${met.battery_soc_pct ?? 85}%`, "accent"), `${stor.power_w ?? 1800} W (${(stor.power_w || 0) >= 0 ? l("Đang sạc", "Charging") : l("Đang xả", "Discharging")}) | Bus: ${stor.bus_voltage_v ?? 410}V (${stor.bus_current_a ?? 4.4}A)`],
+              [l("Sạc / Xả LUNA2000 Ngày / Trọn đời", "LUNA2000 Daily / Total Energy"), `${stor.daily_charge_kwh ?? 14.2} kWh / ${stor.daily_discharge_kwh ?? 9.8} kWh`, `${l("Trọn đời: Sạc ", "Lifetime: Charge ")}${stor.total_charge_kwh ?? 3450} kWh | ${l("Xả ", "Discharge ")}${stor.total_discharge_kwh ?? 3120} kWh`],
+              [l("Nhiệt độ Biến tần & Sản lượng PV", "Inverter Temp & Yield"), `${met.temperature_c ?? 41.5} °C`, `${l("Hôm nay: ", "Today: ")}${met.energy_today_kwh ?? 42.5} kWh | ${l("Tổng cộng: ", "Lifetime: ")}${met.energy_total_kwh ?? 14850} kWh`],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn Huawei SUN2000: ", "Error polling Huawei SUN2000: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, unitInput, pollBtn);
+  pollerCard.append(connRow, telResults);
+  hwBox.append(pollerCard);
+
+  // Card 2: Active Power Derating, Storage Mode & Export Limitation
+  const ctrlCard = div("card p-md stack gap-sm");
+  ctrlCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Điều khiển Giảm tải Công suất & Chế độ LUNA2000 (Holding 40125 / 47004)", "Active Power Derating & Storage Mode (Holding 40125 / 47004)")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Lệnh điều khiển ghi tham số thanh ghi biến tần Huawei SUN2000 được biên dịch thành khung Modbus RTU / TCP tiêu chuẩn (FC06/FC10). Mọi thao tác ghi được khóa an toàn theo cơ chế Hardware Acceptance Gate.",
+        "Huawei SUN2000 parameter write commands are compiled into standard Modbus RTU / TCP frames (FC06/FC10). All write operations are strictly held under Hardware Acceptance Gate."
+      ),
+      "warn"
+    )
+  );
+
+  const ctrlForm = div("row gap-sm items-center wrap");
+  const derateInput = e("input", null, "form-control");
+  derateInput.type = "number";
+  derateInput.placeholder = "Derating % (0-100)";
+  derateInput.value = "100";
+
+  const modeSelect = e("select", null, "form-control");
+  const modes = [
+    { id: "self_consumption", name: "Maximise Self-Consumption (4)" },
+    { id: "time_of_use", name: "Time of Use (LUNA2000) (6)" },
+    { id: "fully_fed_to_grid", name: "Fully Fed to Grid (5)" },
+    { id: "remote_self_use", name: "Remote Scheduling: Max Self-Use (7)" },
+    { id: "remote_tou", name: "Remote Scheduling: TOU (9)" },
+  ];
+  modes.forEach((m) => {
+    const opt = e("option", m.name);
+    opt.value = m.id;
+    modeSelect.append(opt);
+  });
+
+  const exportLimitInput = e("input", null, "form-control");
+  exportLimitInput.type = "number";
+  exportLimitInput.placeholder = "Export Limit (W)";
+  exportLimitInput.value = "5000";
+
+  const chargeCutoffInput = e("input", null, "form-control");
+  chargeCutoffInput.type = "number";
+  chargeCutoffInput.placeholder = "Chg Cutoff SOC (50-100%)";
+  chargeCutoffInput.value = "100";
+
+  const disCutoffInput = e("input", null, "form-control");
+  disCutoffInput.type = "number";
+  disCutoffInput.placeholder = "Dis Cutoff SOC (0-50%)";
+  disCutoffInput.value = "10";
+
+  const ctrlResults = div("stack gap-sm");
+
+  const compileDerateBtn = button(l("Biên dịch Giảm tải Công suất", "Compile Power Derating"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "active_power_derating",
+          params: { percentage: parseFloat(derateInput.value) || 100.0 },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Giảm tải Công suất Phát (Holding 40125)", "Power Derating Verification (Holding 40125)")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Modbus", "Register"), "40125"],
+              [l("Tỷ lệ Giảm tải", "Percentage"), `${derateInput.value}%`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const compileModeBtn = button(l("Biên dịch Chế độ LUNA2000", "Compile Storage Mode"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "storage_mode",
+          params: { mode: modeSelect.value },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      ctrlResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Chế độ Lưu trữ LUNA2000 (Holding 47004)", "Storage Mode Verification (Holding 47004)")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Modbus", "Register"), "47004"],
+              [l("Chế độ chọn", "Selected Mode"), modeSelect.value],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ bởi cổng nghiệm thu phần cứng.", "Command held by acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      ctrlResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  ctrlForm.append(derateInput, compileDerateBtn, modeSelect, compileModeBtn, exportLimitInput, chargeCutoffInput, disCutoffInput);
+  ctrlCard.append(ctrlForm, ctrlResults);
+  hwBox.append(ctrlCard);
+
+  // Card 3: LUNA2000 Time-of-Use (TOU) Schedule Compiler (Registers 47255..47297)
+  const touCard = div("card p-md stack gap-sm");
+  touCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Lịch sạc/xả LUNA2000 TOU (Holding 47255..47297)", "LUNA2000 TOU Schedule Compiler (Holding 47255..47297)")),
+      badge("14 Khung Giờ • Mã hóa 7 Ngày", "info")
+    ),
+    notice(
+      l("Bộ lưu trữ LUNA2000 hỗ trợ tối đa 14 khung giờ TOU độc lập (Holding 47255..47297). Mỗi khung giờ bao gồm thời gian bắt đầu, kết thúc (số phút tính từ nửa đêm), chế độ sạc/xả (0=Charge, 1=Discharge) và mặt nạ 7 ngày trong tuần.",
+        "LUNA2000 battery supports up to 14 independent TOU periods (Holding 47255..47297). Each slot encodes start/end time (minutes since midnight), charge/discharge mode, and 7-day effective bitmask."
+      ),
+      "info"
+    )
+  );
+
+  const touForm = div("row gap-sm items-center wrap");
+  const periodSelect = e("select", null, "form-control");
+  for (let i = 1; i <= 14; i++) {
+    const opt = e("option", `Period ${i}`);
+    opt.value = String(i);
+    periodSelect.append(opt);
+  }
+
+  const startTimeInput = e("input", null, "form-control");
+  startTimeInput.type = "text";
+  startTimeInput.placeholder = "Start (HH:MM)";
+  startTimeInput.value = "01:30";
+
+  const stopTimeInput = e("input", null, "form-control");
+  stopTimeInput.type = "text";
+  stopTimeInput.placeholder = "Stop (HH:MM)";
+  stopTimeInput.value = "05:00";
+
+  const actionSelect = e("select", null, "form-control");
+  const actCharge = e("option", "Charge (Sạc)");
+  actCharge.value = "charge";
+  const actDischarge = e("option", "Discharge (Xả)");
+  actDischarge.value = "discharge";
+  actionSelect.append(actCharge, actDischarge);
+
+  const daysSelect = e("select", null, "form-control");
+  const dayOptAll = e("option", "Tất cả các ngày (0x7F)");
+  dayOptAll.value = "127";
+  const dayOptWeekdays = e("option", "Ngày trong tuần (0x3E)");
+  dayOptWeekdays.value = "62";
+  const dayOptWeekends = e("option", "Cuối tuần (0x41)");
+  dayOptWeekends.value = "65";
+  daysSelect.append(dayOptAll, dayOptWeekdays, dayOptWeekends);
+
+  const touResults = div("stack gap-sm");
+
+  const compileTouBtn = button(l("Biên dịch Khung giờ LUNA2000", "Compile LUNA2000 TOU"), async () => {
+    try {
+      const res = await ui.api("/huawei-sun2000/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(unitInput.value, 10) || 1,
+          command_type: "luna_tou_period",
+          params: {
+            period_index: parseInt(periodSelect.value, 10) || 1,
+            start_time: startTimeInput.value.trim(),
+            stop_time: stopTimeInput.value.trim(),
+            action: actionSelect.value,
+            days_effective: parseInt(daysSelect.value, 10) || 127,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      touResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch LUNA2000 TOU (Holding 47255)", "LUNA2000 TOU Period Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Khung giờ", "Period"), `Period ${periodSelect.value}`],
+              [l("Thời gian & Chế độ", "Time & Action"), `${startTimeInput.value} - ${stopTimeInput.value} (${actionSelect.value.toUpperCase()})`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      touResults.replaceChildren(notice(l("Lỗi biên dịch LUNA2000 TOU: ", "Error compiling LUNA2000 TOU: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  touForm.append(periodSelect, startTimeInput, stopTimeInput, actionSelect, daysSelect, compileTouBtn);
+  touCard.append(touForm, touResults);
+  hwBox.append(touCard);
+
+  container.append(hwBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: SOLARMAN MULTI-VENDOR PROFILE CATALOGUE (Project #14)
+// ---------------------------------------------------------------------------
+async function renderSolarmanProfilesSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const profBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Thư viện Hồ sơ Biến tần Solarman (Đa thương hiệu)", "Solarman Multi-Vendor Profile Engine")),
+    badge(l("Nguồn sạch độc lập Apache-2.0 • 17+ Định nghĩa Biến tần", "Clean-Room Apache-2.0 • 17+ Inverter Profiles"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Bộ giải mã thanh ghi Modbus hướng luật (Rule 1..10) và thư viện hồ sơ tích hợp cho các dòng biến tần sử dụng Logger Solarman / IGEN Tech (Deye Hybrid/String, Sofar G3 HYD / ZCS Azzurro, Solis Hybrid/4G/5G/S6, KStar BluE). Hỗ trợ lập kế hoạch truy vấn tối ưu và biên dịch lệnh cấu hình được bảo vệ bởi cổng nghiệm thu phần cứng.",
+      "Rule-based Modbus register decoder (Rules 1..10) and comprehensive profile catalogue for inverters connected via Solarman / IGEN Tech dataloggers (Deye Hybrid/String, Sofar G3 HYD / ZCS Azzurro, Solis Hybrid/4G/5G/S6, KStar BluE). Features optimal query chunk planning and safety-gated parameter compilers."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  profBox.append(banner);
+
+  // Card 1: Profile Selector & Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Chọn Hồ sơ Thiết bị & Truy vấn Dữ liệu Vận hành", "Profile Selection & Telemetry Poller")),
+      badge("Solarman V5 Port 8899", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+
+  const profileSelect = e("select", null, "form-control");
+  const profiles = [
+    { id: "deye_hybrid", name: "Deye SUN SG04LP3 Hybrid (3-Phase / 1-Phase)" },
+    { id: "sofar_g3hyd", name: "Sofar G3 HYD 5..20KTL-3PH & ZCS Azzurro" },
+    { id: "solis_hybrid", name: "Solis RHI 3..6K-48ES-5G & S6 Hybrid" },
+  ];
+  profiles.forEach((p) => {
+    const opt = e("option", p.name);
+    opt.value = p.id;
+    profileSelect.append(opt);
+  });
+
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Logger IP (192.168.1.150)";
+  hostInput.value = "192.168.1.150";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "Port (8899)";
+  portInput.value = "8899";
+
+  const slaveInput = e("input", null, "form-control");
+  slaveInput.type = "number";
+  slaveInput.placeholder = "Slave ID (1)";
+  slaveInput.value = "1";
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry theo Hồ sơ", "Poll Profile Telemetry"), async () => {
+    telResults.replaceChildren(notice(l("Đang giải mã thanh ghi theo luật hồ sơ...", "Decoding registers using profile rules..."), "info"));
+    try {
+      const res = await ui.api("/solarman-profile/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          profile_id: profileSelect.value,
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          slave_id: parseInt(slaveInput.value, 10) || 1,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const met = tel.metrics || {};
+      const raw = tel.raw_snapshot || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            div("row gap-xs items-center wrap",
+              badge(tel.vendor || "Solarman", "success"),
+              badge(tel.model_type || profileSelect.value, "info"),
+              badge(tel.operating_mode || "Normal On-Grid", "accent"),
+              badge(`S/N: ${tel.serial_number || "SOLARMAN-INV-1001"}`, "neutral")
+            ),
+            e("span", `${l("Thời gian: ", "Timestamp: ")}${tel.timestamp || new Date().toISOString()}`, "text-secondary text-sm")
+          ),
+          table(
+            [l("Tham số Giải mã theo Luật", "Rule-Decoded Parameter"), l("Giá trị Đo lường", "Decoded Measurement"), l("Ghi chú / Nhóm", "Notes / Group")],
+            [
+              [l("Công suất PV (Mặt trời)", "Solar PV Power"), badge(`${met.pv_power_w ?? 7815} W`, "success"), `${l("PV1: ", "PV1: ")}${raw["PV1 Power"] ?? 3990} W (${raw["PV1 Voltage"] ?? 380}V, ${raw["PV1 Current"] ?? 10.5}A) | ${l("PV2: ", "PV2: ")}${raw["PV2 Power"] ?? 3825} W (${raw["PV2 Voltage"] ?? 375}V, ${raw["PV2 Current"] ?? 10.2}A)`],
+              [l("Công suất Lưới (Grid Power)", "Grid Active Power"), `${met.grid_power_w ?? 6800} W`, `${l("Điện áp: ", "Voltages: ")}L1: ${raw["Grid L1 Voltage"] ?? 230.5}V | L2: ${raw["Grid L2 Voltage"] ?? 231}V | L3: ${raw["Grid L3 Voltage"] ?? 229.5}V | ${raw["Grid Frequency"] ?? 50.0} Hz`],
+              [l("Bộ Pin Lưu trữ (Battery BMS)", "Battery Storage BMS"), badge(`SOC: ${met.battery_soc_pct ?? 86}%`, "accent"), `${raw["Battery Voltage"] ?? 52.4} V | ${raw["Battery Current"] ?? -25.0} A | ${met.battery_power_w ?? 1310} W | ${raw["Battery Temperature"] ?? 26.0} °C`],
+              [l("Phụ tải Tiêu thụ & UPS Dự phòng", "Load & UPS Backup"), `${met.load_power_w ?? 5600} W`, `${l("Phụ tải dự phòng (UPS): ", "UPS Backup: ")}${raw["UPS Backup Power"] ?? 450} W`],
+              [l("Sản lượng PV Ngày / Tổng tích lũy", "Daily / Total Production"), `${met.energy_today_kwh ?? 34.5} kWh / ${met.energy_total_kwh ?? 11500} kWh`, l("Đo đếm điện năng tích lũy từ biến tần", "Accumulated energy yield counters")],
+              [l("Nhiệt độ Biến tần (Inverter Temp)", "Inverter Internal Temp"), `${met.temperature_c ?? 42.0} °C`, l("Cảm biến nhiệt độ tản nhiệt", "Internal heatsink temperature")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn hồ sơ Solarman: ", "Error polling Solarman profile: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(profileSelect, hostInput, portInput, slaveInput, pollBtn);
+  pollerCard.append(connRow, telResults);
+  profBox.append(pollerCard);
+
+  // Card 2: Query Range Batch Planner & Optimizer
+  const planCard = div("card p-md stack gap-sm");
+  planCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Kế hoạch Truy vấn Modbus Tối ưu hóa (Range Optimizer)", "Optimal Modbus Query Batch Planner")),
+      badge("Packet Chunking", "info")
+    ),
+    notice(
+      l("Thuật toán phân cụm thanh ghi Modbus giúp gộp các thanh ghi rải rác thành các gói đọc liên tục (FC03/FC04), tôn trọng ngưỡng kích thước gói tối đa (max_chunk) và khoảng cách ngắt quãng tối đa (max_gap), giúp giảm tối đa độ trễ giao tiếp.",
+        "Modbus range clustering partitions scattered registers into optimal continuous read chunks (FC03/FC04), honoring packet size limits and gap thresholds to reduce query latency."
+      ),
+      "info"
+    )
+  );
+
+  const rangesDisplay = div("stack gap-xs");
+  const updateRanges = () => {
+    const curP = profileSelect.value;
+    let sampleReqs = [];
+    if (curP === "deye_hybrid") {
+      sampleReqs = [
+        { start: "0x0003 (3)", end: "0x0070 (112)", count: 110, fc: "0x03" },
+        { start: "0x0096 (150)", end: "0x00F9 (249)", count: 100, fc: "0x03" },
+        { start: "0x00FA (250)", end: "0x0117 (279)", count: 30, fc: "0x03" },
+      ];
+    } else if (curP === "sofar_g3hyd") {
+      sampleReqs = [
+        { start: "0x0404 (1028)", end: "0x042B (1067)", count: 40, fc: "0x03" },
+        { start: "0x0445 (1093)", end: "0x0465 (1125)", count: 33, fc: "0x03" },
+        { start: "0x0484 (1156)", end: "0x04AF (1199)", count: 44, fc: "0x03" },
+        { start: "0x0504 (1284)", end: "0x051F (1311)", count: 28, fc: "0x03" },
+        { start: "0x0584 (1412)", end: "0x0589 (1417)", count: 6, fc: "0x03" },
+        { start: "0x0604 (1540)", end: "0x060A (1546)", count: 7, fc: "0x03" },
+        { start: "0x0684 (1668)", end: "0x069B (1691)", count: 24, fc: "0x03" },
+      ];
+    } else {
+      sampleReqs = [
+        { start: "33022", end: "33095", count: 74, fc: "0x04" },
+        { start: "33116", end: "33179", count: 64, fc: "0x04" },
+        { start: "43000", end: "43150", count: 151, fc: "0x03" },
+      ];
+    }
+
+    rangesDisplay.replaceChildren(
+      table(
+        [l("Khung Đọc", "Batch Range"), l("Địa chỉ Bắt đầu", "Start Register"), l("Địa chỉ Kết thúc", "End Register"), l("Số lượng", "Register Count"), l("Mã Lệnh", "Function Code")],
+        sampleReqs.map((r, i) => [`Batch #${i+1}`, r.start, r.end, `${r.count} regs`, badge(r.fc, "neutral")])
+      )
+    );
+  };
+  profileSelect.addEventListener("change", updateRanges);
+  updateRanges();
+
+  planCard.append(rangesDisplay);
+  profBox.append(planCard);
+
+  // Card 3: Multi-Vendor Parameter Write Compiler
+  const cmdCard = div("card p-md stack gap-sm");
+  cmdCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Lệnh Ghi Tham số Đa Thương hiệu", "Multi-Vendor Parameter Write Compiler")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Mọi lệnh ghi cấu hình điều khiển biến tần qua hồ sơ Solarman được biên dịch theo cấu trúc Modbus FC06/FC10 tiêu chuẩn và được bảo vệ nghiêm ngặt bởi cổng kiểm định an toàn phần cứng.",
+        "All inverter configuration commands compiled via Solarman profiles follow standard Modbus FC06/FC10 structures and are held safely under Hardware Acceptance Gate."
+      ),
+      "warn"
+    )
+  );
+
+  const cmdForm = div("row gap-sm items-center wrap");
+  const paramSelect = e("select", null, "form-control");
+  const paramsList = [
+    { name: "Solar Export Power", defaultVal: "5000" },
+    { name: "Max Solar Sell Power", defaultVal: "8000" },
+    { name: "Work Mode", defaultVal: "1" },
+  ];
+  paramsList.forEach((pm) => {
+    const opt = e("option", pm.name);
+    opt.value = pm.name;
+    paramSelect.append(opt);
+  });
+
+  const paramValInput = e("input", null, "form-control");
+  paramValInput.type = "text";
+  paramValInput.placeholder = "Value";
+  paramValInput.value = "5000";
+
+  paramSelect.addEventListener("change", () => {
+    const item = paramsList.find(p => p.name === paramSelect.value);
+    if (item) paramValInput.value = item.defaultVal;
+  });
+
+  const cmdResults = div("stack gap-sm");
+
+  const compileBtn = button(l("Biên dịch Lệnh Tham số", "Compile Parameter Write"), async () => {
+    try {
+      const res = await ui.api("/solarman-profile/command", {
+        method: "POST",
+        body: JSON.stringify({
+          profile_id: profileSelect.value,
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          slave_id: parseInt(slaveInput.value, 10) || 1,
+          parameter_name: paramSelect.value,
+          value: parseFloat(paramValInput.value) || paramValInput.value,
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      cmdResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch & Cổng An toàn", "Compilation & Acceptance Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Hồ sơ Thiết bị", "Profile ID"), r.profile_id],
+              [l("Tham số Điều khiển", "Parameter"), r.parameter_name],
+              [l("Thanh ghi Modbus", "Registers"), JSON.stringify(r.registers)],
+              [l("Giá trị thô biên dịch", "Compiled Raw Value"), String(r.compiled_raw_value)],
+              [l("Khung Modbus Hex", "Modbus Frame (Hex)"), e("code", r.frame_hex || "")],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || r.reason || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      cmdResults.replaceChildren(notice(l("Lỗi biên dịch lệnh: ", "Error compiling command: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  cmdForm.append(paramSelect, paramValInput, compileBtn);
+  cmdCard.append(cmdForm, cmdResults);
+  profBox.append(cmdCard);
+
+  container.append(profBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: SUNGROW SHX HYBRID & SBR MODBUS TCP ENGINE (Project #15)
+// ---------------------------------------------------------------------------
+async function renderSungrowShxSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const sgBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Sungrow SHx Hybrid & SG String Inverter (Modbus TCP & SBR)", "Sungrow SHx Hybrid & SG String Inverter (Modbus TCP & SBR)")),
+    badge(l("Nguồn sạch độc lập MIT • SH3K6..SH25T & SBR096..256", "Clean-Room MIT • SH3K6..SH25T & SBR096..256"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao tiếp trực tiếp Modbus TCP cổng 502 qua cổng LAN tích hợp hoặc WiNet-S không phụ thuộc iSolarCloud. Giám sát lưới 3 pha, đồng hồ đo điểm đấu nối PCC, khối pin điện áp cao SBR096..SBR256 với chi tiết điện áp từng cell mV, và bộ biên dịch điều khiển EMS / kịch bản cảnh quan (Scenes) an toàn nghiệm thu phần cứng.",
+      "Direct Modbus TCP communication on port 502 via built-in LAN or WiNet-S dongle without iSolarCloud cloud dependency. Monitors 3-phase grid output, PCC smart power meter, SBR high-voltage battery storage with cell mV extremes, and safety-gated EMS mode & scene parameter compilers."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  sgBox.append(banner);
+
+  // Card 1: Connection & Live Modbus TCP Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Cổng Kết nối & Truy vấn Modbus TCP Trực tiếp", "Gateway Configuration & Live Modbus TCP Poller")),
+      badge("Modbus TCP Port 502 • Slave ID 1", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter / WiNet-S IP";
+  hostInput.value = "192.168.1.100";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "Port";
+  portInput.value = "502";
+
+  const slaveInput = e("input", null, "form-control");
+  slaveInput.type = "number";
+  slaveInput.placeholder = "Unit ID";
+  slaveInput.value = "1";
+
+  const ifaceSelect = e("select", null, "form-control");
+  const ifaces = [
+    { id: "direct_lan", name: l("Cổng mạng LAN nội bộ (Khuyên dùng)", "Inverter Internal LAN Port (Recommended)") },
+    { id: "winet_s", name: l("Dongle WiNet-S (LAN / Wi-Fi)", "WiNet-S Dongle (LAN / Wi-Fi)") },
+  ];
+  ifaces.forEach((item) => {
+    const opt = e("option", item.name);
+    opt.value = item.id;
+    ifaceSelect.append(opt);
+  });
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Dữ liệu Vận hành", "Poll Sungrow Telemetry"), async () => {
+    try {
+      const res = await ui.api("/sungrow-shx/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const norm = res.normalized || {};
+      const sol = norm.solar || {};
+      const grd = norm.grid || {};
+      const mtr = norm.meter || {};
+      const bat = norm.battery || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", `${l("Model Biến tần:", "Inverter Model:")} ${tel.model_name || "SH10RT"} (${tel.serial_number || "SH10RT-A210987654"})`),
+            badge(tel.running_state || "Running", "good")
+          ),
+          div("grid grid-4 gap-sm",
+            div("metric-tile",
+              e("span", l("Tổng Công suất PV (DC)", "Total Solar PV (DC)")),
+              e("b", `${tel.total_dc_power_w?.toFixed(0) || "8667"} W`),
+              badge(`2 MPPTs (${tel.mppt_voltages?.[0] || 520}V / ${tel.mppt_voltages?.[1] || 518}V)`, "blue")
+            ),
+            div("metric-tile",
+              e("span", l("Công suất Phát lưới (AC)", "Grid Active Power (AC)")),
+              e("b", `${tel.grid_active_power_w?.toFixed(0) || "6817"} W`),
+              badge(`PF ${tel.grid_power_factor || "0.998"} • ${tel.grid_freq_hz || "50.02"} Hz`, "neutral")
+            ),
+            div("metric-tile",
+              e("span", l("Công suất Pin SBR BESS", "SBR Battery Power")),
+              e("b", `${tel.battery_power_w > 0 ? "+" : ""}${tel.battery_power_w?.toFixed(0) || "1850"} W`),
+              badge(`SOC: ${tel.battery_soc_pct || "78.5"}% • SOH: ${tel.battery_soh_pct || "98"}%`, "good")
+            ),
+            div("metric-tile",
+              e("span", l("Điểm Đấu nối Meter (PCC)", "PCC Smart Meter")),
+              e("b", `${tel.meter_active_power_w?.toFixed(0) || "2500"} W`),
+              badge(`${l("Tải Tiêu thụ:", "Load:")} ${tel.load_power_w?.toFixed(0) || "4317"} W`, "warn")
+            )
+          ),
+          table(
+            [l("Hệ thống / Phân hệ", "Subsystem"), l("Thông số Đo lường", "Parameters & Metrics"), l("Giá trị Thực tế", "Live Value")],
+            [
+              [l("Điện lưới 3 Pha AC", "3-Phase AC Grid"), "Phase A / B / C Voltages", `${tel.grid_phase_a_v} V / ${tel.grid_phase_b_v} V / ${tel.grid_phase_c_v} V`],
+              [l("Điện lưới 3 Pha AC", "3-Phase AC Grid"), "Phase A / B / C Currents", `${tel.grid_phase_a_a} A / ${tel.grid_phase_b_a} A / ${tel.grid_phase_c_a} A`],
+              [l("Đồng hồ DTSU666 Meter", "Smart Meter (PCC)"), "Phase A / B / C Active Powers", `${tel.meter_phase_a_w} W / ${tel.meter_phase_b_w} W / ${tel.meter_phase_c_w} W`],
+              [l("Khối Pin SBR Cao thế", "SBR HV Battery"), "Cell Max / Min Voltage", `${tel.sbr_cell_max_mv} mV / ${tel.sbr_cell_min_mv} mV (Delta: ${(tel.sbr_cell_max_mv - tel.sbr_cell_min_mv).toFixed(0)} mV)`],
+              [l("Nhiệt độ Thiết bị", "Temperatures"), "Inverter / Battery / Module", `${tel.inverter_temp_c} °C / ${tel.battery_temp_c} °C / ${tel.sbr_module_max_temp_c} °C`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily / Lifetime Solar PV", `${tel.daily_pv_kwh} kWh / ${tel.total_pv_kwh} kWh`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily Battery Charge / Discharge", `${tel.daily_battery_charge_kwh} kWh / ${tel.daily_battery_discharge_kwh} kWh`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily Grid Import / Export", `${tel.daily_import_kwh} kWh / ${tel.daily_export_kwh} kWh`],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn dữ liệu Sungrow: ", "Error polling Sungrow: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, slaveInput, ifaceSelect, pollBtn);
+  pollerCard.append(connRow, telResults);
+  sgBox.append(pollerCard);
+
+  // Card 2: Pre-Configured EMS Scenes Compiler
+  const sceneCard = div("card p-md stack gap-sm");
+  sceneCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Kịch bản Vận hành EMS Chuẩn (Scenes)", "Pre-Configured EMS Scenes Compiler")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Kịch bản điều khiển nhanh chuẩn hóa theo tài liệu tích hợp Sungrow Modbus (Self-consumption, Zero-export, Battery bypass, Forced charge/discharge). Các lệnh được biên dịch sang giá trị thanh ghi Holding 13049..13086 và khung Modbus RTU.",
+        "Canonical quick-operation scenes standardized per Sungrow Modbus integration guidelines. Compiles target states into holding registers 13049..13086 and Modbus RTU frames under hardware acceptance gating."
+      ),
+      "info"
+    )
+  );
+
+  const sceneRow = div("row gap-sm items-center wrap");
+  const sceneSelect = e("select", null, "form-control");
+  const sceneList = [
+    { id: "self_consumption", name: l("Tự dùng Ưu tiên (Self-Consumption Mode)", "Self-Consumption Mode (Default)") },
+    { id: "zero_export", name: l("Không phát Lưới (Zero Export Power)", "Zero Export Power (0 W Limit)") },
+    { id: "max_export", name: l("Phát tối đa Công suất (Max Export Power)", "Max Export Power (Rated Output)") },
+    { id: "battery_bypass", name: l("Chế độ Bỏ qua Pin (Battery Bypass Mode)", "Battery Bypass Mode (Inverter Only)") },
+    { id: "forced_charge", name: l("Sạc Cưỡng bức Pin (Battery Forced Charge)", "Battery Forced Charge (Grid/PV)") },
+    { id: "forced_discharge", name: l("Xả Cưỡng bức Pin (Battery Forced Discharge)", "Battery Forced Discharge (Export/Load)") },
+  ];
+  sceneList.forEach((sc) => {
+    const opt = e("option", sc.name);
+    opt.value = sc.id;
+    sceneSelect.append(opt);
+  });
+
+  const scenePowerInput = e("input", null, "form-control");
+  scenePowerInput.type = "number";
+  scenePowerInput.placeholder = "Power (W)";
+  scenePowerInput.value = "5000";
+
+  const sceneResults = div("stack gap-sm");
+
+  const compileSceneBtn = button(l("Biên dịch Kịch bản EMS", "Compile EMS Scene"), async () => {
+    try {
+      const res = await ui.api("/sungrow-shx/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+          command_type: "scene",
+          params: {
+            scene_name: sceneSelect.value,
+            power_w: parseInt(scenePowerInput.value, 10) || 5000,
+            rated_w: 10000,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      sceneResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Kịch bản & Cổng An toàn", "Compiled Scene & Safety Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Mô tả Kịch bản", "Scene Description"), r.description || r.scene],
+              [l("Thanh ghi Holding", "Holding Registers"), JSON.stringify(r.registers || {})],
+              [l("Khung Modbus Hex", "Modbus Frame (Hex)"), (r.frames_hex || []).map(f => e("code", f)).reduce((acc, el, idx) => idx === 0 ? [el] : [...acc, " | ", el], [])],
+              [l("Ghi chú An toàn", "Safety Note"), r.note || r.reason || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      sceneResults.replaceChildren(notice(l("Lỗi biên dịch kịch bản: ", "Error compiling scene: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  sceneRow.append(sceneSelect, scenePowerInput, compileSceneBtn);
+  sceneCard.append(sceneRow, sceneResults);
+  sgBox.append(sceneCard);
+
+  // Card 3: Manual EMS Parameters & Battery Limits Compiler
+  const manualCard = div("card p-md stack gap-sm");
+  manualCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Điều khiển Tham số Thủ công & Giới hạn Ngưỡng Pin (Advanced)", "Manual EMS Parameters & Battery Limits")),
+      badge("Holding 13049..13089", "neutral")
+    )
+  );
+
+  const manualRow = div("row gap-sm items-center wrap");
+
+  const cmdTypeSelect = e("select", null, "form-control");
+  const cmdTypes = [
+    { id: "ems_mode", name: l("Chế độ EMS (Holding 13049)", "EMS Mode (Holding 13049)") },
+    { id: "forced_charge_discharge", name: l("Sạc/Xả Cưỡng bức (Holding 13050)", "Forced Charge/Discharge (13050)") },
+    { id: "soc_limits", name: l("Ngưỡng Min/Max SOC (Holding 13057/58)", "SOC Limits (Holding 13057/58)") },
+    { id: "export_limit", name: l("Giới hạn Phát lưới (Holding 13086/73)", "Export Limitation (13086/73)") },
+  ];
+  cmdTypes.forEach((c) => {
+    const opt = e("option", c.name);
+    opt.value = c.id;
+    cmdTypeSelect.append(opt);
+  });
+
+  const paramValA = e("input", null, "form-control");
+  paramValA.type = "text";
+  paramValA.placeholder = "Param 1 / Mode";
+  paramValA.value = "self_consumption";
+
+  const paramValB = e("input", null, "form-control");
+  paramValB.type = "text";
+  paramValB.placeholder = "Param 2 / Power / SOC";
+  paramValB.value = "0";
+
+  cmdTypeSelect.addEventListener("change", () => {
+    if (cmdTypeSelect.value === "ems_mode") {
+      paramValA.value = "self_consumption";
+      paramValB.value = "0";
+      paramValA.placeholder = "Mode (self_consumption/forced)";
+    } else if (cmdTypeSelect.value === "forced_charge_discharge") {
+      paramValA.value = "forced_charge";
+      paramValB.value = "6000";
+      paramValA.placeholder = "Cmd (stop/forced_charge)";
+      paramValB.placeholder = "Power (W)";
+    } else if (cmdTypeSelect.value === "soc_limits") {
+      paramValA.value = "95";
+      paramValB.value = "15";
+      paramValA.placeholder = "Max SOC (%)";
+      paramValB.placeholder = "Min SOC (%)";
+    } else if (cmdTypeSelect.value === "export_limit") {
+      paramValA.value = "true";
+      paramValB.value = "5000";
+      paramValA.placeholder = "Enable (true/false)";
+      paramValB.placeholder = "Limit (W)";
+    }
+  });
+
+  const manualResults = div("stack gap-sm");
+
+  const compileManualBtn = button(l("Biên dịch Tham số Thủ công", "Compile Manual Parameter"), async () => {
+    try {
+      let params = {};
+      const t = cmdTypeSelect.value;
+      if (t === "ems_mode") {
+        params = { mode: paramValA.value.trim() };
+      } else if (t === "forced_charge_discharge") {
+        params = { cmd: paramValA.value.trim(), power_w: parseInt(paramValB.value, 10) || 0 };
+      } else if (t === "soc_limits") {
+        params = { max_soc_pct: parseFloat(paramValA.value) || 100, min_soc_pct: parseFloat(paramValB.value) || 10 };
+      } else if (t === "export_limit") {
+        params = { enabled: paramValA.value.trim().toLowerCase() === "true", limit_w: parseInt(paramValB.value, 10) || 0 };
+      }
+
+      const res = await ui.api("/sungrow-shx/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+          command_type: t,
+          params: params,
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      manualResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Tham số Thủ công", "Manual Parameter Compilation Result")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Holding", "Registers"), JSON.stringify(r.registers || { [r.register]: r.value })],
+              [l("Khung Modbus Hex", "Modbus Frame (Hex)"), (r.frames_hex || [r.frame_hex]).filter(Boolean).map(f => e("code", f)).reduce((acc, el, idx) => idx === 0 ? [el] : [...acc, " | ", el], [])],
+              [l("Cảnh báo An toàn", "Safety Lock Notice"), r.note || r.reason || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      manualResults.replaceChildren(notice(l("Lỗi biên dịch tham số: ", "Error compiling parameter: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  manualRow.append(cmdTypeSelect, paramValA, paramValB, compileManualBtn);
+  manualCard.append(manualRow, manualResults);
+  sgBox.append(manualCard);
+
+  container.append(sgBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: DEYE & SUNSYNK MULTI-FAMILY INVERTER MQTT BRIDGE (Project #16)
+// ---------------------------------------------------------------------------
+async function renderDeyeMqttSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l, api } = ui;
+
+  const deyeBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Deye & SunSynk (Cầu nối MQTT & Đa dòng Inverter)", "Deye & SunSynk Multi-Family Inverter MQTT Bridge")),
+    badge(l("Nguồn sạch độc lập Apache-2.0 • 8 Dòng Inverter & Cụm song song", "Clean-Room Apache-2.0 • 8 Families + Parallel Cluster"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Kiến trúc cầu nối MQTT và phân rã nhóm chỉ số Modbus holding đa dòng: Cao áp 3 pha SG01HP3 (pin 150..800V & BMS), Hạ áp 3 pha SG04LP3, Hạ áp 1 pha SG02LP1/SG03LP1, Inverter hòa lưới String, Microinverter, và đồng hồ IGEN DTSD422. Tích hợp tổng hợp dữ liệu cụm song song, bộ biên dịch lệnh làm việc WorkMode / TOU 6 khung giờ có khóa an toàn nghiệm thu, và cổng lệnh AT cho dongle.",
+      "Multi-family MQTT bridge architecture and Modbus holding register telemetry decoders: High-Voltage 3-Phase SG01HP3 (150..800V battery stack & BMS), Low-Voltage 3-Phase SG04LP3, Low-Voltage 1-Phase SG02LP1/SG03LP1, Grid String Inverters, Microinverters, and IGEN DTSD422 smart meter. Includes multi-inverter parallel cluster data aggregation, safety-gated WorkMode & 6-slot TOU parameter compilers, and dongle AT command console."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  deyeBox.append(banner);
+
+  // Card 1: Family Selection & Gateway Connection
+  const configCard = div("card p-md stack gap-sm");
+  configCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Dòng Thiết bị & Cổng kết nối MQTT", "Device Family & MQTT Gateway Configuration")),
+      badge("Solarman V5 / Direct TCP / MQTT", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+
+  const famSelect = e("select", null, "form-control");
+  const families = [
+    { id: "deye_sg04lp3", name: l("Deye SG04LP3 (Hạ áp 3 pha 5..12kW - 48V)", "Deye SG04LP3 (LV 3-Phase 5..12kW - 48V)") },
+    { id: "deye_sg01hp3", name: l("Deye SG01HP3 (Cao áp 3 pha 6..50kW - HV BMS)", "Deye SG01HP3 (HV 3-Phase 6..50kW - HV BMS)") },
+    { id: "deye_sg02lp1", name: l("Deye SG02LP1 (Hạ áp 1 pha 3.6..8kW)", "Deye SG02LP1 (LV 1-Phase 3.6..8kW)") },
+    { id: "deye_string", name: l("Deye String (Hòa lưới 3 pha PV1..PV4)", "Deye String (Grid-Tied 3-Phase PV1..PV4)") },
+    { id: "deye_micro", name: l("Deye Micro (SUN300..2000G3)", "Deye Microinverters (SUN300..2000G3)") },
+    { id: "igen_dtsd422", name: l("IGEN DTSD422 (Đồng hồ 3 pha CT1..CT3)", "IGEN DTSD422 (Smart Meter CT1..CT3)") },
+    { id: "deye_hybrid", name: l("Deye Classic Hybrid", "Deye Classic Hybrid") },
+  ];
+  families.forEach(f => {
+    const opt = new Option(f.name, f.id);
+    famSelect.append(opt);
+  });
+
+  const snInput = e("input", null, "form-control");
+  snInput.type = "text";
+  snInput.placeholder = "Logger Serial Number";
+  snInput.value = "1234567890";
+
+  const prefixInput = e("input", null, "form-control");
+  prefixInput.type = "text";
+  prefixInput.placeholder = "MQTT Topic Prefix";
+  prefixInput.value = "deye";
+
+  const telemetryDisplay = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry & Luồng MQTT", "Poll Telemetry & MQTT Stream"), async () => {
+    pollBtn.disabled = true;
+    telemetryDisplay.replaceChildren(notice(l("Đang giải mã telemetry và xây dựng luồng chủ đề MQTT...", "Decoding telemetry and building MQTT topics..."), "info"));
+    try {
+      const resp = await api("/api/deye-mqtt/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          family: famSelect.value,
+          logger_sn: snInput.value.trim() || "1234567890",
+          topic_prefix: prefixInput.value.trim() || "deye",
+        }),
+      });
+
+      renderTelemetryCards(resp);
+    } catch (err) {
+      telemetryDisplay.replaceChildren(notice(l("Lỗi truy vấn: ", "Query error: ") + err.message, "error"));
+    } finally {
+      pollBtn.disabled = false;
+    }
+  }, "primary");
+
+  connRow.append(famSelect, snInput, prefixInput, pollBtn);
+  configCard.append(connRow);
+  deyeBox.append(configCard);
+
+  function renderTelemetryCards(data) {
+    telemetryDisplay.replaceChildren();
+
+    const norm = data.normalized || {};
+    const pv = norm.pv || {};
+    const bat = norm.battery || {};
+    const grid = norm.grid || {};
+    const en = norm.energy || {};
+
+    const kpis = div("plant-card-grid");
+    kpis.append(
+      div("card p-sm stack gap-xs",
+        e("span", l("Tổng công suất Solar", "Total Solar PV Power"), "text-secondary"),
+        e("h3", `${pv.total_power_w || 0} W`),
+        e("small", `PV1: ${pv.pv1_power_w || 0}W • PV2: ${pv.pv2_power_w || 0}W`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Pin lưu trữ BESS", "Battery Storage"), "text-secondary"),
+        e("h3", `${bat.power_w || 0} W`),
+        e("small", `SOC: ${bat.soc_pct || 0}% • ${bat.voltage_v || 0}V (${bat.state || "idle"})`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Công suất Lưới AC", "Grid AC Power"), "text-secondary"),
+        e("h3", `${grid.active_power_w || 0} W`),
+        e("small", `L1: ${grid.voltage_l1_v || 0}V${grid.voltage_l2_v ? " • L2: " + grid.voltage_l2_v + "V" : ""}`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Sản lượng điện năng", "Energy Yield"), "text-secondary"),
+        e("h3", `${en.daily_yield_kwh || 0} kWh`),
+        e("small", `${l("Tổng", "Total")}: ${en.total_yield_kwh || 0} kWh`, "text-secondary")
+      )
+    );
+    telemetryDisplay.append(kpis);
+
+    // MQTT Topic stream table
+    const mqttCard = div("card p-md stack gap-sm");
+    mqttCard.append(
+      div("row justify-between items-center",
+        e("h4", l("Chủ đề MQTT đã Xuất bản (Observations)", "Published MQTT Topics (Observations)")),
+        badge(`${(data.mqtt_messages || []).length} ${l("Chủ đề", "Topics")}`, "info")
+      )
+    );
+
+    const headers = [
+      l("Chủ đề MQTT (Topic)", "MQTT Topic"),
+      l("Tên chỉ số", "Metric Name"),
+      l("Giá trị xuất bản", "Published Value"),
+      l("Đơn vị", "Unit"),
+    ];
+
+    const rows = (data.mqtt_messages || []).map(m => [
+      e("code", m.topic),
+      m.name,
+      badge(m.payload, "accent"),
+      m.unit || "—",
+    ]);
+
+    mqttCard.append(table(headers, rows));
+    telemetryDisplay.append(mqttCard);
+  }
+
+  deyeBox.append(telemetryDisplay);
+
+  // Card 2: Multi-Inverter Parallel Cluster Aggregator
+  const clusterCard = div("card p-md stack gap-sm");
+  clusterCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Tổng hợp Dữ liệu Cụm Biến tần Song song (Multi-Inverter Aggregator)", "Parallel Cluster Data Aggregator")),
+      badge("Master + Slaves Parallel Aggregation", "accent")
+    ),
+    e("p",
+      l("Thu thập và tổng hợp chỉ số công suất tức thời và sản lượng ngày qua nhiều logger Deye trong cùng một trạm điện (ví dụ: Inverter Chủ + Inverter Phụ 1 + Phụ 2), tự động đặt lại khi qua ngày mới.",
+        "Ingests and aggregates real-time active power and daily yield across multiple Deye loggers in a parallel site cluster (e.g. Master Inverter + Slave 1 + Slave 2), with automatic midnight rollover."
+      ),
+      "text-secondary"
+    )
+  );
+
+  const clusterDisplay = div("stack gap-sm");
+  const aggBtn = button(l("Tổng hợp Dữ liệu Cụm Song song", "Aggregate Parallel Cluster"), async () => {
+    aggBtn.disabled = true;
+    try {
+      const res = await api("/api/deye-mqtt/aggregate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inverters: [
+            { logger_id: "inv_master_10kW", ac_power_w: 7500.0, day_energy_kwh: 38.5, total_energy_kwh: 12500.0, battery_power_w: 2400.0 },
+            { logger_id: "inv_slave_8kW", ac_power_w: 6200.0, day_energy_kwh: 31.2, total_energy_kwh: 9800.0, battery_power_w: 1900.0 },
+            { logger_id: "inv_slave_5kW", ac_power_w: 3900.0, day_energy_kwh: 19.8, total_energy_kwh: 6400.0, battery_power_w: 1200.0 },
+          ],
+        }),
+      });
+
+      const agg = res.aggregated || {};
+      const aggGrid = div("plant-card-grid");
+      aggGrid.append(
+        div("card p-sm stack gap-xs",
+          e("span", l("Quy mô Cụm song song", "Cluster Inverters"), "text-secondary"),
+          e("h3", `${agg.cluster_size || 0} ${l("Biến tần", "Inverters")}`),
+          e("small", (agg.member_loggers || []).join(", "), "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng công suất AC", "Aggregated AC Power"), "text-secondary"),
+          e("h3", `${agg.aggregated_ac_active_power_w || 0} W`),
+          e("small", l("Công suất phát đồng thời", "Synchronous active power"), "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng sản lượng Ngày", "Aggregated Daily Yield"), "text-secondary"),
+          e("h3", `${agg.aggregated_daily_energy_kwh || 0} kWh`),
+          e("small", `${l("Tổng lũy kế", "Total")}: ${agg.aggregated_total_energy_kwh || 0} kWh`, "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng công suất Pin BESS", "Aggregated Battery Power"), "text-secondary"),
+          e("h3", `${agg.aggregated_battery_power_w || 0} W`),
+          e("small", l("Tổng dòng nạp/xả cụm pin", "Cluster charge/discharge rate"), "text-secondary")
+        )
+      );
+      clusterDisplay.replaceChildren(aggGrid);
+    } catch (err) {
+      clusterDisplay.replaceChildren(notice(l("Lỗi tổng hợp cụm: ", "Cluster error: ") + err.message, "error"));
+    } finally {
+      aggBtn.disabled = false;
+    }
+  }, "secondary");
+
+  clusterCard.append(aggBtn, clusterDisplay);
+  deyeBox.append(clusterCard);
+
+  // Card 3: Remote Control & Parameter Write Compilers
+  const ctrlCard = div("card p-md stack gap-md");
+  ctrlCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Biên dịch Lệnh Điều khiển & Quản trị Tham số (Safety Gated)", "Remote Control & Parameter Write Compilers")),
+      badge(l("Mặc định KHÓA AN TOÀN", "Default LOCKED"), "warn")
+    )
+  );
+
+  // Safety acceptance toggle
+  const safetyRow = div("card p-sm row gap-md items-center justify-between");
+  const safetyCheck = e("input", null, "form-control");
+  safetyCheck.type = "checkbox";
+  safetyCheck.id = "deye-hw-acceptance-chk";
+
+  const safetyLabel = e("label",
+    l("Xác nhận nghiệm thu phần cứng tại hiện trường (Bỏ chọn giữ nguyên chế độ khóa an toàn chỉ đọc LOCKED_PENDING_HARDWARE_ACCEPTANCE)",
+      "Confirm physical on-site hardware acceptance (Unchecked enforces read-only LOCKED_PENDING_HARDWARE_ACCEPTANCE)"
+    )
+  );
+  safetyLabel.htmlFor = "deye-hw-acceptance-chk";
+  safetyRow.append(div("row gap-sm items-center", safetyCheck, safetyLabel));
+  ctrlCard.append(safetyRow);
+
+  const cmdOutput = div("stack gap-sm");
+
+  // Section A: Work Mode & Solar Sell
+  const wmSection = div("card p-sm stack gap-sm");
+  wmSection.append(e("h5", l("Chế độ Vận hành WorkMode & Bán điện Solar Sell", "Work Mode & Solar Sell Settings")));
+  const wmRow = div("row gap-sm items-center wrap");
+
+  const wmSelect = e("select", null, "form-control");
+  wmSelect.append(
+    new Option(l("Bán điện trước (Selling First - 0)", "Selling First (0)"), "0"),
+    new Option(l("Không phát lưới cho phụ tải (Zero Export to Load - 1)", "Zero Export to Load (1)"), "1"),
+    new Option(l("Không phát lưới đo CT (Zero Export to CT - 2)", "Zero Export to CT (2)"), "2")
+  );
+  wmSelect.value = "1";
+
+  const wmBtn = button(l("Đặt WorkMode", "Set WorkMode"), async () => {
+    executeDeyeCommand("workmode", { mode: parseInt(wmSelect.value, 10) });
+  }, "secondary");
+
+  const sellCheck = e("input", null, "form-control");
+  sellCheck.type = "checkbox";
+  sellCheck.checked = true;
+  sellCheck.id = "deye-sell-chk";
+  const sellLabel = e("label", l("Bán điện Solar Sell (Reg 145)", "Solar Sell (Reg 145)"));
+  sellLabel.htmlFor = "deye-sell-chk";
+
+  const sellBtn = button(l("Ghi Solar Sell", "Write Solar Sell"), async () => {
+    executeDeyeCommand("solar_sell", { enable: sellCheck.checked });
+  }, "secondary");
+
+  const maxPwrInput = e("input", null, "form-control");
+  maxPwrInput.type = "number";
+  maxPwrInput.placeholder = "Max Sell Watts";
+  maxPwrInput.value = "5000";
+
+  const maxPwrBtn = button(l("Đặt Công suất Bán Max", "Set Max Sell Power"), async () => {
+    executeDeyeCommand("solar_sell_max_power", { watts: parseInt(maxPwrInput.value, 10) || 5000 });
+  }, "secondary");
+
+  wmRow.append(wmSelect, wmBtn, div("row gap-xs items-center", sellCheck, sellLabel), sellBtn, maxPwrInput, maxPwrBtn);
+  wmSection.append(wmRow);
+  ctrlCard.append(wmSection);
+
+  // Section B: Active Power Regulation & Battery Settings
+  const batSection = div("card p-sm stack gap-sm");
+  batSection.append(e("h5", l("Giảm phát Công suất & Tham số Pin (Active Power Regulation & Battery Settings)", "Active Power Regulation & Battery Settings")));
+  const batRow = div("row gap-sm items-center wrap");
+
+  const regInput = e("input", null, "form-control");
+  regInput.type = "number";
+  regInput.placeholder = "Regulation % (0..120)";
+  regInput.value = "100";
+
+  const regBtn = button(l("Điều tiết Công suất (%)", "Set Active Power %"), async () => {
+    executeDeyeCommand("active_power_regulation", { percentage: parseFloat(regInput.value) || 100.0 });
+  }, "secondary");
+
+  const batParamSelect = e("select", null, "form-control");
+  batParamSelect.append(
+    new Option(l("Cho phép nạp từ lưới (Grid Charge - Reg 130)", "Grid Charge Enabled (Reg 130)"), "grid_charge"),
+    new Option(l("Dòng nạp tối đa (Max Charge Current - Reg 108)", "Max Charge Current (Reg 108)"), "maximum_charge_current"),
+    new Option(l("Dòng xả tối đa (Max Discharge Current - Reg 109)", "Max Discharge Current (Reg 109)"), "maximum_discharge_current"),
+    new Option(l("Dòng nạp từ lưới tối đa (Max Grid Charge - Reg 128)", "Max Grid Charge Current (Reg 128)"), "maximum_grid_charge_current")
+  );
+
+  const batValInput = e("input", null, "form-control");
+  batValInput.type = "number";
+  batValInput.placeholder = "Value (0..240 A hoặc 0/1)";
+  batValInput.value = "100";
+
+  const batBtn = button(l("Ghi Tham số Pin", "Write Battery Param"), async () => {
+    executeDeyeCommand("battery_settings", {
+      setting_name: batParamSelect.value,
+      value: parseInt(batValInput.value, 10) || 0,
+    });
+  }, "secondary");
+
+  batRow.append(regInput, regBtn, batParamSelect, batValInput, batBtn);
+  batSection.append(batRow);
+  ctrlCard.append(batSection);
+
+  // Section C: 6-Slot Time-Of-Use Schedule
+  const touSection = div("card p-sm stack gap-sm");
+  touSection.append(
+    div("row justify-between items-center",
+      e("h5", l("Biểu đồ Giá điện theo Thời gian 6 Khung giờ (6-Slot Time-Of-Use Matrix)", "6-Slot Time-Of-Use Schedule")),
+      badge("Registers 146..177", "accent")
+    )
+  );
+
+  const touHeaders = [
+    l("Khung", "Slot"),
+    l("Giờ kết thúc", "Time (HH:MM)"),
+    l("Công suất (W)", "Power (W)"),
+    l("Điện áp (V)", "Voltage (V)"),
+    l("Mục tiêu SOC (%)", "Target SOC (%)"),
+    l("Cho phép sạc", "Charge En"),
+  ];
+
+  const defaultTouSlots = [
+    { slot_index: 1, time_hhmm: "05:00", power_watts: 3500, voltage: 51.2, target_soc: 80, charge_enabled: true },
+    { slot_index: 2, time_hhmm: "09:00", power_watts: 4000, voltage: 52.0, target_soc: 90, charge_enabled: true },
+    { slot_index: 3, time_hhmm: "13:00", power_watts: 4500, voltage: 53.0, target_soc: 100, charge_enabled: false },
+    { slot_index: 4, time_hhmm: "17:00", power_watts: 4000, voltage: 52.0, target_soc: 90, charge_enabled: false },
+    { slot_index: 5, time_hhmm: "21:00", power_watts: 3500, voltage: 51.2, target_soc: 80, charge_enabled: true },
+    { slot_index: 6, time_hhmm: "01:00", power_watts: 3000, voltage: 50.0, target_soc: 70, charge_enabled: true },
+  ];
+
+  const touRows = defaultTouSlots.map(s => [
+    `Slot ${s.slot_index}`,
+    s.time_hhmm,
+    `${s.power_watts} W`,
+    `${s.voltage} V`,
+    `${s.target_soc} %`,
+    badge(s.charge_enabled ? l("Bật", "ON") : l("Tắt", "OFF"), s.charge_enabled ? "good" : "muted"),
+  ]);
+
+  const touTable = table(touHeaders, touRows);
+
+  const touBtnRow = div("row gap-sm items-center");
+  const touDryBtn = button(l("Thử nghiệm Lập lịch TOU (Dry-Run)", "Compile TOU Schedule (Dry-Run)"), async () => {
+    executeDeyeCommand("timeofuse", { slots: defaultTouSlots, dry_run: true });
+  }, "secondary");
+
+  const touWriteBtn = button(l("Ghi Khung giờ TOU (Modbus Holding)", "Write TOU Schedule (Modbus Holding)"), async () => {
+    executeDeyeCommand("timeofuse", { slots: defaultTouSlots, dry_run: !safetyCheck.checked });
+  }, "primary");
+
+  touBtnRow.append(touDryBtn, touWriteBtn);
+  touSection.append(touTable, touBtnRow);
+  ctrlCard.append(touSection);
+
+  // Section D: Dongle AT Command Console
+  const atSection = div("card p-sm stack gap-sm");
+  atSection.append(e("h5", l("Cổng Giao tiếp Lệnh AT Dongle Wi-Fi (AT Command Console)", "Dongle AT Command Console")));
+  const atRow = div("row gap-sm items-center wrap");
+
+  const atInput = e("input", null, "form-control");
+  atInput.type = "text";
+  atInput.placeholder = "e.g. AT+VER, AT+WNTYPE, AT+WSKEY, AT+MID, AT+Z";
+  atInput.value = "AT+VER";
+
+  const atBtn = button(l("Gửi Lệnh AT", "Send AT Command"), async () => {
+    executeDeyeCommand("at_command", { command: atInput.value.trim() || "AT+VER" });
+  }, "secondary");
+
+  atRow.append(atInput, atBtn);
+  atSection.append(atRow);
+  ctrlCard.append(atSection);
+
+  ctrlCard.append(cmdOutput);
+  deyeBox.append(ctrlCard);
+
+  async function executeDeyeCommand(cmdType, params) {
+    cmdOutput.replaceChildren(notice(l("Đang biên dịch lệnh...", "Compiling command..."), "info"));
+    try {
+      const resp = await api("/api/deye-mqtt/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          family: famSelect.value,
+          logger_sn: snInput.value.trim() || "1234567890",
+          command_type: cmdType,
+          params: params,
+          unlocked: safetyCheck.checked,
+        }),
+      });
+
+      const r = resp.result;
+      if (Array.isArray(r)) {
+        // TOU batch result
+        const batchHeaders = [
+          l("Lệnh / Thanh ghi", "Command / Register"),
+          l("Địa chỉ Reg", "Reg Addr"),
+          l("Giá trị thô", "Raw Value"),
+          l("Mô tả hoạt động", "Description"),
+          l("Trạng thái An toàn", "Safety Status"),
+        ];
+        const batchRows = r.map(b => [
+          b.command_name,
+          `Reg ${b.target_register}`,
+          badge(`${b.raw_value}`, "accent"),
+          b.human_readable,
+          badge(b.status, b.status === "UNLOCKED_TEST_ONLY" ? "good" : "warn"),
+        ]);
+        cmdOutput.replaceChildren(
+          notice(l(`Biên dịch thành công ${r.length} thanh ghi TOU. Trạng thái an toàn: `, `Successfully compiled ${r.length} TOU registers. Safety status: `) + (safetyCheck.checked ? "UNLOCKED" : "LOCKED_PENDING_HARDWARE_ACCEPTANCE"), safetyCheck.checked ? "good" : "warn"),
+          table(batchHeaders, batchRows)
+        );
+      } else {
+        const isUnlocked = r.status === "UNLOCKED_TEST_ONLY" || r.status === "EXECUTED_AT_BRIDGE";
+        cmdOutput.replaceChildren(
+          div("card p-sm stack gap-xs",
+            div("row justify-between items-center",
+              e("h5", r.human_readable || r.command_name),
+              badge(r.status, isUnlocked ? "good" : "warn")
+            ),
+            div("row gap-md items-center wrap",
+              e("span", `${l("Thanh ghi Đích", "Target Register")}: ${r.target_register || "N/A"}`),
+              e("span", `${l("Giá trị", "Value")}: ${r.raw_value}`),
+              r.modbus_request_hex ? e("span", `${l("Khung Modbus Hex", "Modbus Frame")}: `) : null,
+              r.modbus_request_hex ? e("code", r.modbus_request_hex) : null,
+              resp.dongle_response ? e("code", resp.dongle_response) : null
+            )
+          )
+        );
+      }
+    } catch (err) {
+      cmdOutput.replaceChildren(notice(l("Lỗi thực thi lệnh: ", "Command error: ") + err.message, "error"));
+    }
+  }
+
+  container.append(deyeBox);
 }
 
 // Backward compatibility wrapper

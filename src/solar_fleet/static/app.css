@@ -5987,3 +5987,11 @@ solar-energy-flow { display: block; }
   .power-flow-legend { font-size: 11px; gap: 7px 12px; }
   .power-flow.is-table .power-node { flex-wrap: wrap; gap: 10px; }
 }
+
+.code-block {
+  background: var(--surface);
+  padding: var(--space-2);
+  overflow-x: auto;
+  border-radius: var(--radius-small);
+  font-family: monospace;
+}

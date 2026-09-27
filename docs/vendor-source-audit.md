@@ -1267,8 +1267,433 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
 6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
    - Tab 5 (`#devices/main`): Dedicated subtab `smartess_local` ("SmartESS / Eybond (Wifi & P17)") with 3 interactive panels: Inverter Telemetry Poller & Normalizer, P17 Inverter Parameter Controls & Safety Gate, and Eybond Modbus Binary Frame Analyzer.
 
+---
+
+## Detailed Absorption: Project #9 - `ha-growatt-modbus-main`
+
+- **Repository**: `D:\Downloads\before_project\ha-growatt-modbus-main`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_multiphase_modbus.py`. Zero code copied; device identification via DTC (Holding 43) and Tracker/Phase split (Holding 44), 3-phase SPH TL3 telemetry extension, export limitation (Holding 122 & 123), 3-window Grid First / Battery First TOU compilers, 112-bit fault matrix decoder, and Modbus block planner independently authored and verified.
+- **Rank**: #9 out of 30 upstream projects (37 files, 3,876 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Multi-Phase Architecture & Automatic Device Identification**:
+   - Holding Register 43 (Device Type Code - DTC).
+   - Holding Register 44 (Tracker / Phase Register): High byte = MPPT tracker count, Low byte = Output phase count (`0x0201` = 1-phase SPH, `0x0203` = 3-phase SPH TL3).
+   - Holding Registers 23..27: Serial Number ASCII decoder (5 words = 10 ASCII characters).
+   - Holding Registers 9..11 & 12..14: Inverter & Control Firmware ASCII decoders.
+   - Holding Registers 45..50: RTC System Clock synchronization (Year, Month, Day, Hour, Minute, Second).
+
+2. **Zero Feed-in & Export Limitation Engine**:
+   - Holding Register 0: Inverter Power State switch (0: Off, 1: On).
+   - Holding Register 122: Export Limitation switch (0: Disabled, 1: Enabled).
+   - Holding Register 123: Export Limit Rate (0.0..100.0%, 0.1% resolution, scale 0.1).
+   - Holding Register 3: Max Active Power limit (0..100%).
+   - Holding Register 4: Max Reactive Power limit (0..100%).
+   - Holding Register 608: Discharge Minimum SOC limit (10..100%).
+
+3. **Structured 3-Window TOU Schedulers**:
+   - Grid First Windows (1080..1088): Windows 1..3 with start, stop, enable, discharge rate (1070: 0..100%), and stop SOC (1071: 0..100%).
+   - Battery First Windows (1100..1108): Windows 1..3 with start, stop, enable, charge rate (1090: 0..100%), stop SOC (1091: 0..100%), and AC grid charge enable switch (1092).
+   - Time encoding format: `(hour << 8) | minute`.
+
+4. **112-Bit Comprehensive Fault / Warning Classification**:
+   - Input Registers 1001..1007: 7 words mapping 112 discrete error and warning flags.
+   - Strict categorization into CRITICAL trip faults (e.g. MasterForceINVFault, RelayFault, NoUtility) vs secondary non-critical WARNINGs (e.g. PV1_VoltLowWarn, BoostDriver1Warn, WARN104).
+
+5. **SPH TL3 3-Phase Symmetrical Telemetry**:
+   - Grid Voltages: L1 (38), L2 (42), L3 (46) (0.1 V scale).
+   - Grid Output Powers: L1 (40), L2 (44), L3 (48) (u32, 0.1 W scale).
+   - Line-to-line Voltages: L1-L2 (50), L2-L3 (51), L3-L1 (52).
+   - EPS 3-Phase Backup Outputs: L1, L2 (1072, 1074), L3 (1076, 1078).
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/growatt-multiphase/decode-telemetry`: Decodes full 1-phase or 3-phase telemetry, DTC, and normalizes to Solar Fleet EMS schema.
+   - `POST /api/growatt-multiphase/compile-export-limit`: Compiles Regs 122 & 123 for Growatt Zero Feed-in / Export Limitation with safety gating.
+   - `POST /api/growatt-multiphase/compile-window`: Compiles Grid First or Battery First time window registers with AC charge toggle.
+   - `POST /api/growatt-multiphase/decode-faults`: Decodes 112 fault/warning bits across registers 1001..1007.
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Extended `growatt_sph` subtab with 3 additional interactive panels:
+     * Section 4: Multi-Phase Architecture & 3-Phase Telemetry (SPH TL3).
+     * Section 5: Zero Feed-in / Export Limitation Controls (Regs 122 & 123).
+     * Section 6: 112-Bit Comprehensive Fault & Warning Matrix.
+   - All write commands remain locked under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #10 - `PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
+
+- **Repository**: `D:\Downloads\before_project\PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
+- **License**: MIT License (@indykoning & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_cloud_client.py`. Official Growatt OpenAPI V1 showdoc specification (`262556420217021`) and ShineServer communication architecture cleanly abstracted. Password MD5 transformation, multi-region routing (`global`, `cn`, `us`), plant & device registry, SPH hybrid & MIN TL-X telemetry normalizer, and remote parameter compilers independently authored and verified.
+- **Rank**: #10 out of 30 upstream projects (20 files, 4,951 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Multi-Region OpenAPI V1 Cloud Architecture**:
+   - Global Server: `https://openapi.growatt.com`
+   - China Server: `https://openapi-cn.growatt.com`
+   - North America Server: `https://openapi-us.growatt.com`
+   - Official token authentication header and ShinePhone legacy MD5 transformation algorithm.
+
+2. **Plant Registry & Device Discovery**:
+   - Station summary metrics (peak power, today/total generation, current power, city, device counts).
+   - Inverter device registry with datalogger SN mapping, connection health, and device type classification (`sph`, `min`, `mix`, `noah`).
+
+3. **SPH Hybrid & MIN Telemetry Normalizer**:
+   - Dual-MPPT trackers (PV1/PV2 voltages and power outputs).
+   - Battery state: SOC %, pack voltage, charge/discharge powers, discharge minimum cutoff SOC.
+   - Grid feed-in / import power and home load consumption.
+   - Operating priority modes: Load First, Battery First, Grid First.
+   - 3-window forced charge/discharge schedule extraction.
+
+4. **Remote Parameter Writing Compilers & Safety Gating**:
+   - SPH Priority Mode compiler (`priorityChoose`: 0, 1, 2).
+   - SPH AC Charging Toggle compiler (`acChargeEnable`: 0/1).
+   - SPH Charge / Discharge Power Limit compiler (`chargePowerCommand`, `disChargePowerCommand`: 0..100%).
+   - MIN / TLX 9-Segment TOU programmer (`batt_mode`, start/end time HH:MM, segment 1..9).
+   - Strict read-only safety gating under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/growatt-cloud/plants`: Queries regional plant registry.
+   - `POST /api/growatt-cloud/devices`: Lists plant inverters and dataloggers.
+   - `POST /api/growatt-cloud/sph-detail`: Fetches and normalizes live/simulated SPH hybrid telemetry.
+   - `POST /api/growatt-cloud/command`: Compiles remote configuration with hardware acceptance gate.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `growatt_cloud` ("Growatt Cloud (OpenAPI V1)") with 3 interactive sections:
+     * Section 1: Plant & Power Station Explorer (multi-region, token auth, KPI cards).
+     * Section 2: Device Explorer & SPH Hybrid Telemetry (dual-MPPT, battery, grid, load, TOU windows).
+     * Section 3: Cloud Parameter Compilers & Safety Gates (interactive compiler testing).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #11 - `esp-eybond-collector-main`
+
+- **Repository**: `D:\Downloads\before_project\esp-eybond-collector-main`
+- **License**: Mozilla Public License 2.0 (MPL-2.0).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/eybond_collector_engine.py`. Zero code copied; Eybond 8-byte binary frame codec (`TID`, `DevCode`, `WireLen`, `DevAddr`, `FC`), UDP port 58899 discovery handshake (`set>server=IP:PORT;` -> `rsp>server=2;`), synthetic serial number generator (`V00` + 15 digits from 6-byte MAC), AT command parser/handler (`AT+DTUPN`, `AT+FWVER`, `AT+UART`, `AT+CLDSRVHOST1`, `AT+WFSS`, `AT+LINK`, `AT+SYST`), Voltronic PI30 protocol engine (`QPIGS`, `QPIRI`, `QMOD`, 32-bit `QPIWS` warning bitfield) with CRC16-XMODEM byte-stuffing, and parameter write compilers independently authored and verified.
+- **Rank**: #11 out of 30 upstream projects (58 files, 9,462 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Eybond Binary Header Codec**:
+   - 8-byte big-endian framing: `TID (u16)`, `DevCode (u16)`, `WireLen (u16 = total_len - 6)`, `DevAddr (u8)`, `FC (u8)`.
+   - Function codes: `FC_HEARTBEAT` (0x01), `FC_QUERY_COLLECTOR` (0x02), `FC_SET_COLLECTOR` (0x03), `FC_FORWARD_TO_DEVICE` (0x04).
+   - Bidirectional frame assembly and disassembly.
+
+2. **UDP Discovery & Synthetic Serial Number Generator**:
+   - UDP Port 58899 listener: parses `set>server=IP:PORT;` and formats `rsp>server=2;`.
+   - Synthetic PN generator: transforms 6-byte hardware MAC into 18-character synthetic identifier (`V00...`).
+
+3. **AT Command Interface**:
+   - Interleaved AT command line parser for query (`AT+<CMD>?`) and write (`AT+<CMD>=<VAL>`).
+   - Query response table: `DTUPN`, `FWVER` (0.1.10), `ATVER` (1.11), `UART` (baud/parity), `CLDSRVHOST1` (EMS server endpoint), `WFSS` (RSSI), `LINK`, `SYST` (UTC timestamp).
+   - Write acknowledgment: `AT+<CMD>:W000\r\n`.
+
+4. **Voltronic PI30 / PI17 Protocol Engine & Telemetry Normalizer**:
+   - CRC16-XMODEM checksum calculation with byte-stuffing escape rules (`+1` for `(`, `\r`, `\n`).
+   - `QPIGS` 21-field status parser: Grid V/Hz, Output V/Hz, Active Power W, Apparent VA, Load %, Bus V, Battery V, Battery Charge/Discharge A, Battery SOC %, PV Voltage/Current/Power, Heatsink Temp °C.
+   - `QMOD` operating mode decoder: Line Mode (L), Battery Mode (B), Standby (S), Fault (F), Power Saving (H).
+   - `QPIWS` 32-character warning bitfield decoder mapping 32 discrete fault/warning flags into CRITICAL vs WARNING alarms.
+   - Normalized schema mapping into unified Solar Fleet EMS telemetry structure.
+
+5. **Inverter Parameter Write Compilers with Safety Gating**:
+   - Output Source Priority compiler: `POP00` (Utility First), `POP01` (Solar First), `POP02` (SBU).
+   - Charger Source Priority compiler: `PCP00` (Utility First), `PCP01` (Solar First), `PCP02` (Solar & Utility), `PCP03` (Solar Only).
+   - Maximum Charging Current compiler: `MCHGC0xx` (10..120A).
+   - Battery Voltage Setting compiler: Bulk `PCVV`, Float `PBFT`, Cutoff `PSDV`.
+   - All parameter write actions remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/eybond-collector/discover`: Handles UDP discovery and returns reverse-TCP parameters.
+   - `POST /api/eybond-collector/parse-at`: Parses AT commands and generates standard responses.
+   - `POST /api/eybond-collector/decode-pigs`: Decodes raw `QPIGS` & `QPIWS` telemetry strings into normalized EMS schema.
+   - `POST /api/eybond-collector/command`: Compiles Voltronic inverter controls with hardware acceptance gating.
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `eybond_esp` ("ESP EyeBond Collector (Bridge & PI30)") with 3 interactive sections:
+     * Section 1: ESP Collector Bridge & AT Command Interface (AT queries, UDP 58899 discovery test).
+     * Section 2: Voltronic PI30 Inverter Telemetry & Status (`QPIGS` parser, solar/load/battery KPIs, `QPIWS` alarms).
+     * Section 3: Inverter Parameter Compilers & Safety Gates (`POP`, `PCP`, `MCHGC`, voltages).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
 
 
+## Detailed Absorption: Project #12 - `goodwe-master`
+
+- **Repository**: `D:\Downloads\before_project\goodwe-master`
+- **License**: MIT License (Martin Landa & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/goodwe_local_client.py`. Zero code copied; Modbus RTU-over-UDP protocol on port 8899 (default comm address `0xF7`=247 / `0x7F`=127), CRC-16 Modbus (polynomial `0xA001`, init `0xFFFF`), AA55 frame codec for single-phase ES/EM series, 3-phase ET hybrid running registers (35100..35220), BMS pack telemetry registers (37000..37023), Smart Meter bidirectional power registers (36000..36043), Operation Mode holding reg 47000 (General, Off-Grid, Backup, Eco, Peak Shaving, Self Use), Export Limit 47509/47510, Cutoff SOC 47500, Eco Mode V1 TOU schedule 47515..47530, simulator and safety gates independently authored and verified.
+- **Rank**: #12 out of 30 upstream projects (28 files, 9,692 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Modbus RTU over UDP Frame Codec (Port 8899) & AA55 Framing**:
+   - Big-endian Modbus RTU framing with polynomial `0xA001` CRC-16 and port 8899 socket transport.
+   - Dual communication address resolution: default `0xF7` (247) and legacy `0x7F` (127).
+   - Single-phase ES/EM AA55 frame header `AA 55` with length, command, payload, and checksum calculation.
+
+2. **ET Series 3-Phase Hybrid Telemetry Decoders (Registers 35100..35220)**:
+   - Dual/Quad MPPT PV tracker voltages, currents, and powers.
+   - 3-phase grid voltages, currents, powers (L1, L2, L3) and total inverter grid output.
+   - 3-phase backup (UPS) voltages and total backup load power.
+   - Smart meter active power (signed import/export at point of common coupling).
+   - Total household load power calculated from inverter and meter balance.
+   - Heatsink / inverter temperature.
+   - Accumulated daily and total PV energy, export energy, import energy, and battery charge/discharge energy.
+
+3. **ET Series BMS Pack & Smart Meter Decoders**:
+   - Registers 37000..37023: Battery SOC %, SOH %, temperature, pack voltage, charge/discharge current limits.
+   - 32-bit discrete inverter and BMS fault/alarm bitfield decoding.
+
+4. **Parameter Write Compilers with Safety Gating**:
+   - Operation Mode (Register 47000): General (0), Off Grid (1), Backup (2), Eco (3), Peak Shaving (4), Self Use (5).
+   - Grid Export Limitation (Registers 47509 & 47510): Enable switch and export power cap in Watts.
+   - Battery Protection Cutoff SOC % (Register 47500): 10..100%.
+   - Eco Mode V1 TOU Schedule Compiler (Registers 47515..47530): 4 daily slots encoding start time, stop time, power percentage, and enable flag with hardware acceptance gating.
+   - All parameter writes default to `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/goodwe-local/telemetry`: Queries and decodes local GoodWe inverter telemetry over UDP 8899 into normalized EMS schema.
+   - `POST /api/goodwe-local/command`: Safely compiles parameter write commands gated behind hardware acceptance.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `goodwe_local` ("GoodWe Modbus UDP (Local & Eco Mode)") with 3 interactive sections:
+     * Section 1: Local Gateway & Inverter Running Telemetry (IP, Port 8899, Comm Addr, ET/ES/DT family, telemetry table).
+     * Section 2: Operation Mode & Grid Export Limitation (Mode compiler, Export limit ON/OFF and Watt cap, Cutoff SOC).
+     * Section 3: Eco Mode V1 Time-of-Use Schedule Compiler (4 groups, start/stop HH:MM, power %, enable toggle).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
 
+## Detailed Absorption: Project #13 - `huawei-solar-lib-develop`
+
+- **Repository**: `D:\Downloads\before_project\huawei-solar-lib-develop`
+- **License**: GNU Affero General Public License v3.0 (AGPL-3.0) (wlcrs/huawei-solar-lib).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/huawei_sun2000_client.py`. Zero code copied; Modbus TCP (port 502) and Modbus RTU frame codecs (FC03, FC06, FC10), big-endian register decoding, multi-string PV tracker voltages/currents/powers (32016..32023, 32064), 3-phase grid line/phase voltages, currents, active & reactive powers, power factor, frequency (32066..32085), DTSU666-H smart power meter bidirectional active power and export/import counters (37100..37138), LUNA2000 energy storage telemetry (37000..37025, 37760..37782), active power percentage derating compiler (40125), storage working mode compiler (47004), export limitation compiler (47079), battery cutoff SOC compiler (47081/47082), AC charge from grid toggle (47087), and LUNA2000 14-period Time-of-Use (TOU) schedule compiler (47255..47297) independently authored and verified.
+- **Rank**: #13 out of 30 upstream projects (51 files, 10,474 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Modbus TCP & RTU Protocol Engine (Port 502)**:
+   - MBAP header construction and Modbus RTU CRC-16 checksum calculation.
+   - Support for slave unit ID addressing (1..16) behind SDongleA, SmartLogger, or AP.
+   - Big-endian register packing and ASCII string register decoding.
+
+2. **Multi-String PV Telemetry (Registers 32016..32023, 32064)**:
+   - Up to 4 MPPT strings: PV1..PV4 voltages (0.1V), currents (0.01A), and computed powers.
+   - Total DC input power (32064, u32 W).
+
+3. **3-Phase Grid Output Telemetry (Registers 32066..32085)**:
+   - Phase A, B, C voltages (0.1V) and currents (0.001A).
+   - Inverter active power (32080, signed s32 W), reactive power (32082, signed s32 var).
+   - Power factor (32084, signed s16 / 1000) and grid frequency (32085, 0.01 Hz).
+   - Daily yield (32114, 0.01 kWh) and total lifetime yield (32106, 0.01 kWh).
+   - Internal inverter temperature (32087, 0.1 °C).
+
+4. **LUNA2000 Energy Storage System (ESS) Telemetry**:
+   - Storage running status (37762): Offline (0), Standby (1), Running (2), Fault (3), Sleep (4).
+   - Pack State of Charge (SOC 37760, 0.1%).
+   - Pack charge/discharge power (37765, signed s32 W; positive = charging, negative = discharging).
+   - Bus voltage (37763, 0.1V) and bus current (37764, signed s16 0.1A).
+   - Current day charge (37015) and discharge (37017) energy (0.01 kWh).
+   - Lifetime total charge (37780) and discharge (37782) energy (0.01 kWh).
+
+5. **DTSU666-H Smart Power Meter Telemetry**:
+   - Meter status (37100): Offline (0) / Normal (1).
+   - Point of common coupling active power (37113, signed s32 W; positive = export, negative = import).
+   - 3-phase individual active powers (37132, 37134, 37136).
+   - Accumulated grid export (37119, 0.01 kWh) and import (37121, 0.01 kWh) energies.
+   - Home load calculation: Inverter Active Power - Meter Export Power.
+
+6. **Parameter Write Compilers with Safety Gating**:
+   - Active Power Percentage Derating (40125, 0..1000 = 0..100.0%) and Fixed derating (40126, W).
+   - Storage Working Mode: Maximise Self-Consumption (4), Time of Use (6), Fully Fed to Grid (5).
+   - Grid Export Power Limit (47079, signed s32 W).
+   - Storage Charge / Discharge Cutoff SOC (47081 & 47082, 0..1000 = 0..100.0%).
+   - AC Grid Charging Toggle (47087, 0=Disable, 1=Enable).
+   - LUNA2000 Time-of-Use (TOU) Schedule Compiler (Registers 47255..47297):
+     Encodes up to 14 periods with start minute, end minute, charge/discharge mode, and 7-day effective mask.
+   - All parameter writes strictly gated by `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/huawei-sun2000/telemetry`: Queries and decodes local Huawei SUN2000, LUNA2000, and DTSU666-H telemetry over Modbus TCP into normalized EMS schema.
+   - `POST /api/huawei-sun2000/command`: Safely compiles parameter write commands gated behind hardware acceptance.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `huawei_sun2000` ("Huawei SUN2000 (LUNA2000 & TOU)") with 3 interactive sections:
+     * Section 1: Modbus TCP Gateway & SUN2000 Telemetry (Host, Port 502, Unit ID, live metrics table).
+     * Section 2: Active Power Derating, Storage Mode & Export Limitation (Holding 40125 / 47004 / 47079 / 47081 / 47082).
+     * Section 3: LUNA2000 Time-of-Use (TOU) Schedule Compiler (Holding 47255..47297, 14 slots, 7-day mask).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+
+## Detailed Absorption: Project #14 - `home_assistant_solarman-main`
+
+- **Repository**: `D:\Downloads\before_project\home_assistant_solarman-main`
+- **License**: Apache License 2.0 (Stephan Joubert & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/solarman_profile_engine.py`. Zero code copied; rule-based Modbus parameter parser (Rules 1..10: unsigned, signed, lookup dictionaries, ASCII, bitmasks, versions, datetime, time, raw hex), multi-vendor profile catalogue (Deye Hybrid SG04LP3, Sofar G3 HYD / ZCS Azzurro 3PH, Solis Hybrid RHI-5G / S6), query range optimizer and continuous batch planner, and parameter write compilers with strict hardware acceptance safety gates independently authored and verified.
+- **Rank**: #14 out of 30 upstream projects (42 files, 12,598 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Multi-Vendor Inverter Profile Catalogue**:
+   - Deye Hybrid (`deye_hybrid`): Registers 0x0003..0x0117, PV1..PV4, 3-phase grid voltages/power, external CT power, total & UPS load power, battery BMS V/I/W/SOC/Temp, energy counters, Work Mode 142, Export limit 143, Max Solar Sell 145.
+   - Sofar G3 HYD & ZCS Azzurro (`sofar_g3hyd`): Registers 0x0404..0x069B, PV1..PV2, 3-phase grid, battery BMS, generation counters, battery min SOC (0x104D), EPS buffer (0x1052).
+   - Solis Hybrid (`solis_hybrid`): Registers 33022..43150, PV1..PV2, grid active power, battery BMS, Storage Control Mode 43110.
+
+2. **Rule-Based Parameter Parser (Rules 1..10)**:
+   - Rule 1/3: Unsigned 16-bit & 32-bit with scale, offset, and string lookup mapping.
+   - Rule 2/4: Signed 16-bit & 32-bit two's complement with scale, offset, and string lookup.
+   - Rule 5: ASCII string decoding from sequence of 16-bit registers.
+   - Rule 6: Discrete bitmask flag decoder with severity/state mapping.
+   - Rule 7: Version string formatting.
+   - Rule 8/9: Datetime and time string formatting.
+   - Rule 10: Raw byte stream / hex string.
+
+3. **Query Range Optimizer / Batch Planner**:
+   - Partitions arbitrary register lists into minimal contiguous Modbus read intervals respecting `max_chunk_size` and `max_gap`.
+
+4. **Parameter Write Compilers with Safety Gating**:
+   - FC06 single register write and FC10 multiple register write compilers.
+   - All parameter writes default to `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/solarman-profile/profiles`: Lists available multi-vendor inverter profiles with metadata.
+   - `POST /api/solarman-profile/telemetry`: Decodes multi-vendor inverter telemetry using profile rules.
+   - `POST /api/solarman-profile/command`: Compiles parameter write commands gated behind hardware acceptance.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `solarman_profiles` ("Solarman Profiles (Multi-Vendor)") with 3 interactive sections:
+     * Section 1: Inverter Profile Selector & Telemetry Poller (Deye, Sofar, Solis).
+     * Section 2: Optimal Modbus Query Batch Planner (Packet chunking & range tables).
+     * Section 3: Multi-Vendor Parameter Write Compiler (Holding register controls & safety gates).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+## Detailed Absorption: Project #15 - `Sungrow-SHx-Inverter-Modbus-Home-Assistant-main`
+
+- **Repository**: `D:\Downloads\before_project\Sungrow-SHx-Inverter-Modbus-Home-Assistant-main`
+- **License**: MIT License (Copyright (c) 2025 Martin Kaiser).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/sungrow_shx_client.py`. Zero code copied; protocol register maps (Input registers 4999..5630, 10740..10779, 12999..13045; Holding registers 12999..33149), word-swap little-endian word / big-endian byte decoding, device model enum decoder (35+ models across single-phase SH3K6..SH10RS and 3-phase SH5.0RT..SH25T series), running state bitfields, DTSU meter and PCC power calculation, SBR high-voltage battery storage pack telemetry with cell mV extremes, and EMS operating scenes / parameter compilers with strict hardware acceptance safety gates independently authored and verified.
+- **Rank**: #15 out of 30 upstream projects (35 files, 12,768 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Device Identification & Firmware Architecture**:
+   - Direct local Modbus TCP communication on default port 502 with Slave Unit ID 1.
+   - Dual interface support: Inverter internal LAN Ethernet port (direct socket) or WiNet-S dongle (Wi-Fi/LAN).
+   - Device Type Code (Input 4999): Maps to 35+ distinct Sungrow models including SH3K6, SH4K6, SH5K-20, SH5K-V13, SH3.0RS..SH10RS single-phase hybrids, SH5.0RT..SH10RT 3-phase hybrids, SH5.0RT-20..SH10RT-20, SH5.0RT-V112..V122, and latest SH5T..SH25T commercial series.
+   - Serial number (Input 4989..4998) and firmware versions (ARM 4953, DSP 4968, Inverter 13249).
+
+2. **Solar MPPT Telemetry**:
+   - MPPT1..MPPT4 voltages (0.1 V) and currents (0.1 A) (Input 5010..5015, 5114..5115).
+   - Total DC input power (Input 5016, u32 W with Sungrow word-swap decoding).
+
+3. **3-Phase AC Grid & Power Quality**:
+   - Phase A, B, C line-to-neutral voltages (Input 5018..5020, 0.1 V).
+   - Phase A, B, C inverter output currents (Input 13030..13032, signed 0.1 A).
+   - Total active power (Input 13033, signed s32 W).
+   - Reactive power (Input 5032, signed s32 var) and power factor (Input 5034, signed s16 / 1000).
+   - Grid frequency (Input 5241, 0.01 Hz).
+
+4. **DTSU Smart Power Meter & Point of Common Coupling (PCC)**:
+   - Meter active power (Input 5600, signed s32 W; positive = export, negative = import).
+   - Meter Phase A, B, C active powers (Input 5602, 5604, 5606, signed s32 W).
+   - House load power (Input 13007, signed s32 W).
+   - Export power raw (Input 13009, signed s32 W).
+
+5. **SBR High-Voltage Battery Storage & Pack Telemetry**:
+   - Battery pack power (Input 5213, signed s32 W), voltage (Input 13019, 0.1 V), current (Input 5630, signed 0.1 A).
+   - Battery State of Charge (SOC 13022, 0.1%), State of Health (SOH 13023, 0.1%), temperature (Input 13024, signed 0.1 °C).
+   - SBR pack cell extremes: Maximum cell voltage (Input 10756, mV), minimum cell voltage (Input 10758, mV), delta calculation.
+   - SBR module temperatures: Maximum module temp (Input 10760, 0.1 °C), minimum module temp (Input 10762, 0.1 °C).
+   - Battery energy counters: Daily charge (13039, 0.1 kWh), total charge (13040, u32 0.1 kWh), daily discharge (13025, 0.1 kWh), total discharge (13026, u32 0.1 kWh).
+
+6. **Safety-Gated Parameter Write Compilers**:
+   - Inverter Start / Stop control (Holding 12999: 0xCF=Start, 0xCE=Stop).
+   - EMS Operating Mode (Holding 13049: 0=Self-consumption, 2=Forced mode, 3=External EMS, 4=VPP).
+   - Battery Forced Charge/Discharge Command (Holding 13050: 0xCC=Stop, 0xAA=Charge, 0xBB=Discharge).
+   - Battery Forced Charge/Discharge Power (Holding 13051: W).
+   - Battery Max & Min SOC limits (Holding 13057 & 13058: 0.1% scale).
+   - Export Power Limitation Toggle & Cap (Holding 13086 & 13073: 0xAA=On, 0x55=Off; W).
+   - Active Power Limitation Toggle & Ratio (Holding 13088 & 13089: 0xAA=On, 0x55=Off; 0.1% ratio).
+   - Pre-configured EMS Scenes: Self-Consumption, Zero Export, Max Export, Battery Bypass, Forced Charge, Forced Discharge.
+   - All parameter writes strictly gated by `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/sungrow-shx/info`: Returns supported models, running states, and EMS scenes.
+   - `POST /api/sungrow-shx/telemetry`: Decodes Sungrow SHx/SG inverter, SBR battery, and meter telemetry into normalized EMS schema.
+   - `POST /api/sungrow-shx/command`: Compiles parameter write commands gated behind hardware acceptance.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `sungrow_shx` ("Sungrow SHx Hybrid (Modbus TCP & SBR)") with 3 interactive sections:
+     * Section 1: Connection & Live Modbus TCP Telemetry Poller (Direct LAN or WiNet-S).
+     * Section 2: Pre-Configured EMS Scenes Compiler (6 canonical operational scenes).
+     * Section 3: Manual EMS Parameters & Battery Limits (Holding 13049..13089).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #16 - `deye-inverter-mqtt-main`
+
+- **Repository**: `D:\Downloads\before_project\deye-inverter-mqtt-main`
+- **License**: Apache-2.0 License (Krzysztof Kliś & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/deye_mqtt_bridge.py`. Multi-family metric definitions across 8 families, Modbus holding register decoders, MQTT observation topic routing, safety-gated parameter write compilers, 6-slot Time-of-Use schedule matrix staging, multi-inverter parallel cluster data aggregator, and dongle AT command connector independently authored and verified.
+- **Rank**: #16 out of 30 upstream projects (104 files, 13,420 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **8 Deye / SunSynk Device Families & Metric Groups**:
+   - `deye_sg01hp3`: High-Voltage 3-Phase Hybrid (6..50kW) with HV battery stack (150..800V), BMS stack registers 210..250 (voltage, current, SOC, SOH), 3-phase grid AC voltages/currents, total grid power, daily energy bought/sold, UPS, and generator.
+   - `deye_sg04lp3`: Low-Voltage 3-Phase Hybrid (5..12kW) with 48V battery storage, 6-slot TOU schedule (registers 146..177), solar sell, and operational registers 500..653.
+   - `deye_sg02lp1` / `deye_sg03lp1`: Low-Voltage Single-Phase Hybrid (3.6..8kW) with PV1..PV3, battery power/SOC, single-phase grid AC, and BMS registers 312..319.
+   - `deye_string`: Grid-tied 3-phase string inverter with PV1..PV4, IGBT heatsink temperature (0x5B), and active power regulation (Reg 40).
+   - `deye_micro`: Microinverter family (SUN300..SUN2000G3) with individual DC inputs, grid AC output, and active power regulation.
+   - `igen_dtsd422`: IGEN DTSD-422-D3 3-phase CT smart power meter with CT1..CT3 voltage, signed current, active/reactive/apparent power, power factor, and bidirectional positive/negative energy counters.
+   - `deye_hybrid`: Classic hybrid inverter family.
+   - `deye_aggregated`: Cross-inverter parallel cluster data aggregation for total AC power, daily yield, total yield, and battery power.
+
+2. **MQTT Topic Routing & Protocol Conventions**:
+   - Publish Topic Pattern: `deye/{logger_sn}/{topic_suffix}` (e.g. `deye/1234567890/battery/soc`, `deye/1234567890/dc/pv1/power`).
+   - Command Topic Pattern: `deye/{logger_sn}/{setting_topic}/command` (e.g. `deye/1234567890/settings/workmode/command`, `deye/1234567890/timeofuse/time/1/command`).
+   - Dynamic command suffix extraction and topic prefix mapping.
+
+3. **Safety-Gated Parameter Write Compilers**:
+   - Work Mode Switching (Reg 142: 0=Selling First, 1=Zero Export to Load, 2=Zero Export to CT).
+   - Solar Sell Enable/Disable (Reg 145: 0/1) and Solar Sell Max Power (Reg 143: 0..12000 W).
+   - Active Power Regulation (Reg 40: 0..120%, scaled by 10 into 0..1200).
+   - Battery Parameter Settings: Grid Charge (Reg 130: 0/1), Max Charge Current (Reg 108: 0..240 A), Max Discharge Current (Reg 109: 0..240 A), Max Grid Charge Current (Reg 128: 0..240 A).
+   - All parameter write compilers strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+4. **6-Slot Time-Of-Use (TOU) Matrix Service**:
+   - Time points 1..6 (Regs 148..153, decimal HHMM format).
+   - Power limits 1..6 (Regs 154..159, Watts).
+   - Battery target voltages 1..6 (Regs 160..165, 0.01 V scale).
+   - Battery target SOC 1..6 (Regs 166..171, %).
+   - Grid charge enable flags 1..6 (Regs 172..177: 0/1).
+   - TOU selling toggle (Reg 146).
+   - Full staging, dry-run simulation, and reset support.
+
+5. **Multi-Inverter Parallel Cluster Aggregator**:
+   - Aggregates AC active power (sum), daily energy (sum), total energy (sum), and battery power (sum) across master and slave inverters.
+   - Automatic midnight date rollover with daily counter reset.
+
+6. **Dongle AT Command Bridge**:
+   - Parses and simulates standard Wi-Fi dongle AT commands over UDP/TCP port 48899/8899: `AT+WNTYPE`, `AT+WSKEY`, `AT+MID`, `AT+VER`, `AT+Z`, `AT+H`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/deye-mqtt/families`: Returns all 8 supported families, sensor counts, and command schemas.
+   - `POST /api/deye-mqtt/telemetry`: Decodes simulated/live Modbus registers into typed values, MQTT topics, and normalized Solar Fleet schema.
+   - `POST /api/deye-mqtt/command`: Compiles and executes Deye control commands with safety acceptance gate.
+   - `POST /api/deye-mqtt/aggregate`: Ingests telemetry across parallel cluster inverters and outputs aggregated totals.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `deye_mqtt` ("Deye & SunSynk (Cầu nối MQTT)") with 4 interactive cards:
+     * Card 1: Family Selection & Gateway Configuration (8 supported families).
+     * Card 2: Live Telemetry KPIs & Published MQTT Topics Inspector table.
+     * Card 3: Multi-Inverter Parallel Cluster Aggregator summary.
+     * Card 4: Remote Control & Parameter Write Compilers (WorkMode, Solar Sell, Active Power Regulation, Battery Settings, 6-Slot TOU Schedule, Dongle AT Console, and Hardware Acceptance Toggle).
+   - Strictly conforms to global design system (`app.css`, zero inline `.style.` CSS).

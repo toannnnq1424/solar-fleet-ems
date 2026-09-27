@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T06:27:57.302086+00:00",
+  "measured_at_utc": "2026-09-27T07:12:14.779411+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 107,
-      "lines": 35444,
-      "nonblank": 30954,
+      "files": 115,
+      "lines": 41903,
+      "nonblank": 36596,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -236,6 +236,11 @@
           "nonblank": 514
         },
         {
+          "path": "src/solar_fleet/deye_mqtt_bridge.py",
+          "lines": 864,
+          "nonblank": 762
+        },
+        {
           "path": "src/solar_fleet/domain.py",
           "lines": 254,
           "nonblank": 209
@@ -261,6 +266,11 @@
           "nonblank": 172
         },
         {
+          "path": "src/solar_fleet/eybond_collector_engine.py",
+          "lines": 647,
+          "nonblank": 557
+        },
+        {
           "path": "src/solar_fleet/forecast_baseline.py",
           "lines": 420,
           "nonblank": 377
@@ -276,6 +286,11 @@
           "nonblank": 102
         },
         {
+          "path": "src/solar_fleet/goodwe_local_client.py",
+          "lines": 663,
+          "nonblank": 580
+        },
+        {
           "path": "src/solar_fleet/goodwe_sems_client.py",
           "lines": 346,
           "nonblank": 296
@@ -286,6 +301,16 @@
           "nonblank": 253
         },
         {
+          "path": "src/solar_fleet/growatt_cloud_client.py",
+          "lines": 469,
+          "nonblank": 413
+        },
+        {
+          "path": "src/solar_fleet/growatt_multiphase_modbus.py",
+          "lines": 626,
+          "nonblank": 553
+        },
+        {
           "path": "src/solar_fleet/growatt_sph_modbus.py",
           "lines": 545,
           "nonblank": 460
@@ -294,6 +319,11 @@
           "path": "src/solar_fleet/home_assistant_bridge.py",
           "lines": 116,
           "nonblank": 102
+        },
+        {
+          "path": "src/solar_fleet/huawei_sun2000_client.py",
+          "lines": 709,
+          "nonblank": 616
         },
         {
           "path": "src/solar_fleet/incident_api.py",
@@ -397,8 +427,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2084,
-          "nonblank": 1720
+          "lines": 2972,
+          "nonblank": 2474
         },
         {
           "path": "src/solar_fleet/planning_configuration.py",
@@ -461,6 +491,11 @@
           "nonblank": 485
         },
         {
+          "path": "src/solar_fleet/solarman_profile_engine.py",
+          "lines": 636,
+          "nonblank": 556
+        },
+        {
           "path": "src/solar_fleet/solarman_v5_protocol.py",
           "lines": 470,
           "nonblank": 407
@@ -484,6 +519,11 @@
           "path": "src/solar_fleet/streams.py",
           "lines": 147,
           "nonblank": 132
+        },
+        {
+          "path": "src/solar_fleet/sungrow_shx_client.py",
+          "lines": 957,
+          "nonblank": 851
         },
         {
           "path": "src/solar_fleet/tariff_catalogue.py",
@@ -551,8 +591,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 33,
-      "lines": 14487,
-      "nonblank": 13808,
+      "lines": 16968,
+      "nonblank": 16034,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -586,8 +626,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 2320,
-          "nonblank": 2066
+          "lines": 4801,
+          "nonblank": 4292
         },
         {
           "path": "src/solar_fleet/static/dispatch-plan.js",
@@ -725,13 +765,13 @@
       "key": "frontend_style",
       "label": "Frontend CSS / HTML",
       "files": 2,
-      "lines": 6012,
-      "nonblank": 5502,
+      "lines": 6020,
+      "nonblank": 5509,
       "entries": [
         {
           "path": "src/solar_fleet/static/app.css",
-          "lines": 5989,
-          "nonblank": 5479
+          "lines": 5997,
+          "nonblank": 5486
         },
         {
           "path": "src/solar_fleet/static/index.html",
@@ -743,9 +783,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 80,
-      "lines": 16133,
-      "nonblank": 13729,
+      "files": 88,
+      "lines": 18507,
+      "nonblank": 15709,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -823,6 +863,11 @@
           "nonblank": 264
         },
         {
+          "path": "tests/test_deye_mqtt_bridge.py",
+          "lines": 446,
+          "nonblank": 360
+        },
+        {
           "path": "tests/test_dispatch_optimizer.py",
           "lines": 79,
           "nonblank": 67
@@ -863,6 +908,11 @@
           "nonblank": 336
         },
         {
+          "path": "tests/test_eybond_collector_engine.py",
+          "lines": 352,
+          "nonblank": 292
+        },
+        {
           "path": "tests/test_eybond_solarman_v5.py",
           "lines": 107,
           "nonblank": 89
@@ -883,6 +933,11 @@
           "nonblank": 61
         },
         {
+          "path": "tests/test_goodwe_local_client.py",
+          "lines": 262,
+          "nonblank": 222
+        },
+        {
           "path": "tests/test_goodwe_sems_client.py",
           "lines": 276,
           "nonblank": 243
@@ -896,6 +951,16 @@
           "path": "tests/test_growatt_adapter.py",
           "lines": 51,
           "nonblank": 44
+        },
+        {
+          "path": "tests/test_growatt_cloud_client.py",
+          "lines": 251,
+          "nonblank": 208
+        },
+        {
+          "path": "tests/test_growatt_multiphase_modbus.py",
+          "lines": 348,
+          "nonblank": 299
         },
         {
           "path": "tests/test_growatt_sph_modbus.py",
@@ -916,6 +981,11 @@
           "path": "tests/test_huawei_growatt.py",
           "lines": 17,
           "nonblank": 14
+        },
+        {
+          "path": "tests/test_huawei_sun2000_client.py",
+          "lines": 223,
+          "nonblank": 190
         },
         {
           "path": "tests/test_incident_center.py",
@@ -1068,6 +1138,11 @@
           "nonblank": 70
         },
         {
+          "path": "tests/test_solarman_profile_engine.py",
+          "lines": 190,
+          "nonblank": 163
+        },
+        {
           "path": "tests/test_solarman_v5_protocol.py",
           "lines": 279,
           "nonblank": 226
@@ -1096,6 +1171,11 @@
           "path": "tests/test_sungrow_adapter.py",
           "lines": 74,
           "nonblank": 66
+        },
+        {
+          "path": "tests/test_sungrow_shx_client.py",
+          "lines": 302,
+          "nonblank": 246
         },
         {
           "path": "tests/test_tariff_engine.py",
