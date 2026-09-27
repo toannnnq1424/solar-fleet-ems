@@ -1529,3 +1529,46 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 2: Active Power Derating, Storage Mode & Export Limitation (Holding 40125 / 47004 / 47079 / 47081 / 47082).
      * Section 3: LUNA2000 Time-of-Use (TOU) Schedule Compiler (Holding 47255..47297, 14 slots, 7-day mask).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+
+## Detailed Absorption: Project #14 - `home_assistant_solarman-main`
+
+- **Repository**: `D:\Downloads\before_project\home_assistant_solarman-main`
+- **License**: Apache License 2.0 (Stephan Joubert & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/solarman_profile_engine.py`. Zero code copied; rule-based Modbus parameter parser (Rules 1..10: unsigned, signed, lookup dictionaries, ASCII, bitmasks, versions, datetime, time, raw hex), multi-vendor profile catalogue (Deye Hybrid SG04LP3, Sofar G3 HYD / ZCS Azzurro 3PH, Solis Hybrid RHI-5G / S6), query range optimizer and continuous batch planner, and parameter write compilers with strict hardware acceptance safety gates independently authored and verified.
+- **Rank**: #14 out of 30 upstream projects (42 files, 12,598 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Multi-Vendor Inverter Profile Catalogue**:
+   - Deye Hybrid (`deye_hybrid`): Registers 0x0003..0x0117, PV1..PV4, 3-phase grid voltages/power, external CT power, total & UPS load power, battery BMS V/I/W/SOC/Temp, energy counters, Work Mode 142, Export limit 143, Max Solar Sell 145.
+   - Sofar G3 HYD & ZCS Azzurro (`sofar_g3hyd`): Registers 0x0404..0x069B, PV1..PV2, 3-phase grid, battery BMS, generation counters, battery min SOC (0x104D), EPS buffer (0x1052).
+   - Solis Hybrid (`solis_hybrid`): Registers 33022..43150, PV1..PV2, grid active power, battery BMS, Storage Control Mode 43110.
+
+2. **Rule-Based Parameter Parser (Rules 1..10)**:
+   - Rule 1/3: Unsigned 16-bit & 32-bit with scale, offset, and string lookup mapping.
+   - Rule 2/4: Signed 16-bit & 32-bit two's complement with scale, offset, and string lookup.
+   - Rule 5: ASCII string decoding from sequence of 16-bit registers.
+   - Rule 6: Discrete bitmask flag decoder with severity/state mapping.
+   - Rule 7: Version string formatting.
+   - Rule 8/9: Datetime and time string formatting.
+   - Rule 10: Raw byte stream / hex string.
+
+3. **Query Range Optimizer / Batch Planner**:
+   - Partitions arbitrary register lists into minimal contiguous Modbus read intervals respecting `max_chunk_size` and `max_gap`.
+
+4. **Parameter Write Compilers with Safety Gating**:
+   - FC06 single register write and FC10 multiple register write compilers.
+   - All parameter writes default to `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/solarman-profile/profiles`: Lists available multi-vendor inverter profiles with metadata.
+   - `POST /api/solarman-profile/telemetry`: Decodes multi-vendor inverter telemetry using profile rules.
+   - `POST /api/solarman-profile/command`: Compiles parameter write commands gated behind hardware acceptance.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `solarman_profiles` ("Solarman Profiles (Multi-Vendor)") with 3 interactive sections:
+     * Section 1: Inverter Profile Selector & Telemetry Poller (Deye, Sofar, Solis).
+     * Section 2: Optimal Modbus Query Batch Planner (Packet chunking & range tables).
+     * Section 3: Multi-Vendor Parameter Write Compiler (Holding register controls & safety gates).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.

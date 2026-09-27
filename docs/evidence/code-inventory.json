@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:57:47.836754+00:00",
+  "measured_at_utc": "2026-09-27T05:08:24.405534+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 109,
-      "lines": 38618,
-      "nonblank": 33720,
+      "files": 110,
+      "lines": 39346,
+      "nonblank": 34355,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -412,8 +412,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2514,
-          "nonblank": 2080
+          "lines": 2606,
+          "nonblank": 2159
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -469,6 +469,11 @@
           "path": "src/solar_fleet/solar_model.py",
           "lines": 603,
           "nonblank": 485
+        },
+        {
+          "path": "src/solar_fleet/solarman_profile_engine.py",
+          "lines": 636,
+          "nonblank": 556
         },
         {
           "path": "src/solar_fleet/solarman_v5_protocol.py",
@@ -561,8 +566,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 16349,
-      "nonblank": 15507,
+      "lines": 16618,
+      "nonblank": 15748,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -591,8 +596,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 3851,
-          "nonblank": 3467
+          "lines": 4120,
+          "nonblank": 3708
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -743,9 +748,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 79,
-      "lines": 16740,
-      "nonblank": 14218,
+      "files": 80,
+      "lines": 16930,
+      "nonblank": 14381,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -1061,6 +1066,11 @@
           "path": "tests/test_solarman_adapter.py",
           "lines": 86,
           "nonblank": 70
+        },
+        {
+          "path": "tests/test_solarman_profile_engine.py",
+          "lines": 190,
+          "nonblank": 163
         },
         {
           "path": "tests/test_solarman_v5_protocol.py",

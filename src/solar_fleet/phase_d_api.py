@@ -447,6 +447,27 @@ class HuaweiSun2000CommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class SolarmanProfileTelemetryRequest(BaseModel):
+    """Request for polling multi-vendor inverter telemetry via Solarman profile."""
+
+    profile_id: str = Field(default="deye_hybrid", description="Profile ID: 'deye_hybrid', 'sofar_g3hyd', 'solis_hybrid'")
+    host: str = Field(default="192.168.1.150", description="Data logger IP address on local network")
+    port: int = Field(default=8899, description="Solarman port (default 8899)")
+    slave_id: int = Field(default=1, description="Modbus slave address")
+
+
+class SolarmanProfileCommandRequest(BaseModel):
+    """Request for compiling and verifying Solarman profile parameter write."""
+
+    profile_id: str = Field(default="deye_hybrid", description="Profile ID: 'deye_hybrid', 'sofar_g3hyd', 'solis_hybrid'")
+    host: str = Field(default="192.168.1.150", description="Data logger IP address")
+    port: int = Field(default=8899, description="Solarman port")
+    slave_id: int = Field(default=1, description="Modbus slave address")
+    parameter_name: str = Field(..., description="Parameter name defined in profile, e.g. 'Solar Export Power', 'Work Mode', 'Battery Min SOC'")
+    value: Any = Field(..., description="Value to write")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
 
 
 
@@ -2500,6 +2521,77 @@ def install_phase_d_apis(app, controller, user, admin=None):
             )
             return {
                 "source": "huawei-solar-lib (AGPL-3.0 clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Solarman Multi-Vendor Inverter Profile Engine Endpoints (Project #14)
+    # -----------------------------------------------------------------------
+
+    @app.get("/api/solarman-profile/profiles")
+    async def solarman_profile_list(principal=Depends(user)):
+        """List all available Solarman multi-vendor inverter profiles."""
+        from .solarman_profile_engine import PROFILE_REGISTRY
+
+        profiles = [
+            {
+                "profile_id": pid,
+                "vendor": p.vendor,
+                "family_name": p.family_name,
+                "default_slave_id": p.default_slave_id,
+                "request_ranges_count": len(p.requests),
+                "parameters_count": len(p.parameters),
+            }
+            for pid, p in PROFILE_REGISTRY.items()
+        ]
+        return {
+            "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
+            "profiles": profiles,
+        }
+
+    @app.post("/api/solarman-profile/telemetry")
+    async def solarman_profile_telemetry(req: SolarmanProfileTelemetryRequest, principal=Depends(user)):
+        """Poll and decode multi-vendor inverter telemetry using Solarman profile rules."""
+        from .solarman_profile_engine import SolarmanProfileClient
+
+        try:
+            client = SolarmanProfileClient(
+                profile_id=req.profile_id,
+                host=req.host,
+                port=req.port,
+                slave_id=req.slave_id,
+                simulated=True,
+            )
+            tel = client.poll_telemetry()
+            return {
+                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/solarman-profile/command")
+    async def solarman_profile_command(req: SolarmanProfileCommandRequest, principal=Depends(user)):
+        """Safely compile Solarman profile parameter write with hardware acceptance gate."""
+        from .solarman_profile_engine import SolarmanProfileClient
+
+        try:
+            client = SolarmanProfileClient(
+                profile_id=req.profile_id,
+                host=req.host,
+                port=req.port,
+                slave_id=req.slave_id,
+                simulated=True,
+            )
+            result = client.execute_command_safely(
+                parameter_name=req.parameter_name,
+                value=req.value,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "home_assistant_solarman-main (Apache-2.0 clean-room independent)",
                 "result": result,
             }
         except ValueError as exc:
