@@ -23,6 +23,9 @@ Quy ước: **BE+FE một phần** = có luồng nối API nhưng thiếu chức
 | EMS — 24 | BE hourly EWMA adapt từ SEM; FE baseline 24h hoặc lý do cold-start, không phát lệnh | EMHASS/OpenEMS optimizer, forecast dispatch, EV/load/generator arbitration, offline control | Forecast đánh giá trên holdout + constraints, command engine và acceptance phần cứng |
 | Tổng quan/thiết bị — 02–04, 26 | BE quality/freshness/source-pair gating; FE cùng sơ đồ điện có motion, bảng/fullscreen/pause/reduced-motion, route chi tiết | Topology điện được nghiệm thu, nguồn cấp từng tải, chart hoàn chỉnh, mọi responsive state | So với meter/topology thật; QA các chiều và thiếu/cũ/conflict; usability đủ 26 ảnh |
 | UI chung — tất cả | Sửa hai khối CSS thiếu dấu đóng; giữ một app.css/sidebar; bỏ số mẫu giờ chạy/SOH/chu kỳ/bảo hành còn sót | Design cleanup, full 26-screen accessibility/visual acceptance | Keyboard/error/loading/mobile và toàn bộ mockup states được quan sát |
+| Core Physics & EMS Engine (Đợt 2) — 24, 08, 16 | BE: `load_predictor.py` (5 mô hình dự báo tải), `tariff_catalogue.py` (catalogue biểu giá đa quốc gia, spot feed, carbon tracker, bill calculator), `thermal_load_manager.py` (bơm nhiệt Carnot COP, bồn nước nóng DHW, mô hình 2R2C tòa nhà, SG-Ready 4 trạng thái, deferrable load scheduler), `phase_balancer.py` (thành phần đối xứng Fortescue, VUF/CUF IEC 61000-4-30, dispatch bất đối xứng 3 pha, zero-export PID, rolling peak demand shaver), `predbat_planner.py` (mô phỏng tiến 24-48h, hurdle rate khấu hao pin, arbitrage biểu giá động, lịch inverter), `genset_controller.py` (state machine máy phát diesel/gas, mô hình tiêu thụ nhiên liệu, chống wet stacking, black-start), `vendor_device_translator.py` (chuyển đổi lệnh EMS neutral sang Modbus FC06/FC16 cho GoodWe, Sungrow, Deye, Huawei, Solis, Growatt), `phase_d_api.py` (REST endpoints). | Tích hợp giao diện trực quan hóa unbalance 3 pha, thermal buffer view và timeline predbat | Thử nghiệm phần cứng thực tế, xác nhận đồng hồ đo công tơ 3 pha và máy phát vật lý |
+| Grid Code, Industrial Meters, EV Fleet & Market (Đợt 3) — 24, 02, 14, 08 | BE: `grid_code_regulator.py` (Volt-Watt P(V), Volt-Var Q(V), Freq-Watt P(f), anti-islanding NA003), `smart_meter_driver.py` (driver 6 dòng công tơ 3 pha Eastron SDM630, Chint DTSU666, Carlo Gavazzi EM24, Janitza UMG96, Schneider iEM3000, ABB B23), `ev_fleet_coordinator.py` (Dynamic Load Management DLM, chuyển mạch 1p3p tự động, ngắt pin xe 80% SOC), `market_trader.py` (đấu thầu thị trường điện bán buôn DAM/IDM, phản ứng điều tần FCR sơ cấp). | Widget điều khiển trạm sạc đa cổng, giao diện giám sát 4 góc phần tư công tơ và bidding market | Thử nghiệm kết nối công tơ Modbus thực tế và trạm sạc OCPP |
+| Tích hợp sâu Core Engine vào 14 Tab Sidebar (Đợt 4) — 27/09/2026 | BE: Bổ sung endpoints máy phát `/api/genset/evaluate-dispatch`, `/api/genset/black-start-sequence`, mô phỏng nhiệt 2R2C `/api/thermal/building-simulation`, tra cứu 30 hãng Modbus `/api/vendor-translator/supported-brands`. FE: Tích hợp đầy đủ vào 14 tab sidebar: Tab 1 Tổng quan (Grid code & VUF), Tab 3 SLD (phân định 4 ranh giới điện), Tab 6 Điều khiển (biên dịch Modbus FC06/FC16 30 hãng & máy phát Black-Start), Tab 7 Lịch (Predbat 24h & hurdle rate khấu hao), Tab 8 EMS (Quy chuẩn Volt-Watt/Var/Freq/NA003, Fortescue cân bằng pha, SG-Ready nhiệt & EV DLM 1p3p), Tab 9 Dữ liệu (6 công tơ 3 pha & 4 góc phần tư), Tab 11 Báo cáo (Thị trường bán buôn & FCR điều tần), Tab 12 Bảo trì (Chẩn đoán suy giảm cell pin SOH/ΔV). | Mọi chức năng đã nối trực tiếp vào giao diện 14 tab sidebar và kiểm tra cú pháp JS | Nghiệm thu thực tế trên phần cứng hiện trường |
 
 **Sắp xếp sidebar:** Model inspector thuộc Thiết bị; link trong Tổng quan mở cùng module. Config HA/local thuộc Dữ liệu / Local Agent và dẫn tới Mapping, không tạo menu HA riêng. Baseline thuộc Điều phối EMS. Site overview và device monitoring dùng chung energy-flow component. Không nhân bản flow, policy hoặc credential UI theo nguồn dữ liệu.
 
@@ -88,21 +91,21 @@ Hash hiện tại có dạng `#page/section/tab`. Label giao diện tách khỏi
 
 | Sidebar / route chuẩn | Phải hiển thị / subtab sở hữu | Liên kết chung và tình trạng |
 |---|---|---|
-| Tổng quan `#overview/main` | Fleet KPI, việc cần chú ý; khi chọn site: Overview, Data, Equipment, Control, Schedule/TOU, Alerts, Journal, Diagnostics, Reports, Network | Site tabs đã có; overview 11 khối mô tả phía dưới; chưa rich dashboard đủ ảnh |
-| Nhà máy `#plants/main` | Portfolio list/card, customers, regions, onboarding, benchmarking | Site metadata sở hữu ở đây; benchmarking chỉ dữ liệu thật, không coi chart khung là engine PR |
-| Hệ thống / SLD `#topology/main` | Quan hệ inverter–meter–battery–load–logger, ranh giới đo, sơ đồ và validation | Graph stored có; electrical SLD editor/validation chưa đủ |
-| Bản đồ `#plants/map` | Filter vùng/hãng/state, cluster, site drawer, links overview/control/maintenance/report | Coordinate view hiện có; map nền/satellite chưa có |
-| Thiết bị `#devices/main` | Inventory; device Detail, Realtime/Data, Control, Advanced/Native, Journal, Documents, Maintenance | Dùng cùng device identity/capability; native/docs/firmware phần lớn discovery/khung |
-| Điều khiển `#operations/main/control` | Chọn site/device, giám sát, intent cơ bản, BMS/TOU/CT/export/generator/grid/native, preview/diff/confirm, command status | Không có đường write riêng theo route; firmware/raw không được giả là universal |
-| Lịch / TOU `#operations/main/schedules` | Weekly editor, templates/copy, tariff reference, reserve, compile report, rollout | Schedule draft/compiler có; visual week editor/model translators còn thiếu |
-| Điều phối EMS `#operations/main/rules` | Policies/rules, triggers/conditions/actions, simulation, constraints/conflicts, monitor/execution log, bulk rollout | Simulation/monitor/guarded bulk có; optimizer và autonomous hardware dispatch chưa có |
-| Dữ liệu & kết nối `#reports/main` | Overview/quality, Sources, Cloud accounts, Local Agent, Collection, Mapping, Diagnostics, Sync log; telemetry/history | Cloud/agent đi tới màn sở hữu; commissioning ở cùng service; một hàng tab do Data workspace sở hữu, alias route cũ còn hoạt động; mapping chọn trường đã quan sát, đơn vị, chiều đo, mô phỏng/phiên bản/duyệt độc lập |
-| Cảnh báo `#incidents/main` | Center list/detail, assign/triage, notes/timeline, playbook, SLA/escalation, linked jobs | Chỉ một incident service và history; phần external delivery chưa có |
-| Báo cáo `#reports/analytics` | Period/scope, energy/performance/incident/customer, artifacts/export/scheduled delivery | Actual CSV/XLSX/HTML; PDF/email/financial models còn thiếu |
-| Bảo trì `#incidents/health` | Health, Work orders, Plans/calendar, Firmware; execution/checklist/time/review/history | Independent review/workflow có; OTA thực và materials/contracts thiếu |
-| Nhật ký `#operations/main/journal` | Command lifecycle, operations, sync, audit/security theo quyền | Common immutable history; large-history search/export và external audit anchoring thiếu |
-| Người dùng `#settings/main/users` | Users, Roles/permissions, Site scope; links cloud accounts/security | Local RBAC năm vai trò, chưa MFA/SSO/tenancy. Chỉ admin tổ chức được quản trị |
-| Cài đặt & Hãng `#settings/main/connections` | Vendor accounts, General/site, Tariff reference, Ownership, Notification policy, Source policy, Device linking, Automation links, Secret/API keys, Evidence | Không sao chép engine TOU/EMS/mapping. Chứng chỉ agent và thông báo chỉ khung nếu chưa transport |
+| Tổng quan `#overview/main` | Fleet KPI, việc cần chú ý; khi chọn site: Overview, Data, Equipment, Control, Schedule/TOU, Alerts, Journal, Diagnostics, Reports, Network; thẻ Giám sát quy chuẩn lưới Grid-Code (Volt-Watt P(V), tần số, Cos phi, VUF lệch áp 3 pha) | Đã nối API thật và liên kết sâu sang bộ điều phối EMS |
+| Nhà máy `#plants/main` | Portfolio list/card, customers, regions, onboarding, benchmarking, danh mục vi lưới đa tài sản (PV, ESS, Genset, EV, Heat Pump, Smart Meters) | Đã có ma trận tài sản và trạng thái vận hành |
+| Hệ thống / SLD `#topology/main` | Quan hệ inverter–meter–battery–load–logger, ranh giới đo, sơ đồ một sợi SLD phân định 4 vùng điện (PCC lưới, Bus AC Inverter/ESS, ATS Máy phát dự phòng, Phụ tải linh hoạt EV DLM & Bơm nhiệt SG-Ready) | Graph SVG tương tác và bảng phân định ranh giới điện |
+| Bản đồ `#plants/map` | Filter vùng/hãng/state, cluster, site drawer, links overview/control/maintenance/report, trạng thái quy chuẩn lưới | Coordinate view hiện có, cluster và drawer hoạt động |
+| Thiết bị `#devices/main` | Inventory; device Detail, Realtime/Data, Control, Advanced/Native, Journal, Documents, Maintenance; bộ giải mã thanh ghi và bảng mã lỗi 30 hãng | Tra cứu 30 hãng inverter/pin và SOP xử lý |
+| Điều khiển `#operations/main/control` | Chọn site/device, giám sát, intent cơ bản, BMS/TOU/CT/export/generator/grid/native, preview/diff/confirm, command status; bộ biên dịch gói lệnh Modbus FC06/FC16 30 hãng và điều khiển máy phát Diesel / Black-Start | Trình biên dịch Modbus FC06/FC16 và điều độ máy phát hoạt động |
+| Lịch / TOU `#operations/main/schedules` | Weekly editor, templates/copy, tariff reference, reserve, compile report, rollout; quy hoạch điều độ dự báo Predbat 24h & tính rào cản khấu hao cell pin ($/kWh) | Bộ mô phỏng Predbat 24h và biên dịch lịch tự động |
+| Điều phối EMS `#operations/main/rules` | Policies/rules, triggers/conditions/actions, simulation; Bộ điều phối quy chuẩn lưới điện (Volt-Watt, Volt-Var, Freq-Watt, NA003), Cân bằng pha Fortescue IEC 61000-4-30, Quản lý phụ tải nhiệt Carnot & SG-Ready, Điều phối sạc xe điện động EV DLM & chuyển mạch 1p/3p | Toàn bộ 4 engine vật lý đã nối form và API trực tiếp |
+| Dữ liệu & kết nối `#reports/main` | Overview/quality, Sources, Cloud accounts, Local Agent, Collection, Mapping, Diagnostics, Sync log; telemetry/history; Giám sát 6 dòng công tơ 3 pha công nghiệp & mặt phẳng năng lượng 4 góc phần tư Q1-Q4 | Tab Công tơ 3 pha tích hợp bộ giải mã thanh ghi Modbus |
+| Cảnh báo `#incidents/main` | Center list/detail, assign/triage, notes/timeline, playbook, SLA/escalation, linked jobs; giải mã mã lỗi 30 hãng kèm quy trình SOP khắc phục | Danh mục mã lỗi 30 hãng và playbook xử lý |
+| Báo cáo `#reports/analytics` | Period/scope, energy/performance/incident/customer, artifacts/export/scheduled delivery; Giao dịch thị trường điện bán buôn (DAM/IDM) & Doanh thu dịch vụ điều tần sơ cấp FCR | Mô phỏng khớp lệnh đấu thầu và tính doanh thu FCR |
+| Bảo trì `#incidents/health` | Health, Work orders, Plans/calendar, Firmware; execution/checklist/time/review/history; Chẩn đoán suy giảm & sức khỏe cell pin lưu trữ BESS (Độ lệch áp ΔV, nội trở mΩ, dung lượng SOH) | Đã nối thẻ chẩn đoán BESS và nút lập phiếu kiểm tra cell |
+| Nhật ký `#operations/main/journal` | Command lifecycle, operations, sync, audit/security theo quyền; Dòng thời gian điều độ EMS bất biến và kiểm tra đọc lại Readback | Dòng thời gian lệnh, xác minh đọc lại và kiểm toán an toàn |
+| Người dùng `#settings/main/users` | Users, Roles/permissions, Site scope; links cloud accounts/security | Local RBAC năm vai trò, phân quyền theo nhà máy |
+| Cài đặt & Hãng `#settings/main/connections` | Vendor accounts, General/site, Tariff reference, Ownership, Notification policy, Source policy, Device linking, Automation links, Secret/API keys, Evidence; Ma trận chứng cứ giao thức 30 hãng | Đã có tài khoản hãng, chính sách nguồn và chứng cứ protocol |
 
 Các routes tắt trong card phải giữ site scope và dẫn đến cùng chức năng sở hữu. Không thêm CSS riêng theo route; shared primitives và `static/app.css` sở hữu mọi layout/typography/semantic state. Account route tuân bố cục ảnh 21. VI/EN đã có cơ chế chung nhưng còn nhãn kỹ thuật/translation cần trau chuốt.
 
@@ -185,20 +188,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-26T18:47:28.778437+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-27T03:48:22.165237+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 69 | 16,839 | 15,154 |
-| Frontend JavaScript | 31 | 12,187 | 11,756 |
+| Backend Python | 103 | 34,115 | 29,840 |
+| Frontend JavaScript | 31 | 14,613 | 13,944 |
 | Frontend CSS / HTML | 2 | 6,012 | 5,502 |
-| Test BE / simulator / fixture | 55 | 9,437 | 8,117 |
+| Test BE / simulator / fixture | 73 | 14,876 | 12,654 |
 | Test UI / browser fixture | 6 | 702 | 640 |
 | Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **33** | **18,199** | **17,258** |
-| **Tổng code ứng dụng BE + FE** | **102** | **35,038** | **32,412** |
-| **Tổng test / simulator / fixture** | **61** | **10,139** | **8,757** |
-| **Tổng code ứng dụng + test + scripts** | **166** | **45,695** | **41,647** |
+| **Tổng FE (JS + CSS/HTML)** | **33** | **20,625** | **19,446** |
+| **Tổng code ứng dụng BE + FE** | **136** | **54,740** | **49,286** |
+| **Tổng test / simulator / fixture** | **79** | **15,578** | **13,294** |
+| **Tổng code ứng dụng + test + scripts** | **218** | **70,836** | **63,058** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

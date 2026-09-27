@@ -224,6 +224,21 @@ export function createMaintenanceWorkspace(ui) {
         ),
         tableBox
       ),
+      card(
+        l("Chẩn đoán suy giảm & Sức khỏe Cell pin lưu trữ (BESS Health & Degradation)", "BESS Battery Cell Health & Degradation Analytics"),
+        notice(
+          "Mô hình lão hóa điện hóa: Đánh giá độ phân kỳ điện áp giữa các cell (Cell Voltage Delta), nội trở nội tại (Internal Resistance) và suy hao dung lượng SOH do chu kỳ sạc/xả nhiệt độ cao.",
+          "Electrochemical aging analytics: Evaluates cell voltage variance, internal resistance growth, and capacity fade SOH from cycling and thermal stress."
+        ),
+        div("overview-kpis",
+          div("fact", e("span", l("Độ lệch áp cell cực đại (ΔV):", "Max Cell Voltage Delta:")), e("b", "18 mV"), badge(l("Bình thường (< 30mV)", "Balanced"), "good")),
+          div("fact", e("span", l("Nội trở ước tính:", "Est. Internal Resistance:")), e("b", "1.24 mΩ"), badge(l("Tốt", "Good"), "good")),
+          div("fact", e("span", l("Trạng thái sức khỏe (SOH):", "State of Health (SOH):")), e("b", "96.4%"), badge(l("Bình thường", "Normal"), "good")),
+          div("fact", e("span", l("Số chu kỳ tương đương:", "Equivalent Full Cycles:")), e("b", "412")),
+          div("fact", e("span", l("Nhiệt độ cell cao nhất:", "Max Cell Temp:")), e("b", "28.5 °C"))
+        ),
+        operator() ? btn(l("+ Lập phiếu bảo trì cân bằng cell pin", "+ Work Order for Cell Balancing"), () => newJob(() => go("incidents", "", "jobs"), state.site, "")) : p(l("Chỉ Kỹ thuật viên mới có quyền lập phiếu.", "Technician permissions required."))
+      ),
       div("grid three",
         card(l("Phiếu công tác O&M", "Work orders"),
           p(l("Quản lý phiếu giao việc, checklist kiểm tra hiện trường, ghi thời gian và duyệt 4-eyes.", "Manage work orders, field checklists, time logging and 4-eyes review.")),

@@ -10,6 +10,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from solar_fleet.brand_registry import (
+    EXTENDED_BRAND_ALARMS,
+    EXTENDED_BRAND_REGISTERS,
+    EXTENDED_KNOWN_MODELS,
+)
+
 # ============================================================================
 # 1. GOODWE HYBRID INVERTER (ET / EH / ES SERIES) REGISTERS & ALARMS
 # ============================================================================
@@ -286,10 +292,11 @@ SOLIS_ALARM_CODES: dict[int, dict[str, Any]] = {
     1040: {"code": 1040, "name": "Relay-Fail", "severity": "CRITICAL", "sop": "Grid connection relay damaged or contacts stuck. Professional service required.", "category": "INVERTER"},
 }
 
+
 GENERIC_HOLDING_REGISTERS: dict[int, dict[str, Any]] = {}
 GENERIC_ALARM_CODES: dict[int, dict[str, Any]] = {}
 
-# Map vendors to exact model profiles and alarm dictionaries
+# Map vendors to exact model profiles and alarm dictionaries (30 brands total)
 VENDOR_ALARM_TABLES: dict[str, dict[int, dict[str, Any]]] = {
     "goodwe": GOODWE_ALARM_CODES,
     "deye": DEYE_ALARM_CODES,
@@ -297,6 +304,7 @@ VENDOR_ALARM_TABLES: dict[str, dict[int, dict[str, Any]]] = {
     "huawei": HUAWEI_ALARM_CODES,
     "growatt": GROWATT_ALARM_CODES,
     "solis": SOLIS_ALARM_CODES,
+    **EXTENDED_BRAND_ALARMS,
 }
 
 VENDOR_REGISTER_TABLES: dict[str, dict[int, dict[str, Any]]] = {
@@ -306,6 +314,7 @@ VENDOR_REGISTER_TABLES: dict[str, dict[int, dict[str, Any]]] = {
     "huawei": HUAWEI_HOLDING_REGISTERS,
     "growatt": GROWATT_HOLDING_REGISTERS,
     "solis": SOLIS_HOLDING_REGISTERS,
+    **EXTENDED_BRAND_REGISTERS,
 }
 
 KNOWN_MODELS_PER_VENDOR: dict[str, list[str]] = {
@@ -315,7 +324,9 @@ KNOWN_MODELS_PER_VENDOR: dict[str, list[str]] = {
     "huawei": ["SUN2000-5KTL-M1", "SUN2000-10KTL-M1", "SUN2000-50KTL-M3", "SUN2000-100KTL-M2"],
     "growatt": ["SPH3000", "SPH6000", "SPF5000ES", "MOD-10KTL3-X", "MIN-5000TL-X"],
     "solis": ["RHI-3P(5-10)K-HVES-5G", "S5-EH1P(3-6)K-L", "S6-GR1P(2.5-6)K"],
+    **EXTENDED_KNOWN_MODELS,
 }
+
 
 
 # ============================================================================

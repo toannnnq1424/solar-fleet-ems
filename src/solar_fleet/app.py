@@ -341,6 +341,9 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     from .admin_api import install_admin_api
 
     install_admin_api(app, controller, user, admin, account_services)
+    from .phase_d_api import install_phase_d_apis
+
+    install_phase_d_apis(app, controller, user, admin)
     runtime = install_runtime(app, controller, user)
     app.state.operations_runtime = runtime
     app.mount("/static", StaticFiles(directory=assets), name="static")

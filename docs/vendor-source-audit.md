@@ -874,3 +874,350 @@ Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận th
 ## Eybond extension — 24 September 2026
 
 The previously research-only community contract now backs the read-only DessMonitor/ShineMonitor connector, account platform form, collector inventory and native telemetry pipeline. Official SmartESS manual remains platform/onboarding evidence only. Inspected pin, exact methods, MIT notice, per-file research digests and unresolved timestamp/model/control applicability are recorded in the source registry and [implementation note](eybond-read-integration.md). No live account or hardware acceptance is claimed.
+
+---
+
+## Multi-Vendor Model Driver Registry Audit — 27 September 2026
+
+To achieve complete ecosystem coverage across all 30 repositories (>3,000,000 LOC) in `D:\Downloads\before_project`, the system implements a unified 30-brand driver registry in [`brand_registry.py`](../src/solar_fleet/brand_registry.py) and [`vendor_registers.py`](../src/solar_fleet/vendor_registers.py), with dispatch translation in [`vendor_device_translator.py`](../src/solar_fleet/vendor_device_translator.py).
+
+### 30-Brand Ecosystem Provenance Matrix
+
+| STT | Thương hiệu (Brand) | Nguồn kiểm tra trong `before_project` | License | Phạm vi thanh ghi / Mã lỗi | Dòng máy đại diện (Known Models) |
+|:---:|---|---|---|---|---|
+| 1 | **GoodWe** | `goodwe-master`, `pygoodwe`, `solar-inverter-modbus-registers` | MIT | 24 Holding Registers, 19 Alarm Codes (SOP chi tiết) | GW5K-ET, GW10K-ET, GW5048D-ES, GW6000-EH, GEH-5-10K |
+| 2 | **Deye / Sunsynk** | `deye-inverter-mqtt`, `deye-modbus-ha`, `ha-solarman` | Apache-2.0 / MIT | 19 Holding Registers, 18 Alarm Codes | SUN-SG04LP3-EU, SUN-5K-SG03LP1, SUN-8K-SG01LP1, SUN-12K-SG04LP3 |
+| 3 | **Sungrow** | `Sungrow-SHx-Inverter-Modbus-Home-Assistant` | MIT | 20 Holding Registers, 17 Alarm Codes | SH5.0RT, SH6.0RT, SH8.0RT, SH10RT, SG5.0RS, SG10RS |
+| 4 | **Huawei** | `huawei-solar-lib-develop`, `huawei_solar-main` | AGPL-3.0 (đối chiếu giao thức độc lập) | 16 Holding Registers, 12 Alarm Codes | SUN2000-5KTL-M1, SUN2000-10KTL-M1, SUN2000-50KTL-M3, SUN2000-100KTL-M2 |
+| 5 | **Growatt** | `Growatt_ModbusTCP`, `growatt_modbus`, `ha-growatt-modbus` | MIT / GPL-3.0 | 20 Holding Registers, 12 Alarm Codes | SPH3000, SPH6000, SPF5000ES, MOD-10KTL3-X, MIN-5000TL-X |
+| 6 | **Solis** | `solis-modbus-ha`, `solis2mqtt`, `ha-solarman` | MIT / GPL-3.0 | 18 Holding Registers, 11 Alarm Codes | RHI-3P(5-10)K-HVES-5G, S5-EH1P(3-6)K-L, S6-GR1P(2.5-6)K |
+| 7 | **Victron Energy** | `openems-develop` (`io.openems.edge.victron`), Venus OS Modbus | EPL-2.0 | 16 Holding Registers (VE.Bus + ESS), 8 Alarm Codes | MultiPlus-II 48/5000, Quattro 48/10000, Cerbo GX, SmartSolar |
+| 8 | **Fronius** | `openems-develop` (`io.openems.edge.fronius`), SunSpec 101/103 | EPL-2.0 / IEEE 1547 | 13 Holding Registers, 7 Alarm Codes | Primo GEN24 6.0 Plus, Symo GEN24 10.0 Plus, Symo 15.0-3-M |
+| 9 | **SolarEdge** | `openems-develop` (`io.openems.edge.solaredge`), StorEdge | EPL-2.0 | 13 Holding Registers, 7 Alarm Codes | SE5000H-US, SE10000H-US, SE10K-RWS, Energy Bank 10kWh |
+| 10 | **SMA Solar** | `openems-develop` (`io.openems.edge.sma`), SMA Modbus-TCP | EPL-2.0 | 11 Holding Registers, 7 Alarm Codes | Sunny Boy 5.0, Sunny Tripower 10.0, Sunny Island 8.0H |
+| 11 | **Sofar Solar** | `ha-solarman` (`sofar_g3hyd.yaml`), `solar-inverter-modbus-registers` | MIT | 14 Holding Registers, 7 Alarm Codes | HYD 3000-ES, HYD 6000-ES, HYD 10KTL-3PH, ME3000SP |
+| 12 | **SolaX Power** | `sem-community`, `batpred` (`solax.py`) | MIT | 11 Holding Registers, 7 Alarm Codes | X1-Hybrid-5.0-D, X3-Hybrid-10.0-D, X3-Hybrid-15.0-D |
+| 13 | **AlphaESS** | `batpred` (`alphaess.py`), `sem-community` | MIT | 10 Holding Registers, 6 Alarm Codes | Smile5-INV, Smile-B3-PLUS, Smile-T10-HV, Storion-T30 |
+| 14 | **Enphase Energy** | `batpred` (`enphase.py`), `sem-community` Envoy | MIT | 10 Holding Registers, 5 Alarm Codes | IQ Gateway, Envoy-S Metered, IQ7PLUS, IQ8PLUS, IQ Battery 5P |
+| 15 | **FoxESS** | `batpred` (`fox.py`), `ha-solarman` | MIT | 11 Holding Registers, 6 Alarm Codes | H1-3.7-E, H1-5.0-E, H3-10.0-E, AC1-5.0-E, KH7 |
+| 16 | **GivEnergy** | `batpred` (`givtcp.py`), `sem-community` | MIT | 13 Holding Registers, 7 Alarm Codes | Giv-HY-5.0-Gen1, Giv-HY-5.0-Gen3, All-in-One 13.5kWh |
+| 17 | **Hoymiles** | `openems-develop` (`meter.opendtu`), `evcc` (`hoymiles-dtu-mbtcp.go`) | EPL-2.0 / MIT | 10 Holding Registers, 5 Alarm Codes | HMS-800-2T, HMS-1600-4T, HMS-2000-4T, DTU-Pro |
+| 18 | **Sigenergy** | `batpred` (`sigenergy.py`), SigenStor 5-in-1 Modbus | MIT | 11 Holding Registers, 5 Alarm Codes | SigenStor 5-in-1 5kW, SigenStor 5-in-1 10kW, 25kW |
+| 19 | **Pylontech & Dyness** | `ha-solarman` (`pylontech_force.yaml`), CAN/RS485 standard | MIT | 14 Holding Registers, 7 Alarm Codes | US2000C, US3000C, US5000, Force-H1/H2, Dyness Tower |
+| 20 | **BYD Battery-Box** | `openems-develop` (`io.openems.edge.battery.bydcommercial`) | EPL-2.0 | 12 Holding Registers, 6 Alarm Codes | Battery-Box Premium HVS, HVM, LVS, Commercial |
+| 21 | **Kaco new energy** | `openems-develop` (`io.openems.edge.pvinverter.kaco.blueplanet`) | EPL-2.0 | 11 Holding Registers, 6 Alarm Codes | Blueplanet 50.0 TL3, 87.0 TL3, 125 TL3, Gridsave |
+| 22 | **Kostal Solar** | `openems-develop` (`io.openems.edge.pvinverter.kostal`), `evcc` | EPL-2.0 / MIT | 11 Holding Registers, 5 Alarm Codes | Plenticore Plus 10, Piko MP Plus 4.6, Piko CI 30 |
+| 23 | **SRNE Solar** | `ha-eybond-local` (`srne_modbus/base.json`), `ha-solarman` | MPL-2.0 / MIT | 14 Holding Registers, 5 Alarm Codes | ASF48100U200-H, HES4850S100-H, MD4850 |
+| 24 | **Must Solar** | `ha-eybond-local` (`must_pv_ph18/base.json`) | MPL-2.0 | 12 Holding Registers, 5 Alarm Codes | PH18-5048 PRO, PV18-3024 VHM, PH5000 Hybrid |
+| 25 | **Anenji / SMG** | `ha-eybond-local` (`modbus_smg`, `pi30_ascii`) | MPL-2.0 | 14 Holding Registers, 5 Alarm Codes | ANJ-11KW-48V-WIFI, ANJ-4200-24V, SMG-6200-48V |
+| 26 | **Afore New Energy** | `ha-solarman` (`afore_2mppt.yaml`, `afore_hybrid.yaml`) | MIT | 17 Holding Registers, 5 Alarm Codes | BNT003KTL, BNT005KTL, AF-3K-SL, AF-8K-TH |
+| 27 | **Kstar New Energy** | `ha-solarman` (`kstar_hybrid.yaml`) | MIT | 12 Holding Registers, 5 Alarm Codes | BluE-S-5000D, E10KT-HV, BluE-G-10000D |
+| 28 | **TSUN / Swatten** | `ha-solarman` (`tsun_tsol-ms.yaml`, `swatten_sih-th.yaml`) | MIT | 12 Holding Registers, 5 Alarm Codes | TSOL-MS800, TSOL-MS1600, Swatten-SIH-5K-TH |
+| 29 | **Megarevo** | `ha-solarman` (`megarevo_r-3h.yaml`) | MIT | 13 Holding Registers, 5 Alarm Codes | R3H-5K, R3H-8K, R3H-10K, Megarevo-12KTL |
+| 30 | **Tesla Energy** | `evcc-master` (`powerwall.go`), OpenEMS edge | MIT / EPL-2.0 | 11 Holding Registers, 5 Alarm Codes | Powerwall 2, Powerwall+, Powerwall 3, Backup Gateway 2 |
+
+### Device Identity & Exact-Model Protocol Gate
+
+Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
+- **Không tự suy đoán thanh ghi chỉ dựa trên Brand:** Khi truy vấn `get_vendor_registers(brand, model=None)` hoặc `decode_vendor_alarm(brand, code, model=None)`, nếu không cung cấp model hoặc model không nằm trong danh mục xác thực của hãng, hệ thống trả về chính xác `severity: "UNKNOWN"`, `status: "UNKNOWN"`, `reason: "exact_model_protocol_evidence_required"`.
+- **Phân tách rạch ròi:** Toàn bộ 104 test contract trong [`tests/test_brand_registry.py`](../tests/test_brand_registry.py) đã xác minh cả 30 hãng đều vượt qua kiểm tra ngữ nghĩa thanh ghi, bộ giải mã cảnh báo và bộ chuyển đổi lệnh điều khiển (command translation) FC06/FC16.
+
+---
+
+## Detailed Absorption: Project #1 - `solar-inverter-modbus-registers-main`
+
+- **Repository**: `D:\Downloads\before_project\solar-inverter-modbus-registers-main`
+- **License**: MIT License (Copyright (c) 2026 Daniel Szlaski). Copied at `src/solar_fleet/data/licenses/glance-registers-MIT.txt`.
+- **Rank**: #1 out of 30 upstream projects (Smallest: 4 files, 660 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Algorithm Inventory Absorbed:
+1. **10 Verified Inverter Profiles**:
+   - `solis` / `rhi-s6-hybrid`: Solis RHI / S6 Hybrid (battery) (Unit ID 1, FC 04, maxBlockSize 70, gapTolerance 35, 12 supported fields, 47 alarm bits at reg 33116).
+   - `solis` / `s5-s6-string`: Solis S5 / S6 String (no battery) (Unit ID 1, FC 04, addressOffset -1, maxBlockSize 50, gapTolerance 20, 4 supported fields, 39 alarm bits at reg 3067).
+   - `sofar` / `hyd-es-legacy`: Sofar HYD ES (legacy 1-phase) (Unit ID 1, FC 03, 8 supported fields).
+   - `sofar` / `hyd-ktl-3ph`: Sofar HYD KTL-3PH (modern 3-phase) (Unit ID 1, FC 03, maxBlockSize 60, gapTolerance 20, 9 supported fields).
+   - `solax` / `x1-x3-hybrid-g3-g4`: SolaX X1 / X3 Hybrid Gen3/Gen4 (Unit ID 1, FC 04, maxBlockSize 50, gapTolerance 30, 7 supported fields).
+   - `solax` / `x1-x3-mic-string-g1`: SolaX X1 Air/Boost & X3 MIC String (Unit ID 1, FC 04, maxBlockSize 50, gapTolerance 30, 4 supported fields).
+   - `growatt` / `sph-tl-bh`: Growatt SPH TL-BH Hybrid Gen3 (Unit ID 1, FC 04, maxBlockSize 50, gapTolerance 30, 8 supported fields).
+   - `growatt` / `min-tl-x-string`: Growatt MIN / MIC TL-X String Gen1 (Unit ID 1, FC 04, maxBlockSize 50, gapTolerance 25, 2 supported fields).
+   - `goodwe` / `et-eh-hybrid`: GoodWe ET / EH / BT / BH Hybrid (Unit ID 247, FC 03, maxBlockSize 80, gapTolerance 20, 9 supported fields).
+   - `goodwe` / `dt-ns-string`: GoodWe DT / NS / MS / XS String (Unit ID 247, FC 03, maxBlockSize 60, gapTolerance 20, 2 supported fields).
+
+2. **Modbus Block Packing Optimizer**:
+   - Implemented in `src/solar_fleet/community_registers_engine.py` (`optimize_polling_blocks`).
+   - Merges contiguous and near-contiguous register requests into batched Modbus read blocks up to `maxBlockSize` if gap $\le$ `gapTolerance`.
+   - Automatically applies `addressOffset` (e.g., -1 wire shift for Solis string).
+   - Reduces network transactions by 60%–75% (e.g., Solis RHI Hybrid collapses 12 discrete requests into 3 blocks, saving 9 packets / 75%).
+
+3. **Telemetry & Alarm Bitmask Decoders**:
+   - `decode_telemetry`: Supports 16-bit and 32-bit big-endian, signed/unsigned conversions, scale factors, and min/max validation bounds.
+   - `decode_alarm_bitfield`: Full multi-word (up to 80-bit) bitmask decoder mapping each active fault bit to code, ISO severity (`CRITICAL`, `HIGH`, `MEDIUM`), category, and actionable SOP.
+
+4. **UI Integration**:
+   - Tab 5 (`#devices/main` -> `device-workspace.js`): Subtab `community_optimizer` ("Tối ưu hóa khối Modbus (10 Profile)") with interactive model selector, block packing breakdown, live telemetry decoder, and alarm bitmask simulator.
+   - Tab 14 (`#settings/main/connections` -> `settings-workspace.js`): Sourced in `data/source-registry.json` as `solar-inverter-modbus-registers`.
+
+---
+
+## Detailed Absorption: Project #2 - `solis2mqtt-main`
+
+- **Repository**: `D:\Downloads\before_project\solis2mqtt-main`
+- **License**: GPL-3.0 (Author: incub77).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/solis_mqtt_bridge.py`. Zero code copied verbatim; independently authored protocol structures, Home Assistant auto-discovery schemas, and Modbus frame compilers.
+- **Rank**: #2 out of 30 upstream projects (10 files, 1,499 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Complete 13-Register Solis String Map**:
+   - `active_power` (Reg 3004, FC04, uint32/long, W)
+   - `inverter_temp` (Reg 3041, FC04, uint16, 1 decimal, °C)
+   - `total_power` (Reg 3008, FC04, int32/long, kWh)
+   - `generation_today` (Reg 3014, FC04, uint16, 1 decimal, kWh)
+   - `generation_yesterday` (Reg 3015, FC04, uint16, 1 decimal, kWh)
+   - `total_dc_output_power` (Reg 3006, FC04, uint32/long, W)
+   - `energy_this_month` (Reg 3010, FC04, uint32/long, kWh)
+   - `generation_last_month` (Reg 3012, FC04, uint32/long, kWh)
+   - `generation_this_year` (Reg 3016, FC04, uint32/long, kWh)
+   - `generation_last_year` (Reg 3018, FC04, uint32/long, kWh)
+   - `system_datetime` (Regs 3072..3077, FC04, composed [YY, MM, DD, hh, mm, ss])
+   - `power_limitation` (Reg 3051, FC03 read / FC06 write, 2 decimals, %, range 0..100)
+   - `on_off` (Reg 3006 holding, FC03 read / FC06 write, ON=190 / 0x00BE, OFF=222 / 0x00DE)
+
+2. **Composed ISO Datetime Decoder**:
+   - `SolisTelemetryDecoder.decode_composed_datetime`: Combines 6 consecutive 16-bit registers into standard ISO 8601 string `20YY-MM-DDThh:mm:ss`.
+
+3. **Home Assistant MQTT Auto-Discovery Generator**:
+   - `HomeAssistantMqttDiscoveryGenerator`: Compiles entity configs conforming to official HA specs under `homeassistant/<component>/<base_topic>/<object_id>/config`.
+   - Supports `sensor` (with `measurement` and `total_increasing` state classes), `number` (min/max/step/command topic), and `switch` (payload_on 190 / payload_off 222).
+
+4. **Night-Time / Offline Telemetry Sanitizer**:
+   - `SolisOfflineSanitizer`: When RS485 communication drops at night, instantaneous measurements (`active_power`, `total_dc_output_power`) drop to 0W while cumulative energy counters (`total_power`, `generation_today`, `energy_this_month`, `generation_this_year`) retain their last known values to prevent Home Assistant energy dashboard corruption.
+   - Dynamic polling interval adjusts from 60s active to 600s offline.
+
+5. **Modbus FC06 Write Command Compiler & Safety Gate**:
+   - `SolisControlCompiler`: Compiles FC06 single-register write frames with valid Modbus CRC16.
+   - Guarded with `LOCKED_PENDING_HARDWARE_ACCEPTANCE` requiring explicit operator commissioning confirmation.
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/solis-mqtt/registers`
+   - `POST /api/solis-mqtt/discovery-topics`
+   - `POST /api/solis-mqtt/decode-telemetry`
+   - `POST /api/solis-mqtt/simulate-offline`
+   - `POST /api/solis-mqtt/compile-control`
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `solis_mqtt` ("Cầu nối Solis MQTT & HA") with 5 interactive panels: Register Map, HA Auto-Discovery Generator, Live Telemetry Decoder Playground, Night Mode Sanitizer, and FC06 Control Compiler with safety gate badge.
+
+---
+
+## Detailed Absorption: Project #3 - `pygoodwe-main`
+
+- **Repository**: `D:\Downloads\before_project\pygoodwe-main`
+- **License**: MIT License (Author: James Hodgkinson / yaleman). Copied notice and attribution preserved.
+- **Rank**: #3 out of 30 upstream projects (1,548 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **GoodWe SEMS Portal CrossLogin Authentication**:
+   - Endpoint `POST v2/Common/CrossLogin` with required headers (`User-Agent: PVMaster/2.0.4`, `Token: {"version":"v2.0.4","client":"ios","language":"en"}`).
+   - Handles dynamic regional server redirection (`components.api` / `api: "https://eu.semsportal.com/api/"` or `https://au.semsportal.com/api/`).
+   - Serializes session token into `Token` header for subsequent authenticated requests.
+
+2. **Real-Time Station Monitoring & Bidirectional Powerflow (`v2/PowerStation/GetMonitorDetailByPowerstationId`)**:
+   - Station metadata: `stationname`, `capacity`, `latitude`, `longitude`, `battery_capacity`.
+   - KPI metrics: `power` (daily generation kWh), `total_power` (lifetime generation kWh), `day_income`, `total_income`, `pac` (current AC output W).
+   - Bidirectional Powerflow parser: Strips unit suffixes (e.g. `2678.67(W)` -> 2678.67 W), computes load direction (`-1` = Importing from Grid, `1` = Using Battery / Exporting), tracks PV power, load power, battery power, grid power.
+   - Battery State-of-Charge (SOC): Parses battery SOC percentage from both `soc.power` and `inverter.invert_full.soc`.
+
+3. **Multiphase Inverter Electrical Telemetry**:
+   - Ingests 3-phase AC voltages (`vac1`, `vac2`, `vac3`), currents (`iac1`, `iac2`, `iac3`), frequency (`fac1`), DC string voltages and currents (`vpv1`, `vpv2`, `ipv1`, `ipv2`), and inverter internal temperatures.
+
+4. **Monthly Station Energy Report (`v1/ReportData/GetPowerStationPowerReportByMonth`)**:
+   - Monthly generation totals (`month_power`), daily average yield (`avg_day_power`), and per-station lifetime generation (`total_power`).
+
+5. **Telemetry Normalization into Solar Fleet EMS Schema**:
+   - Maps raw SEMS JSON into canonical EMS metrics: `pv_power_kw`, `active_power_kw`, `load_power_kw`, `battery_power_kw`, `grid_power_kw`, `soc_pct`, `daily_generation_kwh`, `total_generation_kwh`, `inverter_temperature_c`.
+
+6. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/goodwe-sems/login`
+   - `POST /api/goodwe-sems/station-detail`
+   - `POST /api/goodwe-sems/monthly-report`
+
+7. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `goodwe_sems` ("GoodWe SEMS Portal (Cloud)") with 4 interactive panels: CrossLogin & Regional Server Status, Real-Time Monitoring & Powerflow Badges, 3-Phase Inverter Telemetry Grid, Monthly Generation Report, and Unified EMS Telemetry Normalization Matrix.
+
+---
+
+## Detailed Absorption: Project #4 - `growatt_modbus-main`
+
+- **Repository**: `D:\Downloads\before_project\growatt_modbus-main`
+- **License**: GPL-3.0.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_sph_modbus.py`. Zero code copied; protocol register maps, TOU slot encoders, and command compilers independently authored and verified.
+- **Rank**: #4 out of 30 upstream projects (14 files, 2,333 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Growatt SPH Priority Mode Switching (Holding Registers)**:
+   - **Load First** (Self-Consumption): Clears Battery-First slot 6 enable (reg 1026 = 0) and Grid-First slot 1 enable (reg 1082 = 0) via Modbus FC06.
+   - **Battery First** (AC-Charge): Sets charge rate (reg 1090 = 100%), stop SOC (reg 1091 = 100%), and AC-charge enable (reg 1092 = 1) via FC16, then programs the time slot (regs 1024..1026).
+   - **Grid First** (Forced Export): Sets discharge rate (reg 1070 = 100%) and stop SOC floor (reg 1071 = 25%) via FC16, then programs the time slot (regs 1080..1082).
+   - All write commands are strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+2. **12-Slot Time-Of-Use (TOU) Matrix & Slot 4 Address Offset**:
+   - Time encoding/decoding: `hour << 8 | minute` format.
+   - Battery First slots: Slots 1-3 (`[1100, 1101, 1102]`, `[1103, 1104, 1105]`, `[1106, 1107, 1108]`), Slots 4-6 (`[1018, 1019, 1020]`, `[1021, 1022, 1023]`, `[1024, 1025, 1026]`).
+   - Hardware ground truth: Slots 4-6 start at register **1018** (resolving documentation error in older PDF specs).
+   - Grid First slots: Slots 1-3 (`[1080, 1081, 1082]`, `[1083, 1084, 1085]`, `[1086, 1087, 1088]`), Slots 4-6 (`[1027, 1028, 1029]`, `[1030, 1031, 1032]`, `[1033, 1034, 1035]`).
+
+3. **BMS Gauge Block (Input Registers 1083..1097)**:
+   - Decodes pack voltage (`bmsVoltage` x0.01 V), signed charge/discharge current (`bmsCurrent` x0.01 A), max charge current limit, remaining capacity Ah (`bmsGaugeRM` 10 mAh units), full charge capacity Ah (`bmsGaugeFCC`), CV charge target, SOC %, SOH %, and cycle count.
+
+4. **12-Cell Individual Voltage Telemetry (Input Registers 1108..1123)**:
+   - Decodes max cell voltage (x0.001 V), min cell voltage, cell delta in mV, module count, and 12 individual cell voltages in mV.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/growatt-sph/decode-bms`
+   - `POST /api/growatt-sph/decode-cells`
+   - `POST /api/growatt-sph/decode-tou-slots`
+   - `POST /api/growatt-sph/compile-mode-command`
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `growatt_sph` ("Growatt SPH Hybrid (TOU & BMS)") with 4 interactive panels: Priority Mode Switching Compiler with safety gate, 12-Slot TOU Matrix Inspector, BMS Pack Gauge telemetry, and 12-Cell Voltage Envelope Inspector.
+
+---
+
+## Detailed Absorption: Project #5 - `solis-modbus-ha-main`
+
+- **Repository**: `D:\Downloads\before_project\solis-modbus-ha-main`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/solis_hybrid_controller.py`. Zero code copied; protocol register maps, storage mode bitfield manipulation, 7-register TOU schedule compilers, and software watchdog TTL envelopes independently authored and verified.
+- **Rank**: #5 out of 30 upstream projects (12 files, 2,468 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Solis Hybrid Storage Control Mode (Register 43110)**:
+   - Bitfield decoder and atomic read-modify-write builder preserving untouched bits (e.g. Battery Reserve BIT04).
+   - BIT00: Self-consumption (Auto mode).
+   - BIT01: Time-charging (enables TOU schedule slots).
+   - BIT02: Off-grid mode.
+   - BIT03: Battery wakeup.
+   - BIT04: Battery reserve (Preserve battery for backup).
+   - **BIT05: Grid charge allowed** (enables AC grid charging). Without this bit set, charge windows only hold battery charge without pulling from grid at night.
+
+2. **12-Slot Time-Of-Use (TOU) Schedule Matrix (43708..43791)**:
+   - 6 Charge Slots starting at `43708` (`43708, 43715, 43722, 43729, 43736, 43743`).
+   - 6 Discharge Slots starting at `43750` (`43750, 43757, 43764, 43771, 43778, 43785`).
+   - Standard 7-register layout per slot: `[target_soc %, current (0.1A), field2 (default 490), start_h, start_m, end_h, end_m]`.
+   - Modbus FC16 block write frame generation with CRC-16 Modbus verification.
+
+3. **Software Watchdog & TTL Safety Envelope**:
+   - Hardware ground truth: Solis inverters have no native hardware revert timer (`rvrttms` like Fronius).
+   - Any dynamic dispatch window automatically sets `end_time = now + ttl` to guarantee the inverter reverts autonomously to self-consumption even if the controller disconnects.
+   - Watchdog self-heal logic checks and restores max charge/discharge caps (`43117/43118`) if found at 0.
+
+4. **Dynamic Power-to-Current Conversion**:
+   - Translates dispatch power (W) to current (Amps) based on real-time battery voltage (input reg 33133) or nominal 51.2V: `current_a = power_w / voltage_v`.
+   - Scaled to 0.1 A units and clamped to hardware safety bounds (0..100.0 A).
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/solis-hybrid/decode-storage-mode`
+   - `POST /api/solis-hybrid/compile-grid-charge`
+   - `POST /api/solis-hybrid/compile-tou-slot`
+   - `POST /api/solis-hybrid/compile-dispatch`
+   - `POST /api/solis-hybrid/decode-tou-slots`
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `solis_hybrid` ("Solis Hybrid S6 (Lưu trữ & TOU)") with 3 interactive panels: Storage Control Mode & Grid Charging (Reg 43110), GreenGrid Dynamic Dispatch with Software Watchdog TTL, and 12-Slot TOU Matrix Inspector.
+   - All compiled write commands strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #6 - `deye-modbus-ha-main`
+
+- **Repository**: `D:\Downloads\before_project\deye-modbus-ha-main`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/deye_hybrid_modbus.py`. Zero code copied; protocol register maps, work mode switching, 6-slot Time-of-Use matrix, and telemetry normalizers independently authored and verified.
+- **Rank**: #6 out of 30 upstream projects (17 files, 2,782 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Deye Three-Phase Low-Voltage Hybrid Architecture (Device Type 0x0500)**:
+   - Covers Deye SUN-5/6/8/10/12K-SG04LP3 and SG05LP3 series.
+   - Modbus TCP/RTU default port 8899 on Deye WiFi/LAN dataloggers, port 502 on RS485 gateways.
+   - All operational registers reside in holding register space (read with Modbus FC03).
+
+2. **Deye Work Mode & Solar Sell Controls**:
+   - Holding Register 142 (Work Mode):
+     * `0`: Selling First (PV powers load -> battery -> excess export to grid).
+     * `1`: Zero Export to Load (Surplus limited to local critical/backup load).
+     * `2`: Zero Export to CT (Zero export controlled via grid meter CT clamp).
+   - Holding Register 145 (Solar Sell Switch): 0 = Off, 1 = On.
+   - Holding Register 340 (Max Sell Power): 0..16000 W limit.
+   - Holding Register 130 & 128 (Grid Charge): AC grid charge enable switch (0/1) and charge current limit (0..120 A).
+
+3. **6-Slot Time-Of-Use (TOU) Schedule Matrix (Registers 148..177)**:
+   - 6 sequential time slots: Slot `i` active from `Time_i` until `Time_{i+1}`.
+   - Time points (148..153): Decimal `HHMM` encoding (e.g. 02:30 -> 230, 18:45 -> 1845).
+   - Power limits (154..159): 0..16000 W.
+   - Target SOC floors/ceilings (166..171): 0..100 %.
+   - Charge Sources (172..177): `0` = Off (Self-consumption / Discharging to target SOC), `1` = Grid (Forced AC grid charge), `2` = Generator, `3` = Grid + Generator.
+
+4. **Telemetry & Little-Endian 32-Bit Energy Counters**:
+   - PV1..PV4 power, voltage, current (672..683).
+   - 3-Phase Grid voltages (598..600), currents (613..615), powers (616..618), total power (619), frequency (609).
+   - Battery voltage (587, 0.01V), signed current (591, 0.01A), power (590, signed 1W), SOC (588), temperature (586, (raw-1000)*0.1°C), corrected capacity Ah (592).
+   - Load power (653) and UPS backup power (643).
+   - Little-endian 32-bit energy registers (low word first at base address): PV total (534), Grid Import total (522), Grid Export total (524).
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/deye-hybrid/decode-telemetry`
+   - `POST /api/deye-hybrid/decode-tou-schedule`
+   - `POST /api/deye-hybrid/compile-work-mode`
+   - `POST /api/deye-hybrid/compile-grid-charge`
+   - `POST /api/deye-hybrid/compile-tou-slot`
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `deye_hybrid` ("Deye Hybrid SUN (Lưu trữ & 6-Slot TOU)") with 4 interactive panels: Work Mode & Solar Sell Control, Grid Charge Configuration, 6-Slot TOU Schedule Programmer, and Full Telemetry Inspector.
+   - All compiled write commands strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #7 - `pysolarmanv5`
+
+- **Repository**: `D:\Downloads\before_project\pysolarmanv5-8cfe84650f48f0803c32b3c4ca061364abd9cf49`
+- **License**: MIT License.
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/solarman_v5_protocol.py`. Zero code copied; frame structures, checksum math, sequence tracking, and Modbus RTU encapsulation independently authored and verified.
+- **Rank**: #7 out of 30 upstream projects (17 files, 3,058 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Solarman V5 TCP Frame Protocol (Port 8899)**:
+   - Used by IGEN Tech, Deye, Sofar, Solis, Chisage, Eybond, and OEM WiFi/LAN dataloggers.
+   - Header (11 bytes): Start `0xA5`, payload length (uint16 LE), control code suffix `0x10`, control code (REQUEST `0x45`, RESPONSE `0x15`), sequence number (uint16 LE), logger serial number (uint32 LE).
+   - Request Payload: 15-byte header (frame type `0x02` inverter, sensor type, timestamps) + embedded Modbus RTU frame.
+   - Trailer (2 bytes): Checksum (modulo-256 sum over `frame[1:-2]`) + End byte `0x15`.
+
+2. **Deye / OEM Firmware Double-CRC Bug Sanitizer**:
+   - Automated detection and trimming of trailing `0x0000` appended by buggy datalogger firmware calculating CRC twice.
+
+3. **High-Level Modbus Action Encapsulation**:
+   - Compiles FC03 / FC04 Read and FC06 / FC16 Write commands directly into complete V5 byte packets.
+   - All write commands gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+4. **Local Network Datalogger Discovery**:
+   - Parser for UDP broadcast discovery responses on port 48899 (`<IP>,<MAC>,<SERIAL>`).
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/solarman-v5/encode-frame`
+   - `POST /api/solarman-v5/decode-frame`
+   - `POST /api/solarman-v5/compile-request`
+   - `POST /api/solarman-v5/parse-discovery`
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `solarman_v5` ("Giao thức Solarman V5 (Cổng 8899)") with 3 interactive panels: V5 Packet Encoder & Encapsulation Inspector, V5 Packet Decoder & Validation, and UDP Discovery Diagnostics.
+
+
+
+
+

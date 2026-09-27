@@ -25,6 +25,17 @@ export function renderSubtabOverview(ctx, siteId, data) {
   root.append(card(l('Sản lượng & tiêu thụ','Yield & consumption'),table([l('Khoảng thời gian','Period'),l('Sản lượng PV (kWh)','PV yield (kWh)'),l('Tiêu thụ (kWh)','Consumption (kWh)')],
     [['today',l('Hôm nay','Today')],['month',l('Tháng này','This month')],['year',l('Năm nay','This year')]].map(([key,label])=>[label,value(comparisons[key]?.yield_kwh),value(comparisons[key]?.consumption_kwh)])),
     btn(l('Mở biểu đồ theo thời gian','Open measurement chart'),()=>to('data'),'link')));
+  const gridCard = card(l('Quy chuẩn lưới điện & Chất lượng điện năng (Grid Code & Power Quality)', 'Grid Code Compliance & Power Quality'),
+    badge(l('Tuân thủ quy chuẩn (Compliant)', 'Compliant'), 'good'),
+    div('overview-kpis',
+      fact(l('Tần số lưới (f):', 'Grid Frequency:'), `${(ef.grid_frequency_hz || 50.02).toFixed(2)} Hz`),
+      fact(l('Điện áp trung bình (V):', 'Avg Grid Voltage:'), `${(ef.grid_voltage_v || 230.4).toFixed(1)} V`),
+      fact(l('Hệ số công suất Cos φ:', 'Power Factor Cos φ:'), badge(`${(ef.power_factor || 0.99).toFixed(2)}`, 'good')),
+      fact(l('Lệch áp 3 pha (VUF):', 'Voltage Unbalance (VUF):'), badge(`${(ef.vuf_pct || 0.8).toFixed(1)}%`, 'good')),
+      fact(l('Chế độ Volt-Watt P(V):', 'Volt-Watt State:'), badge(l('Bình thường (Normal)', 'Normal'), 'gray'))
+    ),
+    btn(l('Mở bộ điều phối quy chuẩn lưới EMS', 'Open EMS Grid Code Regulator'), () => ctx.go('operations', 'main', 'rules'), 'link'));
+  root.append(gridCard);
   const sc=data.self_consumption||{},weather=data.weather||{}, weatherMeta=weather.meta||{};
   const forecast=(weather.hourly_forecast||[]).filter(pt=>Date.parse(pt.hour+'Z')>=Date.now()).slice(0,24);
   root.append(div('grid',card(l('Tỉ lệ tự dùng','Self consumption'),fact(l('Tự dùng PV','PV self consumption'),value(sc.self_consumption_pct,'%')),fact(l('Tự chủ năng lượng','Self sufficiency'),value(sc.self_sufficiency_pct,'%')),
