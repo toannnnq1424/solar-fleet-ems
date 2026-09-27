@@ -468,9 +468,26 @@ class SolarmanProfileCommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class SungrowShxTelemetryRequest(BaseModel):
+    """Request for polling Sungrow SHx/SG inverter & SBR battery telemetry."""
+
+    host: str = Field(default="192.168.1.100", description="Sungrow inverter / WiNet-S LAN IP address")
+    port: int = Field(default=502, description="Modbus TCP port (default 502)")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID (default 1)")
 
 
+class SungrowShxCommandRequest(BaseModel):
+    """Request for compiling and executing Sungrow SHx configuration command."""
 
+    host: str = Field(default="192.168.1.100", description="Sungrow inverter IP address")
+    port: int = Field(default=502, description="Modbus TCP port")
+    slave_unit_id: int = Field(default=1, description="Modbus slave unit ID")
+    command_type: str = Field(
+        ...,
+        description="Command type: 'ems_mode', 'forced_charge_discharge', 'soc_limits', 'export_limit', 'active_power_limitation', 'power_switch', 'scene'",
+    )
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
 # ---------------------------------------------------------------------------
@@ -2597,10 +2614,90 @@ def install_phase_d_apis(app, controller, user, admin=None):
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
 
+    # -----------------------------------------------------------------------
+    # Sungrow SHx & SG Inverter Modbus TCP Endpoints (Project #15)
+    # -----------------------------------------------------------------------
 
+    @app.get("/api/sungrow-shx/info")
+    async def sungrow_shx_info(principal=Depends(user)):
+        """Retrieve Sungrow supported models, running states, and EMS scenes."""
+        from .sungrow_shx_client import (
+            SUNGROW_DEVICE_TYPES,
+            SUNGROW_EMS_MODES,
+            SUNGROW_FORCED_CMDS,
+            SUNGROW_RUNNING_STATES,
+        )
 
+        return {
+            "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+            "supported_models": [
+                {"code_hex": f"0x{code:04X}", "model": name}
+                for code, name in sorted(SUNGROW_DEVICE_TYPES.items())
+            ],
+            "ems_modes": [
+                {"key": k, "code": v[0], "name": v[1]}
+                for k, v in SUNGROW_EMS_MODES.items()
+            ],
+            "forced_commands": [
+                {"key": k, "code_hex": f"0x{v[0]:02X}", "name": v[1]}
+                for k, v in SUNGROW_FORCED_CMDS.items()
+            ],
+            "running_states_sample": [
+                {"code_hex": f"0x{code:04X}", "state": name}
+                for code, name in sorted(SUNGROW_RUNNING_STATES.items())[:10]
+            ],
+            "scenes": [
+                "self_consumption",
+                "zero_export",
+                "max_export",
+                "battery_bypass",
+                "forced_charge",
+                "forced_discharge",
+            ],
+        }
 
+    @app.post("/api/sungrow-shx/telemetry")
+    async def sungrow_shx_telemetry(req: SungrowShxTelemetryRequest, principal=Depends(user)):
+        """Poll and normalize Sungrow SHx/SG inverter, SBR battery, and meter telemetry."""
+        from .sungrow_shx_client import SungrowShxClient, normalize_sungrow_telemetry
 
+        client = SungrowShxClient(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            tel = client.read_telemetry()
+            norm = normalize_sungrow_telemetry(tel)
+            return {
+                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+                "telemetry": tel.__dict__,
+                "normalized": norm,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
 
+    @app.post("/api/sungrow-shx/command")
+    async def sungrow_shx_command(req: SungrowShxCommandRequest, principal=Depends(user)):
+        """Safely compile and execute Sungrow SHx configuration command with hardware acceptance gate."""
+        from .sungrow_shx_client import SungrowShxClient
 
-
+        client = SungrowShxClient(
+            host=req.host,
+            port=req.port,
+            slave_unit_id=req.slave_unit_id,
+            simulated=True,
+        )
+        try:
+            result = client.write_parameter(
+                command_type=req.command_type,
+                params=req.params,
+                confirm_hardware_acceptance=req.unlocked,
+            )
+            return {
+                "source": "Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))

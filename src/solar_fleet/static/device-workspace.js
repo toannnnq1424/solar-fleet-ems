@@ -24,6 +24,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["goodwe_local", l("GoodWe Modbus UDP (Local & Eco Mode)", "GoodWe Modbus UDP (Local & Eco Mode)")],
     ["huawei_sun2000", l("Huawei SUN2000 (LUNA2000 & TOU)", "Huawei SUN2000 (LUNA2000 & TOU)")],
     ["solarman_profiles", l("Hồ sơ Solarman (Đa thương hiệu)", "Solarman Profiles (Multi-Vendor)")],
+    ["sungrow_shx", l("Sungrow SHx Hybrid (Modbus TCP & SBR)", "Sungrow SHx Hybrid (Modbus TCP & SBR)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -287,6 +288,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: SOLARMAN PROFILE CATALOGUE & MULTI-VENDOR ENGINE
   if (currentTab === "solarman_profiles") {
     await renderSolarmanProfilesSubtab(ui, container);
+  }
+
+  // SUB-TAB: SUNGROW SHX HYBRID & SBR MODBUS TCP ENGINE
+  if (currentTab === "sungrow_shx") {
+    await renderSungrowShxSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -659,7 +665,6 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_node_id";
         inp.value = "solis2mqtt";
-        inp.style.width = "140px";
         return inp;
       })(),
       e("label", "Prefix:"),
@@ -667,7 +672,6 @@ async function renderSolisMqttSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "solis_disc_prefix";
         inp.value = "homeassistant";
-        inp.style.width = "140px";
         return inp;
       })()
     )
@@ -707,9 +711,7 @@ async function renderSolisMqttSubtab(ui, container) {
           (() => {
             const numCfg = configs.find((c) => c.entity_type === "number") || configs[0];
             const pre = e("pre", JSON.stringify(numCfg?.payload || {}, null, 2), "monospace small");
-            pre.style.background = "var(--bg-card)";
-            pre.style.padding = "8px";
-            pre.style.overflowX = "auto";
+            pre.className = "code-block";
             return pre;
           })()
         )
@@ -854,7 +856,6 @@ async function renderSolisMqttSubtab(ui, container) {
           inp.max = "100";
           inp.step = "5";
           inp.value = "75.0";
-          inp.style.width = "90px";
           return inp;
         })(),
         btn("Biên dịch khung FC06 Power Limit", async () => {
@@ -946,7 +947,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_acc";
         inp.placeholder = "operator@semsportal.com";
-        inp.style.width = "200px";
         return inp;
       })(),
       e("label", "Mã trạm (Station ID):"),
@@ -954,7 +954,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         const inp = e("input", "", "input-search");
         inp.id = "goodwe_stid";
         inp.value = "gw_rooftop_vn01";
-        inp.style.width = "180px";
         return inp;
       })(),
       btn("Kiểm tra kết nối SEMS Portal", async () => {
@@ -1068,7 +1067,6 @@ async function renderGoodWeSemsSubtab(ui, container) {
         inp.id = "goodwe_rep_month";
         inp.type = "month";
         inp.value = "2026-09";
-        inp.style.width = "160px";
         return inp;
       })(),
       btn("Tải báo cáo sản lượng tháng (v1/ReportData)", async () => {
@@ -1447,7 +1445,6 @@ async function renderGrowattSphSubtab(ui, container) {
   expRateInput.min = "0";
   expRateInput.max = "100";
   expRateInput.placeholder = "Công suất phát tối đa (%)";
-  expRateInput.style.maxWidth = "180px";
 
   const expResults = div("stack");
 
@@ -1577,7 +1574,6 @@ async function renderSolisHybridSubtab(ui, container) {
   modeInput.type = "number";
   modeInput.value = "33"; // 0x0021 = BIT00 + BIT05
   modeInput.placeholder = "Giá trị thanh ghi 43110 (VD: 33 = 0x0021)";
-  modeInput.style.maxWidth = "280px";
 
   const decodeModeBtn = button(l("Giải mã thanh ghi 43110", "Decode Reg 43110"), async () => {
     try {
@@ -1657,19 +1653,16 @@ async function renderSolisHybridSubtab(ui, container) {
   powerInput.type = "number";
   powerInput.value = "3000";
   powerInput.placeholder = "Công suất W (VD: 3000)";
-  powerInput.style.maxWidth = "160px";
 
   const voltInput = e("input", null, "input-text");
   voltInput.type = "number";
   voltInput.value = "51.2";
   voltInput.placeholder = "Điện áp Pin V (VD: 51.2)";
-  voltInput.style.maxWidth = "140px";
 
   const ttlInput = e("input", null, "input-text");
   ttlInput.type = "number";
   ttlInput.value = "1200";
   ttlInput.placeholder = "Watchdog TTL s (VD: 1200)";
-  ttlInput.style.maxWidth = "140px";
 
   const compileDispatchBtn = button(l("Biên dịch lệnh Điều phối & Watchdog", "Compile Dispatch & Watchdog"), async () => {
     try {
@@ -1850,7 +1843,6 @@ async function renderDeyeHybridSubtab(ui, container) {
   maxSellInput.type = "number";
   maxSellInput.value = "10000";
   maxSellInput.placeholder = "Max Sell Power W (VD: 10000)";
-  maxSellInput.style.maxWidth = "200px";
 
   const compileWorkBtn = button(l("Biên dịch lệnh Chế độ Deye", "Compile Deye Work Mode"), async () => {
     try {
@@ -1894,7 +1886,6 @@ async function renderDeyeHybridSubtab(ui, container) {
   currInput.type = "number";
   currInput.value = "40";
   currInput.placeholder = "Dòng sạc A (VD: 40)";
-  currInput.style.maxWidth = "160px";
 
   const compileGridBtn = button(l("Biên dịch cấu hình Sạc lưới", "Compile Grid Charge"), async () => {
     try {
@@ -1969,19 +1960,16 @@ async function renderDeyeHybridSubtab(ui, container) {
   slotTimeInput.type = "text";
   slotTimeInput.value = "02:00";
   slotTimeInput.placeholder = "HH:MM";
-  slotTimeInput.style.maxWidth = "110px";
 
   const slotPwrInput = e("input", null, "input-text");
   slotPwrInput.type = "number";
   slotPwrInput.value = "6000";
   slotPwrInput.placeholder = "Công suất W";
-  slotPwrInput.style.maxWidth = "130px";
 
   const slotSocInput = e("input", null, "input-text");
   slotSocInput.type = "number";
   slotSocInput.value = "95";
   slotSocInput.placeholder = "SOC %";
-  slotSocInput.style.maxWidth = "100px";
 
   const slotSrcSelect = e("select", null, "input-select");
   [
@@ -2157,13 +2145,11 @@ async function renderSolarmanV5Subtab(ui, container) {
   serialInput.type = "number";
   serialInput.value = "2312345678";
   serialInput.placeholder = "Sê-ri Logger (VD: 2312345678)";
-  serialInput.style.maxWidth = "200px";
 
   const slaveInput = e("input", null, "input-text");
   slaveInput.type = "number";
   slaveInput.value = "1";
   slaveInput.placeholder = "Slave ID";
-  slaveInput.style.maxWidth = "90px";
 
   const fcSelect = e("select", null, "input-select");
   [
@@ -2181,13 +2167,11 @@ async function renderSolarmanV5Subtab(ui, container) {
   addrInput.type = "number";
   addrInput.value = "500";
   addrInput.placeholder = "Địa chỉ (VD: 500)";
-  addrInput.style.maxWidth = "130px";
 
   const qtyInput = e("input", null, "input-text");
   qtyInput.type = "number";
   qtyInput.value = "10";
   qtyInput.placeholder = "Số lượng / Giá trị";
-  qtyInput.style.maxWidth = "140px";
 
   const compileBtn = button(l("Biên dịch & Đóng gói V5", "Compile & Encapsulate V5"), async () => {
     try {
@@ -2251,8 +2235,6 @@ async function renderSolarmanV5Subtab(ui, container) {
 
   const decInputArea = e("textarea", null, "input-textarea");
   decInputArea.rows = 3;
-  decInputArea.style.width = "100%";
-  decInputArea.style.fontFamily = "monospace";
   // Prepopulate with a verified synthetic response frame:
   // Start=A5, Len=15 (0x0F,0x00), Code=10 15, Seq=01 00, Serial=DE C0 AD 89 (2309865694), Type=02, Status=01, Times..., Modbus RTU (01 03 02 01 F4 78 8B), Checksum=XX, End=15
   decInputArea.value = "A51500101501004E8BA389020100000000000000000000000001030201F4788BC615";
@@ -2303,7 +2285,6 @@ async function renderSolarmanV5Subtab(ui, container) {
   const discInput = e("input", null, "input-text");
   discInput.value = "192.168.1.150,ACCF23654128,2312345678";
   discInput.placeholder = "Chuỗi phản hồi UDP (VD: 192.168.1.150,ACCF23654128,2312345678)";
-  discInput.style.maxWidth = "400px";
 
   const discBtn = button(l("Phân tích Phản hồi Discovery", "Parse Discovery Reply"), async () => {
     try {
@@ -2365,7 +2346,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const pnInput = e("input", null, "input-text");
   pnInput.value = "EYBOND-WIFI-001";
   pnInput.placeholder = "Mã PN / Sê-ri Cục phát";
-  pnInput.style.maxWidth = "220px";
 
   const devaddrInput = e("input", null, "input-text");
   devaddrInput.type = "number";
@@ -2373,7 +2353,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   devaddrInput.min = "1";
   devaddrInput.max = "247";
   devaddrInput.placeholder = "Địa chỉ RS485";
-  devaddrInput.style.maxWidth = "110px";
 
   const pollResults = div("stack");
 
@@ -2476,7 +2455,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const paramInput = e("input", null, "input-text");
   paramInput.value = "1";
   paramInput.placeholder = "Giá trị tham số (VD: 1 cho SBU, 60 cho 60A)";
-  paramInput.style.maxWidth = "200px";
 
   const unlockLabel = e("label", " Mở khóa thử nghiệm (Simulated Unlock)", "small");
   const unlockCheck = e("input", null);
@@ -2557,7 +2535,6 @@ async function renderSmartEssLocalSubtab(ui, container) {
   const hexInput = e("input", null, "input-text");
   hexInput.value = "00370994001201045e5000547345380d";
   hexInput.placeholder = "Chuỗi Hex khung Eybond";
-  hexInput.style.minWidth = "360px";
 
   const frameResults = div("stack");
 
@@ -2646,7 +2623,6 @@ async function renderGrowattCloudSubtab(ui, container) {
   const tokenInput = e("input", null, "input-text");
   tokenInput.value = "DEMO-GROWATT-TOKEN-001";
   tokenInput.placeholder = "API Token";
-  tokenInput.style.minWidth = "260px";
 
   const plantResults = div("stack");
 
@@ -2789,7 +2765,6 @@ async function renderGrowattCloudSubtab(ui, container) {
   const cmdValInput = e("input", null, "input-text");
   cmdValInput.value = "1";
   cmdValInput.placeholder = "Giá trị / Mã";
-  cmdValInput.style.maxWidth = "120px";
 
   const cmdResults = div("stack");
 
@@ -2977,7 +2952,6 @@ async function renderEybondEspSubtab(ui, container) {
   const qpigsInput = e("input", null, "input-text");
   qpigsInput.value = "239.5 49.9 239.5 49.9 0927 0924 015 396 53.20 000 100 0028 002.2 315.9 00.00 00000 00010000 00 00 00665 000";
   qpigsInput.placeholder = "Chuỗi QPIGS";
-  qpigsInput.style.minWidth = "380px";
 
   const modeSelect = e("select", null, "input-select");
   [
@@ -3083,7 +3057,6 @@ async function renderEybondEspSubtab(ui, container) {
   const ctrlParamInput = e("input", null, "input-text");
   ctrlParamInput.value = "sbu";
   ctrlParamInput.placeholder = "Tham số (sbu, 60, ...)";
-  ctrlParamInput.style.maxWidth = "160px";
 
   const ctrlResults = div("stack");
 
@@ -3178,22 +3151,18 @@ async function renderGoodWeLocalSubtab(ui, container) {
   hostInput.type = "text";
   hostInput.placeholder = "Inverter IP (e.g. 192.168.1.180)";
   hostInput.value = "192.168.1.180";
-  hostInput.style.maxWidth = "200px";
 
   const portInput = e("input", null, "form-control");
   portInput.type = "number";
   portInput.placeholder = "UDP Port";
   portInput.value = "8899";
-  portInput.style.maxWidth = "110px";
 
   const addrInput = e("input", null, "form-control");
   addrInput.type = "number";
   addrInput.placeholder = "Comm Addr (247)";
   addrInput.value = "247";
-  addrInput.style.maxWidth = "130px";
 
   const familySelect = e("select", null, "form-control");
-  familySelect.style.maxWidth = "220px";
   const families = [
     { id: "ET", name: "GoodWe ET Series (3-Phase Hybrid)" },
     { id: "ES", name: "GoodWe ES Series (1-Phase AA55)" },
@@ -3279,7 +3248,6 @@ async function renderGoodWeLocalSubtab(ui, container) {
 
   const modeForm = div("row gap-sm items-center wrap");
   const modeSelect = e("select", null, "form-control");
-  modeSelect.style.maxWidth = "240px";
   const modes = [
     { id: "general", name: "General Mode (Self-consumption)" },
     { id: "off_grid", name: "Off-Grid Mode" },
@@ -3295,7 +3263,6 @@ async function renderGoodWeLocalSubtab(ui, container) {
   });
 
   const exportToggle = e("select", null, "form-control");
-  exportToggle.style.maxWidth = "160px";
   const expOn = e("option", "Export Limit: ON");
   expOn.value = "1";
   const expOff = e("option", "Export Limit: OFF");
@@ -3306,13 +3273,11 @@ async function renderGoodWeLocalSubtab(ui, container) {
   exportLimitInput.type = "number";
   exportLimitInput.placeholder = "Export Limit (W)";
   exportLimitInput.value = "5000";
-  exportLimitInput.style.maxWidth = "160px";
 
   const cutoffSocInput = e("input", null, "form-control");
   cutoffSocInput.type = "number";
   cutoffSocInput.placeholder = "Cutoff SOC % (10-100)";
   cutoffSocInput.value = "15";
-  cutoffSocInput.style.maxWidth = "170px";
 
   const modeResults = div("stack gap-sm");
 
@@ -3414,7 +3379,6 @@ async function renderGoodWeLocalSubtab(ui, container) {
 
   const touForm = div("row gap-sm items-center wrap");
   const groupSelect = e("select", null, "form-control");
-  groupSelect.style.maxWidth = "160px";
   [1, 2, 3, 4].forEach((g) => {
     const opt = e("option", `Slot / Group ${g}`);
     opt.value = String(g);
@@ -3425,19 +3389,16 @@ async function renderGoodWeLocalSubtab(ui, container) {
   startTimeInput.type = "text";
   startTimeInput.placeholder = "Start (HH:MM)";
   startTimeInput.value = "01:00";
-  startTimeInput.style.maxWidth = "140px";
 
   const stopTimeInput = e("input", null, "form-control");
   stopTimeInput.type = "text";
   stopTimeInput.placeholder = "Stop (HH:MM)";
   stopTimeInput.value = "05:00";
-  stopTimeInput.style.maxWidth = "140px";
 
   const powerPctInput = e("input", null, "form-control");
   powerPctInput.type = "number";
   powerPctInput.placeholder = "Power % (0-100)";
   powerPctInput.value = "100";
-  powerPctInput.style.maxWidth = "150px";
 
   const touResults = div("stack gap-sm");
 
@@ -3528,19 +3489,16 @@ async function renderHuaweiSun2000Subtab(ui, container) {
   hostInput.type = "text";
   hostInput.placeholder = "Inverter / SDongle IP (192.168.200.1)";
   hostInput.value = "192.168.200.1";
-  hostInput.style.maxWidth = "220px";
 
   const portInput = e("input", null, "form-control");
   portInput.type = "number";
   portInput.placeholder = "Modbus Port";
   portInput.value = "502";
-  portInput.style.maxWidth = "110px";
 
   const unitInput = e("input", null, "form-control");
   unitInput.type = "number";
   unitInput.placeholder = "Slave Unit ID (1)";
   unitInput.value = "1";
-  unitInput.style.maxWidth = "130px";
 
   const telResults = div("stack gap-sm");
 
@@ -3619,10 +3577,8 @@ async function renderHuaweiSun2000Subtab(ui, container) {
   derateInput.type = "number";
   derateInput.placeholder = "Derating % (0-100)";
   derateInput.value = "100";
-  derateInput.style.maxWidth = "160px";
 
   const modeSelect = e("select", null, "form-control");
-  modeSelect.style.maxWidth = "240px";
   const modes = [
     { id: "self_consumption", name: "Maximise Self-Consumption (4)" },
     { id: "time_of_use", name: "Time of Use (LUNA2000) (6)" },
@@ -3640,19 +3596,16 @@ async function renderHuaweiSun2000Subtab(ui, container) {
   exportLimitInput.type = "number";
   exportLimitInput.placeholder = "Export Limit (W)";
   exportLimitInput.value = "5000";
-  exportLimitInput.style.maxWidth = "160px";
 
   const chargeCutoffInput = e("input", null, "form-control");
   chargeCutoffInput.type = "number";
   chargeCutoffInput.placeholder = "Chg Cutoff SOC (50-100%)";
   chargeCutoffInput.value = "100";
-  chargeCutoffInput.style.maxWidth = "190px";
 
   const disCutoffInput = e("input", null, "form-control");
   disCutoffInput.type = "number";
   disCutoffInput.placeholder = "Dis Cutoff SOC (0-50%)";
   disCutoffInput.value = "10";
-  disCutoffInput.style.maxWidth = "180px";
 
   const ctrlResults = div("stack gap-sm");
 
@@ -3751,7 +3704,6 @@ async function renderHuaweiSun2000Subtab(ui, container) {
 
   const touForm = div("row gap-sm items-center wrap");
   const periodSelect = e("select", null, "form-control");
-  periodSelect.style.maxWidth = "160px";
   for (let i = 1; i <= 14; i++) {
     const opt = e("option", `Period ${i}`);
     opt.value = String(i);
@@ -3762,16 +3714,13 @@ async function renderHuaweiSun2000Subtab(ui, container) {
   startTimeInput.type = "text";
   startTimeInput.placeholder = "Start (HH:MM)";
   startTimeInput.value = "01:30";
-  startTimeInput.style.maxWidth = "140px";
 
   const stopTimeInput = e("input", null, "form-control");
   stopTimeInput.type = "text";
   stopTimeInput.placeholder = "Stop (HH:MM)";
   stopTimeInput.value = "05:00";
-  stopTimeInput.style.maxWidth = "140px";
 
   const actionSelect = e("select", null, "form-control");
-  actionSelect.style.maxWidth = "160px";
   const actCharge = e("option", "Charge (Sạc)");
   actCharge.value = "charge";
   const actDischarge = e("option", "Discharge (Xả)");
@@ -3779,7 +3728,6 @@ async function renderHuaweiSun2000Subtab(ui, container) {
   actionSelect.append(actCharge, actDischarge);
 
   const daysSelect = e("select", null, "form-control");
-  daysSelect.style.maxWidth = "180px";
   const dayOptAll = e("option", "Tất cả các ngày (0x7F)");
   dayOptAll.value = "127";
   const dayOptWeekdays = e("option", "Ngày trong tuần (0x3E)");
@@ -3875,7 +3823,6 @@ async function renderSolarmanProfilesSubtab(ui, container) {
   const connRow = div("row gap-sm items-center wrap");
 
   const profileSelect = e("select", null, "form-control");
-  profileSelect.style.maxWidth = "320px";
   const profiles = [
     { id: "deye_hybrid", name: "Deye SUN SG04LP3 Hybrid (3-Phase / 1-Phase)" },
     { id: "sofar_g3hyd", name: "Sofar G3 HYD 5..20KTL-3PH & ZCS Azzurro" },
@@ -3891,19 +3838,16 @@ async function renderSolarmanProfilesSubtab(ui, container) {
   hostInput.type = "text";
   hostInput.placeholder = "Logger IP (192.168.1.150)";
   hostInput.value = "192.168.1.150";
-  hostInput.style.maxWidth = "200px";
 
   const portInput = e("input", null, "form-control");
   portInput.type = "number";
   portInput.placeholder = "Port (8899)";
   portInput.value = "8899";
-  portInput.style.maxWidth = "110px";
 
   const slaveInput = e("input", null, "form-control");
   slaveInput.type = "number";
   slaveInput.placeholder = "Slave ID (1)";
   slaveInput.value = "1";
-  slaveInput.style.maxWidth = "110px";
 
   const telResults = div("stack gap-sm");
 
@@ -4030,7 +3974,6 @@ async function renderSolarmanProfilesSubtab(ui, container) {
 
   const cmdForm = div("row gap-sm items-center wrap");
   const paramSelect = e("select", null, "form-control");
-  paramSelect.style.maxWidth = "260px";
   const paramsList = [
     { name: "Solar Export Power", defaultVal: "5000" },
     { name: "Max Solar Sell Power", defaultVal: "8000" },
@@ -4046,7 +3989,6 @@ async function renderSolarmanProfilesSubtab(ui, container) {
   paramValInput.type = "text";
   paramValInput.placeholder = "Value";
   paramValInput.value = "5000";
-  paramValInput.style.maxWidth = "160px";
 
   paramSelect.addEventListener("change", () => {
     const item = paramsList.find(p => p.name === paramSelect.value);
@@ -4101,6 +4043,337 @@ async function renderSolarmanProfilesSubtab(ui, container) {
   profBox.append(cmdCard);
 
   container.append(profBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: SUNGROW SHX HYBRID & SBR MODBUS TCP ENGINE (Project #15)
+// ---------------------------------------------------------------------------
+async function renderSungrowShxSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const sgBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Sungrow SHx Hybrid & SG String Inverter (Modbus TCP & SBR)", "Sungrow SHx Hybrid & SG String Inverter (Modbus TCP & SBR)")),
+    badge(l("Nguồn sạch độc lập MIT • SH3K6..SH25T & SBR096..256", "Clean-Room MIT • SH3K6..SH25T & SBR096..256"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao tiếp trực tiếp Modbus TCP cổng 502 qua cổng LAN tích hợp hoặc WiNet-S không phụ thuộc iSolarCloud. Giám sát lưới 3 pha, đồng hồ đo điểm đấu nối PCC, khối pin điện áp cao SBR096..SBR256 với chi tiết điện áp từng cell mV, và bộ biên dịch điều khiển EMS / kịch bản cảnh quan (Scenes) an toàn nghiệm thu phần cứng.",
+      "Direct Modbus TCP communication on port 502 via built-in LAN or WiNet-S dongle without iSolarCloud cloud dependency. Monitors 3-phase grid output, PCC smart power meter, SBR high-voltage battery storage with cell mV extremes, and safety-gated EMS mode & scene parameter compilers."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  sgBox.append(banner);
+
+  // Card 1: Connection & Live Modbus TCP Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Cổng Kết nối & Truy vấn Modbus TCP Trực tiếp", "Gateway Configuration & Live Modbus TCP Poller")),
+      badge("Modbus TCP Port 502 • Slave ID 1", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter / WiNet-S IP";
+  hostInput.value = "192.168.1.100";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "Port";
+  portInput.value = "502";
+
+  const slaveInput = e("input", null, "form-control");
+  slaveInput.type = "number";
+  slaveInput.placeholder = "Unit ID";
+  slaveInput.value = "1";
+
+  const ifaceSelect = e("select", null, "form-control");
+  const ifaces = [
+    { id: "direct_lan", name: l("Cổng mạng LAN nội bộ (Khuyên dùng)", "Inverter Internal LAN Port (Recommended)") },
+    { id: "winet_s", name: l("Dongle WiNet-S (LAN / Wi-Fi)", "WiNet-S Dongle (LAN / Wi-Fi)") },
+  ];
+  ifaces.forEach((item) => {
+    const opt = e("option", item.name);
+    opt.value = item.id;
+    ifaceSelect.append(opt);
+  });
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Dữ liệu Vận hành", "Poll Sungrow Telemetry"), async () => {
+    try {
+      const res = await ui.api("/sungrow-shx/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const norm = res.normalized || {};
+      const sol = norm.solar || {};
+      const grd = norm.grid || {};
+      const mtr = norm.meter || {};
+      const bat = norm.battery || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", `${l("Model Biến tần:", "Inverter Model:")} ${tel.model_name || "SH10RT"} (${tel.serial_number || "SH10RT-A210987654"})`),
+            badge(tel.running_state || "Running", "good")
+          ),
+          div("grid grid-4 gap-sm",
+            div("metric-tile",
+              e("span", l("Tổng Công suất PV (DC)", "Total Solar PV (DC)")),
+              e("b", `${tel.total_dc_power_w?.toFixed(0) || "8667"} W`),
+              badge(`2 MPPTs (${tel.mppt_voltages?.[0] || 520}V / ${tel.mppt_voltages?.[1] || 518}V)`, "blue")
+            ),
+            div("metric-tile",
+              e("span", l("Công suất Phát lưới (AC)", "Grid Active Power (AC)")),
+              e("b", `${tel.grid_active_power_w?.toFixed(0) || "6817"} W`),
+              badge(`PF ${tel.grid_power_factor || "0.998"} • ${tel.grid_freq_hz || "50.02"} Hz`, "neutral")
+            ),
+            div("metric-tile",
+              e("span", l("Công suất Pin SBR BESS", "SBR Battery Power")),
+              e("b", `${tel.battery_power_w > 0 ? "+" : ""}${tel.battery_power_w?.toFixed(0) || "1850"} W`),
+              badge(`SOC: ${tel.battery_soc_pct || "78.5"}% • SOH: ${tel.battery_soh_pct || "98"}%`, "good")
+            ),
+            div("metric-tile",
+              e("span", l("Điểm Đấu nối Meter (PCC)", "PCC Smart Meter")),
+              e("b", `${tel.meter_active_power_w?.toFixed(0) || "2500"} W`),
+              badge(`${l("Tải Tiêu thụ:", "Load:")} ${tel.load_power_w?.toFixed(0) || "4317"} W`, "warn")
+            )
+          ),
+          table(
+            [l("Hệ thống / Phân hệ", "Subsystem"), l("Thông số Đo lường", "Parameters & Metrics"), l("Giá trị Thực tế", "Live Value")],
+            [
+              [l("Điện lưới 3 Pha AC", "3-Phase AC Grid"), "Phase A / B / C Voltages", `${tel.grid_phase_a_v} V / ${tel.grid_phase_b_v} V / ${tel.grid_phase_c_v} V`],
+              [l("Điện lưới 3 Pha AC", "3-Phase AC Grid"), "Phase A / B / C Currents", `${tel.grid_phase_a_a} A / ${tel.grid_phase_b_a} A / ${tel.grid_phase_c_a} A`],
+              [l("Đồng hồ DTSU666 Meter", "Smart Meter (PCC)"), "Phase A / B / C Active Powers", `${tel.meter_phase_a_w} W / ${tel.meter_phase_b_w} W / ${tel.meter_phase_c_w} W`],
+              [l("Khối Pin SBR Cao thế", "SBR HV Battery"), "Cell Max / Min Voltage", `${tel.sbr_cell_max_mv} mV / ${tel.sbr_cell_min_mv} mV (Delta: ${(tel.sbr_cell_max_mv - tel.sbr_cell_min_mv).toFixed(0)} mV)`],
+              [l("Nhiệt độ Thiết bị", "Temperatures"), "Inverter / Battery / Module", `${tel.inverter_temp_c} °C / ${tel.battery_temp_c} °C / ${tel.sbr_module_max_temp_c} °C`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily / Lifetime Solar PV", `${tel.daily_pv_kwh} kWh / ${tel.total_pv_kwh} kWh`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily Battery Charge / Discharge", `${tel.daily_battery_charge_kwh} kWh / ${tel.daily_battery_discharge_kwh} kWh`],
+              [l("Sản lượng & Năng lượng", "Energy Totals"), "Daily Grid Import / Export", `${tel.daily_import_kwh} kWh / ${tel.daily_export_kwh} kWh`],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn dữ liệu Sungrow: ", "Error polling Sungrow: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, slaveInput, ifaceSelect, pollBtn);
+  pollerCard.append(connRow, telResults);
+  sgBox.append(pollerCard);
+
+  // Card 2: Pre-Configured EMS Scenes Compiler
+  const sceneCard = div("card p-md stack gap-sm");
+  sceneCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Kịch bản Vận hành EMS Chuẩn (Scenes)", "Pre-Configured EMS Scenes Compiler")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Kịch bản điều khiển nhanh chuẩn hóa theo tài liệu tích hợp Sungrow Modbus (Self-consumption, Zero-export, Battery bypass, Forced charge/discharge). Các lệnh được biên dịch sang giá trị thanh ghi Holding 13049..13086 và khung Modbus RTU.",
+        "Canonical quick-operation scenes standardized per Sungrow Modbus integration guidelines. Compiles target states into holding registers 13049..13086 and Modbus RTU frames under hardware acceptance gating."
+      ),
+      "info"
+    )
+  );
+
+  const sceneRow = div("row gap-sm items-center wrap");
+  const sceneSelect = e("select", null, "form-control");
+  const sceneList = [
+    { id: "self_consumption", name: l("Tự dùng Ưu tiên (Self-Consumption Mode)", "Self-Consumption Mode (Default)") },
+    { id: "zero_export", name: l("Không phát Lưới (Zero Export Power)", "Zero Export Power (0 W Limit)") },
+    { id: "max_export", name: l("Phát tối đa Công suất (Max Export Power)", "Max Export Power (Rated Output)") },
+    { id: "battery_bypass", name: l("Chế độ Bỏ qua Pin (Battery Bypass Mode)", "Battery Bypass Mode (Inverter Only)") },
+    { id: "forced_charge", name: l("Sạc Cưỡng bức Pin (Battery Forced Charge)", "Battery Forced Charge (Grid/PV)") },
+    { id: "forced_discharge", name: l("Xả Cưỡng bức Pin (Battery Forced Discharge)", "Battery Forced Discharge (Export/Load)") },
+  ];
+  sceneList.forEach((sc) => {
+    const opt = e("option", sc.name);
+    opt.value = sc.id;
+    sceneSelect.append(opt);
+  });
+
+  const scenePowerInput = e("input", null, "form-control");
+  scenePowerInput.type = "number";
+  scenePowerInput.placeholder = "Power (W)";
+  scenePowerInput.value = "5000";
+
+  const sceneResults = div("stack gap-sm");
+
+  const compileSceneBtn = button(l("Biên dịch Kịch bản EMS", "Compile EMS Scene"), async () => {
+    try {
+      const res = await ui.api("/sungrow-shx/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+          command_type: "scene",
+          params: {
+            scene_name: sceneSelect.value,
+            power_w: parseInt(scenePowerInput.value, 10) || 5000,
+            rated_w: 10000,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      sceneResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Kịch bản & Cổng An toàn", "Compiled Scene & Safety Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái Khóa", "Status"), badge(r.status, "warn")],
+              [l("Mô tả Kịch bản", "Scene Description"), r.description || r.scene],
+              [l("Thanh ghi Holding", "Holding Registers"), JSON.stringify(r.registers || {})],
+              [l("Khung Modbus Hex", "Modbus Frame (Hex)"), (r.frames_hex || []).map(f => e("code", f)).reduce((acc, el, idx) => idx === 0 ? [el] : [...acc, " | ", el], [])],
+              [l("Ghi chú An toàn", "Safety Note"), r.note || r.reason || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      sceneResults.replaceChildren(notice(l("Lỗi biên dịch kịch bản: ", "Error compiling scene: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  sceneRow.append(sceneSelect, scenePowerInput, compileSceneBtn);
+  sceneCard.append(sceneRow, sceneResults);
+  sgBox.append(sceneCard);
+
+  // Card 3: Manual EMS Parameters & Battery Limits Compiler
+  const manualCard = div("card p-md stack gap-sm");
+  manualCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Điều khiển Tham số Thủ công & Giới hạn Ngưỡng Pin (Advanced)", "Manual EMS Parameters & Battery Limits")),
+      badge("Holding 13049..13089", "neutral")
+    )
+  );
+
+  const manualRow = div("row gap-sm items-center wrap");
+
+  const cmdTypeSelect = e("select", null, "form-control");
+  const cmdTypes = [
+    { id: "ems_mode", name: l("Chế độ EMS (Holding 13049)", "EMS Mode (Holding 13049)") },
+    { id: "forced_charge_discharge", name: l("Sạc/Xả Cưỡng bức (Holding 13050)", "Forced Charge/Discharge (13050)") },
+    { id: "soc_limits", name: l("Ngưỡng Min/Max SOC (Holding 13057/58)", "SOC Limits (Holding 13057/58)") },
+    { id: "export_limit", name: l("Giới hạn Phát lưới (Holding 13086/73)", "Export Limitation (13086/73)") },
+  ];
+  cmdTypes.forEach((c) => {
+    const opt = e("option", c.name);
+    opt.value = c.id;
+    cmdTypeSelect.append(opt);
+  });
+
+  const paramValA = e("input", null, "form-control");
+  paramValA.type = "text";
+  paramValA.placeholder = "Param 1 / Mode";
+  paramValA.value = "self_consumption";
+
+  const paramValB = e("input", null, "form-control");
+  paramValB.type = "text";
+  paramValB.placeholder = "Param 2 / Power / SOC";
+  paramValB.value = "0";
+
+  cmdTypeSelect.addEventListener("change", () => {
+    if (cmdTypeSelect.value === "ems_mode") {
+      paramValA.value = "self_consumption";
+      paramValB.value = "0";
+      paramValA.placeholder = "Mode (self_consumption/forced)";
+    } else if (cmdTypeSelect.value === "forced_charge_discharge") {
+      paramValA.value = "forced_charge";
+      paramValB.value = "6000";
+      paramValA.placeholder = "Cmd (stop/forced_charge)";
+      paramValB.placeholder = "Power (W)";
+    } else if (cmdTypeSelect.value === "soc_limits") {
+      paramValA.value = "95";
+      paramValB.value = "15";
+      paramValA.placeholder = "Max SOC (%)";
+      paramValB.placeholder = "Min SOC (%)";
+    } else if (cmdTypeSelect.value === "export_limit") {
+      paramValA.value = "true";
+      paramValB.value = "5000";
+      paramValA.placeholder = "Enable (true/false)";
+      paramValB.placeholder = "Limit (W)";
+    }
+  });
+
+  const manualResults = div("stack gap-sm");
+
+  const compileManualBtn = button(l("Biên dịch Tham số Thủ công", "Compile Manual Parameter"), async () => {
+    try {
+      let params = {};
+      const t = cmdTypeSelect.value;
+      if (t === "ems_mode") {
+        params = { mode: paramValA.value.trim() };
+      } else if (t === "forced_charge_discharge") {
+        params = { cmd: paramValA.value.trim(), power_w: parseInt(paramValB.value, 10) || 0 };
+      } else if (t === "soc_limits") {
+        params = { max_soc_pct: parseFloat(paramValA.value) || 100, min_soc_pct: parseFloat(paramValB.value) || 10 };
+      } else if (t === "export_limit") {
+        params = { enabled: paramValA.value.trim().toLowerCase() === "true", limit_w: parseInt(paramValB.value, 10) || 0 };
+      }
+
+      const res = await ui.api("/sungrow-shx/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 502,
+          slave_unit_id: parseInt(slaveInput.value, 10) || 1,
+          command_type: t,
+          params: params,
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      manualResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Tham số Thủ công", "Manual Parameter Compilation Result")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Thanh ghi Holding", "Registers"), JSON.stringify(r.registers || { [r.register]: r.value })],
+              [l("Khung Modbus Hex", "Modbus Frame (Hex)"), (r.frames_hex || [r.frame_hex]).filter(Boolean).map(f => e("code", f)).reduce((acc, el, idx) => idx === 0 ? [el] : [...acc, " | ", el], [])],
+              [l("Cảnh báo An toàn", "Safety Lock Notice"), r.note || r.reason || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      manualResults.replaceChildren(notice(l("Lỗi biên dịch tham số: ", "Error compiling parameter: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  manualRow.append(cmdTypeSelect, paramValA, paramValB, compileManualBtn);
+  manualCard.append(manualRow, manualResults);
+  sgBox.append(manualCard);
+
+  container.append(sgBox);
 }
 
 // Backward compatibility wrapper

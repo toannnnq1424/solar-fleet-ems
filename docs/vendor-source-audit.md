@@ -1572,3 +1572,65 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 2: Optimal Modbus Query Batch Planner (Packet chunking & range tables).
      * Section 3: Multi-Vendor Parameter Write Compiler (Holding register controls & safety gates).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+## Detailed Absorption: Project #15 - `Sungrow-SHx-Inverter-Modbus-Home-Assistant-main`
+
+- **Repository**: `D:\Downloads\before_project\Sungrow-SHx-Inverter-Modbus-Home-Assistant-main`
+- **License**: MIT License (Copyright (c) 2025 Martin Kaiser).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/sungrow_shx_client.py`. Zero code copied; protocol register maps (Input registers 4999..5630, 10740..10779, 12999..13045; Holding registers 12999..33149), word-swap little-endian word / big-endian byte decoding, device model enum decoder (35+ models across single-phase SH3K6..SH10RS and 3-phase SH5.0RT..SH25T series), running state bitfields, DTSU meter and PCC power calculation, SBR high-voltage battery storage pack telemetry with cell mV extremes, and EMS operating scenes / parameter compilers with strict hardware acceptance safety gates independently authored and verified.
+- **Rank**: #15 out of 30 upstream projects (35 files, 12,768 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Device Identification & Firmware Architecture**:
+   - Direct local Modbus TCP communication on default port 502 with Slave Unit ID 1.
+   - Dual interface support: Inverter internal LAN Ethernet port (direct socket) or WiNet-S dongle (Wi-Fi/LAN).
+   - Device Type Code (Input 4999): Maps to 35+ distinct Sungrow models including SH3K6, SH4K6, SH5K-20, SH5K-V13, SH3.0RS..SH10RS single-phase hybrids, SH5.0RT..SH10RT 3-phase hybrids, SH5.0RT-20..SH10RT-20, SH5.0RT-V112..V122, and latest SH5T..SH25T commercial series.
+   - Serial number (Input 4989..4998) and firmware versions (ARM 4953, DSP 4968, Inverter 13249).
+
+2. **Solar MPPT Telemetry**:
+   - MPPT1..MPPT4 voltages (0.1 V) and currents (0.1 A) (Input 5010..5015, 5114..5115).
+   - Total DC input power (Input 5016, u32 W with Sungrow word-swap decoding).
+
+3. **3-Phase AC Grid & Power Quality**:
+   - Phase A, B, C line-to-neutral voltages (Input 5018..5020, 0.1 V).
+   - Phase A, B, C inverter output currents (Input 13030..13032, signed 0.1 A).
+   - Total active power (Input 13033, signed s32 W).
+   - Reactive power (Input 5032, signed s32 var) and power factor (Input 5034, signed s16 / 1000).
+   - Grid frequency (Input 5241, 0.01 Hz).
+
+4. **DTSU Smart Power Meter & Point of Common Coupling (PCC)**:
+   - Meter active power (Input 5600, signed s32 W; positive = export, negative = import).
+   - Meter Phase A, B, C active powers (Input 5602, 5604, 5606, signed s32 W).
+   - House load power (Input 13007, signed s32 W).
+   - Export power raw (Input 13009, signed s32 W).
+
+5. **SBR High-Voltage Battery Storage & Pack Telemetry**:
+   - Battery pack power (Input 5213, signed s32 W), voltage (Input 13019, 0.1 V), current (Input 5630, signed 0.1 A).
+   - Battery State of Charge (SOC 13022, 0.1%), State of Health (SOH 13023, 0.1%), temperature (Input 13024, signed 0.1 °C).
+   - SBR pack cell extremes: Maximum cell voltage (Input 10756, mV), minimum cell voltage (Input 10758, mV), delta calculation.
+   - SBR module temperatures: Maximum module temp (Input 10760, 0.1 °C), minimum module temp (Input 10762, 0.1 °C).
+   - Battery energy counters: Daily charge (13039, 0.1 kWh), total charge (13040, u32 0.1 kWh), daily discharge (13025, 0.1 kWh), total discharge (13026, u32 0.1 kWh).
+
+6. **Safety-Gated Parameter Write Compilers**:
+   - Inverter Start / Stop control (Holding 12999: 0xCF=Start, 0xCE=Stop).
+   - EMS Operating Mode (Holding 13049: 0=Self-consumption, 2=Forced mode, 3=External EMS, 4=VPP).
+   - Battery Forced Charge/Discharge Command (Holding 13050: 0xCC=Stop, 0xAA=Charge, 0xBB=Discharge).
+   - Battery Forced Charge/Discharge Power (Holding 13051: W).
+   - Battery Max & Min SOC limits (Holding 13057 & 13058: 0.1% scale).
+   - Export Power Limitation Toggle & Cap (Holding 13086 & 13073: 0xAA=On, 0x55=Off; W).
+   - Active Power Limitation Toggle & Ratio (Holding 13088 & 13089: 0xAA=On, 0x55=Off; 0.1% ratio).
+   - Pre-configured EMS Scenes: Self-Consumption, Zero Export, Max Export, Battery Bypass, Forced Charge, Forced Discharge.
+   - All parameter writes strictly gated by `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/sungrow-shx/info`: Returns supported models, running states, and EMS scenes.
+   - `POST /api/sungrow-shx/telemetry`: Decodes Sungrow SHx/SG inverter, SBR battery, and meter telemetry into normalized EMS schema.
+   - `POST /api/sungrow-shx/command`: Compiles parameter write commands gated behind hardware acceptance.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `sungrow_shx` ("Sungrow SHx Hybrid (Modbus TCP & SBR)") with 3 interactive sections:
+     * Section 1: Connection & Live Modbus TCP Telemetry Poller (Direct LAN or WiNet-S).
+     * Section 2: Pre-Configured EMS Scenes Compiler (6 canonical operational scenes).
+     * Section 3: Manual EMS Parameters & Battery Limits (Holding 13049..13089).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.

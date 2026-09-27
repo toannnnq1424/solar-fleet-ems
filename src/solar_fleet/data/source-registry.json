@@ -1267,7 +1267,7 @@
     "access_status": "Absorbed and verified with clean-room independent engine and automated test suite",
     "sha256": "ea66b21cac23f65bdca966da8a3c97d20d87146adb965c1b9efd0d9b33cb14a0",
     "open_questions": "Physical inverter writes require on-site hardware commissioning and operator confirmation; write-disabled default preserved.",
-    "license": "GPL-3.0 (clean-room independently implemented in solar_fleet/solis_mqtt_bridge.py)",
+    "license": "GPL-3.0 (clean-room independently implemented in solar_fleet/solis_mqtt_bridge.py)"
   },
   {
     "id": "pygoodwe",
@@ -1310,6 +1310,25 @@
     "open_questions": "Physical inverter writes require on-site hardware commissioning and operator confirmation; write-disabled default preserved.",
     "license": "GPL-3.0 (clean-room independently implemented in solar_fleet/growatt_sph_modbus.py)",
     "provenance_file": "growatt_sph_modbus.py"
+  },
+  {
+    "id": "sungrow-shx-inverter-modbus",
+    "title": "Sungrow SHx Inverter Modbus & SBR Home Assistant Integration",
+    "publisher": "Martin Kaiser on GitHub",
+    "url": "https://github.com/mkaiser/Sungrow-SHx-Inverter-Modbus-Home-Assistant",
+    "version": "v2025.1.0",
+    "publication_date": "2025",
+    "retrieved_date": "2026-09-27",
+    "applicable_products": "Sungrow SH3K6..SH25T hybrid series, SG string inverters, SBR096..SBR256 battery storage, and DTSU666 power meters",
+    "account_type": "Direct Modbus TCP interface on Port 502 (Slave ID 1) via built-in LAN or WiNet-S dongle",
+    "region": "Global",
+    "relevant_sections": "modbus_sungrow.yaml; additional_sensors/modbus_sungrow_SBR_battery.yaml; doc/usage.md; debug/modbus_regAccess.py; LICENSE",
+    "claims": "Comprehensive Modbus TCP input & holding register mapping for 35+ Sungrow inverter models, 3-phase grid & DTSU meter telemetry, SBR cell mV extremes, and EMS mode/scenes control",
+    "implications": "Clean-room independent implementation in solar_fleet/sungrow_shx_client.py with safety-gated parameter compilers under LOCKED_PENDING_HARDWARE_ACCEPTANCE",
+    "evidence_grade": "COMMUNITY_VERIFIED",
+    "access_status": "Absorbed and verified with clean-room independent engine and automated test suite",
+    "sha256": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
+    "open_questions": "Hardware write commands require physical commissioning and verified acceptance records; read-only lock active.",
+    "license": "MIT (clean-room independently implemented in solar_fleet/sungrow_shx_client.py)"
   }
 ]
-

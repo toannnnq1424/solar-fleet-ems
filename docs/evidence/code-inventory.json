@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T05:08:24.405534+00:00",
+  "measured_at_utc": "2026-09-27T05:42:15.104332+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 110,
-      "lines": 39346,
-      "nonblank": 34355,
+      "files": 111,
+      "lines": 40400,
+      "nonblank": 35303,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -412,8 +412,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2606,
-          "nonblank": 2159
+          "lines": 2703,
+          "nonblank": 2256
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -501,6 +501,11 @@
           "nonblank": 132
         },
         {
+          "path": "src/solar_fleet/sungrow_shx_client.py",
+          "lines": 957,
+          "nonblank": 851
+        },
+        {
           "path": "src/solar_fleet/tariff_catalogue.py",
           "lines": 423,
           "nonblank": 357
@@ -566,8 +571,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 16618,
-      "nonblank": 15748,
+      "lines": 16891,
+      "nonblank": 15987,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -596,8 +601,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 4120,
-          "nonblank": 3708
+          "lines": 4393,
+          "nonblank": 3947
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -730,13 +735,13 @@
       "key": "frontend_style",
       "label": "Frontend CSS / HTML",
       "files": 2,
-      "lines": 6012,
-      "nonblank": 5502,
+      "lines": 6020,
+      "nonblank": 5509,
       "entries": [
         {
           "path": "src/solar_fleet/static/app.css",
-          "lines": 5989,
-          "nonblank": 5479
+          "lines": 5997,
+          "nonblank": 5486
         },
         {
           "path": "src/solar_fleet/static/index.html",
@@ -748,9 +753,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 80,
-      "lines": 16930,
-      "nonblank": 14381,
+      "files": 81,
+      "lines": 17233,
+      "nonblank": 14627,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -1101,6 +1106,11 @@
           "path": "tests/test_sungrow_adapter.py",
           "lines": 74,
           "nonblank": 66
+        },
+        {
+          "path": "tests/test_sungrow_shx_client.py",
+          "lines": 303,
+          "nonblank": 246
         },
         {
           "path": "tests/test_tariff_engine.py",
