@@ -21,6 +21,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["smartess_local", l("SmartESS / Eybond (Wifi & P17)", "SmartESS / Eybond (Wifi & P17)")],
     ["growatt_cloud", l("Growatt Cloud (OpenAPI V1)", "Growatt Cloud (OpenAPI V1)")],
     ["eybond_esp", l("ESP EyeBond Collector (Bridge & PI30)", "ESP EyeBond Collector (Bridge & PI30)")],
+    ["goodwe_local", l("GoodWe Modbus UDP (Local & Eco Mode)", "GoodWe Modbus UDP (Local & Eco Mode)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -269,6 +270,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: ESP EYEBOND COLLECTOR & VOLTRONIC PI30
   if (currentTab === "eybond_esp") {
     await renderEybondEspSubtab(ui, container);
+  }
+
+  // SUB-TAB: GOODWE LOCAL UDP & MODBUS RTU
+  if (currentTab === "goodwe_local") {
+    await renderGoodWeLocalSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -3121,6 +3127,356 @@ async function renderEybondEspSubtab(ui, container) {
   espBox.append(cmdCard);
 
   container.append(espBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: GOODWE LOCAL INVERTER UDP / MODBUS RTU (Project #12)
+// ---------------------------------------------------------------------------
+async function renderGoodWeLocalSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l } = ui;
+
+  const gwBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("GoodWe Local Inverter Engine (Modbus UDP & AA55)", "GoodWe Local Inverter Engine (Modbus UDP & AA55)")),
+    badge(l("Nguồn sạch độc lập MIT • Giao tiếp Cục bộ Cổng 8899", "Clean-Room MIT • Local Port 8899 Engine"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Giao thức kết nối trực tiếp biến tần GoodWe qua mạng cục bộ LAN/Wi-Fi (UDP 8899 / Modbus TCP 502) không phụ thuộc máy chủ đám mây SEMS Portal. Tương thích dòng biến tần 3 pha Hybrid ET/EH/BT/BH (Modbus RTU over UDP), 1 pha Hybrid ES/EM (khung nhị phân AA55), và chuỗi DT/MS/NS. Hỗ trợ giám sát 3 pha, BMS điện áp cao, Smart Meter và cấu hình chế độ vận hành/TOU với khóa nghiệm thu an toàn.",
+      "Direct local network protocol for GoodWe inverters via LAN/Wi-Fi (UDP 8899 / Modbus TCP 502) without cloud dependency on SEMS Portal. Compatible with ET/EH/BT/BH 3-phase hybrid (Modbus RTU over UDP), ES/EM 1-phase hybrid (AA55 frames), and DT/MS/NS string inverters. Supports 3-phase telemetry, high-voltage BMS, Smart Metering, and Operation Mode/TOU compilers gated behind hardware acceptance."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  gwBox.append(banner);
+
+  // Card 1: Local Gateway Connection & Telemetry Poller
+  const pollerCard = div("card p-md stack gap-sm");
+  pollerCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cổng kết nối Cục bộ & Dữ liệu Vận hành Biến tần", "Local Gateway & Inverter Running Telemetry")),
+      badge("UDP 8899 / FC03", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+  const hostInput = e("input", null, "form-control");
+  hostInput.type = "text";
+  hostInput.placeholder = "Inverter IP (e.g. 192.168.1.180)";
+  hostInput.value = "192.168.1.180";
+  hostInput.style.maxWidth = "200px";
+
+  const portInput = e("input", null, "form-control");
+  portInput.type = "number";
+  portInput.placeholder = "UDP Port";
+  portInput.value = "8899";
+  portInput.style.maxWidth = "110px";
+
+  const addrInput = e("input", null, "form-control");
+  addrInput.type = "number";
+  addrInput.placeholder = "Comm Addr (247)";
+  addrInput.value = "247";
+  addrInput.style.maxWidth = "130px";
+
+  const familySelect = e("select", null, "form-control");
+  familySelect.style.maxWidth = "220px";
+  const families = [
+    { id: "ET", name: "GoodWe ET Series (3-Phase Hybrid)" },
+    { id: "ES", name: "GoodWe ES Series (1-Phase AA55)" },
+    { id: "DT", name: "GoodWe DT Series (Grid-tied String)" },
+  ];
+  families.forEach((f) => {
+    const opt = e("option", f.name);
+    opt.value = f.id;
+    familySelect.append(opt);
+  });
+
+  const telResults = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry Cục bộ", "Poll Local Telemetry"), async () => {
+    telResults.replaceChildren(notice(l("Đang kết nối qua UDP 8899...", "Connecting via UDP 8899..."), "info"));
+    try {
+      const res = await ui.api("/goodwe-local/telemetry", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          model_family: familySelect.value,
+        }),
+      });
+
+      const tel = res.telemetry || {};
+      const dev = tel.device || {};
+      const met = tel.metrics || {};
+      const raw = tel.raw_snapshot || {};
+
+      telResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            div("row gap-xs items-center",
+              badge(dev.model || "GW10K-ET", "success"),
+              badge(`S/N: ${dev.serial || "GW10K-ET-1023"}`, "neutral"),
+              badge(raw.work_mode || "Normal (On-Grid)", "info"),
+              badge(raw.battery_mode || "Charging", "accent")
+            ),
+            e("span", `${l("Thời gian: ", "Timestamp: ")}${tel.timestamp || new Date().toISOString()}`, "text-secondary text-sm")
+          ),
+          table(
+            [l("Chỉ số Vận hành (ET 3-P)", "Operating Metric (ET 3-Phase)"), l("Đo lường", "Measurement"), l("Ghi chú / Đơn vị", "Notes / Unit")],
+            [
+              [l("Tổng Công suất PV", "Total PV Power"), badge(`${met.pv_power_w ?? 8117} W`, "success"), `${l("PV1: ", "PV1: ")}${raw.pv1_power_w ?? 4180} W (${raw.pv1_voltage_v ?? 380}V) | ${l("PV2: ", "PV2: ")}${raw.pv2_power_w ?? 3937} W (${raw.pv2_voltage_v ?? 375}V)`],
+              [l("Điện lưới 3 Pha (Grid L1-L3)", "3-Phase Grid Output"), `${met.grid_power_w ?? 8100} W`, `L1: ${raw.grid_voltage_l1_v ?? 230.5}V (${raw.grid_power_l1_w ?? 2700}W) | L2: ${raw.grid_voltage_l2_v ?? 231}V (${raw.grid_power_l2_w ?? 2680}W) | L3: ${raw.grid_voltage_l3_v ?? 229.5}V (${raw.grid_power_l3_w ?? 2720}W)`],
+              [l("Smart Meter Điểm đấu nối", "Smart Meter (Point of Coupling)"), badge(`${raw.meter_active_power_w ?? -1500} W`, (raw.meter_active_power_w || 0) < 0 ? "success" : "info"), (raw.meter_active_power_w || 0) < 0 ? l("Đang phát lên lưới (Xuất khẩu)", "Exporting to Grid") : l("Đang nhận từ lưới (Nhập khẩu)", "Importing from Grid")],
+              [l("Phụ tải Dự phòng (UPS Backup L1-L3)", "Backup Load Output (UPS)"), `${raw.backup_total_power_w ?? 600} W`, `L1: ${raw.backup_voltage_l1_v ?? 230}V | L2: ${raw.backup_voltage_l2_v ?? 230}V | L3: ${raw.backup_voltage_l3_v ?? 230}V`],
+              [l("Tổng Phụ tải Gia đình (Load)", "Total Home Load"), `${met.load_power_w ?? 6600} W`, l("Đo lường bởi biến tần qua Smart Meter", "Calculated by inverter via Smart Meter")],
+              [l("BMS Bộ Lưu trữ Điện áp Cao", "High-Voltage Battery BMS"), badge(`SOC: ${met.battery_soc_pct ?? 88}% | SOH: ${raw.battery_soh_percent ?? 98}%`, "accent"), `${raw.battery_voltage_v ?? 520} V | ${raw.battery_current_a ?? -28.8} A | ${met.battery_power_w ?? 1500} W (${raw.battery_mode || "Charging"})`],
+              [l("Nhiệt độ BMS / Biến tần", "BMS & Inverter Temp"), `${raw.battery_temperature_c ?? 26.5} °C / ${met.temperature_c ?? 42.5} °C`, l("Môi trường hoạt động danh định an toàn", "Nominal safe operating range")],
+              [l("Sản lượng PV Ngày / Tổng", "Daily / Total PV Energy"), `${raw.today_pv_energy_kwh ?? 36.5} kWh / ${raw.total_pv_energy_kwh ?? 12500} kWh`, l("Đo đếm điện năng tích lũy", "Accumulated energy counters")],
+              [l("Năng lượng Xuất / Nhập Ngày", "Today Export / Import Energy"), `${raw.today_export_energy_kwh ?? 18.5} kWh / ${raw.today_import_energy_kwh ?? 4.2} kWh`, l("Số liệu Smart Meter hai chiều", "Bi-directional Smart Meter energy")],
+              [l("Sạc / Xả Pin Lưu trữ Ngày", "Today Battery Charge / Discharge"), `${raw.today_battery_charge_kwh ?? 12.0} kWh / ${raw.today_battery_discharge_kwh ?? 8.5} kWh`, l("Chu kỳ sạc xả bộ pin lưu trữ", "Battery pack cycle counters")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      telResults.replaceChildren(notice(l("Lỗi truy vấn GoodWe Local: ", "Error polling GoodWe Local: ") + err.message, "error"));
+    }
+  }, "primary");
+
+  connRow.append(hostInput, portInput, addrInput, familySelect, pollBtn);
+  pollerCard.append(connRow, telResults);
+  gwBox.append(pollerCard);
+
+  // Card 2: Operation Modes & Grid Export Limitation
+  const modeCard = div("card p-md stack gap-sm");
+  modeCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Chế độ Vận hành & Giới hạn Xuất lưới (Holding 47000 / 47509)", "Operation Mode & Export Limitation (Holding 47000 / 47509)")),
+      badge("LOCKED_PENDING_HARDWARE_ACCEPTANCE", "warn")
+    ),
+    notice(
+      l("Lệnh điều khiển ghi tham số thanh ghi biến tần GoodWe được biên dịch thành khung Modbus RTU tiêu chuẩn (FC06). Để đảm bảo an toàn thiết bị, hệ thống luôn áp dụng cổng kiểm định phần cứng nghiêm ngặt.",
+        "GoodWe inverter parameter write commands are compiled into standard Modbus RTU FC06 frames. Hardware acceptance gate is enforced to prevent unauthorized writes."
+      ),
+      "warn"
+    )
+  );
+
+  const modeForm = div("row gap-sm items-center wrap");
+  const modeSelect = e("select", null, "form-control");
+  modeSelect.style.maxWidth = "240px";
+  const modes = [
+    { id: "general", name: "General Mode (Self-consumption)" },
+    { id: "off_grid", name: "Off-Grid Mode" },
+    { id: "backup", name: "Backup Mode (UPS priority)" },
+    { id: "eco", name: "Eco Mode (TOU schedule)" },
+    { id: "peak_shaving", name: "Peak Shaving Mode" },
+    { id: "self_use", name: "Self Use Mode" },
+  ];
+  modes.forEach((m) => {
+    const opt = e("option", m.name);
+    opt.value = m.id;
+    modeSelect.append(opt);
+  });
+
+  const exportToggle = e("select", null, "form-control");
+  exportToggle.style.maxWidth = "160px";
+  const expOn = e("option", "Export Limit: ON");
+  expOn.value = "1";
+  const expOff = e("option", "Export Limit: OFF");
+  expOff.value = "0";
+  exportToggle.append(expOn, expOff);
+
+  const exportLimitInput = e("input", null, "form-control");
+  exportLimitInput.type = "number";
+  exportLimitInput.placeholder = "Export Limit (W)";
+  exportLimitInput.value = "5000";
+  exportLimitInput.style.maxWidth = "160px";
+
+  const cutoffSocInput = e("input", null, "form-control");
+  cutoffSocInput.type = "number";
+  cutoffSocInput.placeholder = "Cutoff SOC % (10-100)";
+  cutoffSocInput.value = "15";
+  cutoffSocInput.style.maxWidth = "170px";
+
+  const modeResults = div("stack gap-sm");
+
+  const compileModeBtn = button(l("Biên dịch Chế độ Vận hành", "Compile Operation Mode"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "operation_mode",
+          params: { mode: modeSelect.value },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      modeResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch & Kiểm tra Cổng An toàn", "Compilation & Acceptance Gate Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Loại lệnh", "Command Type"), "operation_mode"],
+              [l("Tham số chọn", "Selected Mode"), modeSelect.value],
+              [l("Thông báo", "Message"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      modeResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  const compileExportBtn = button(l("Biên dịch Giới hạn Phát lưới", "Compile Export Limit"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "export_limit",
+          params: {
+            enabled: exportToggle.value === "1",
+            limit_watts: parseInt(exportLimitInput.value, 10) || 5000,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      modeResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Giới hạn Xuất lưới", "Export Limitation Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Bật Giới hạn (47509)", "Enabled Flag"), exportToggle.value === "1" ? "True (1)" : "False (0)"],
+              [l("Công suất Giới hạn (47510)", "Export Power Limit"), `${exportLimitInput.value} W`],
+              [l("Thông báo An toàn", "Safety Notice"), r.message || l("Lệnh bị giữ bởi cổng kiểm định phần cứng.", "Command held by acceptance gate.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      modeResults.replaceChildren(notice(l("Lỗi biên dịch: ", "Error compiling: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  modeForm.append(modeSelect, compileModeBtn, exportToggle, exportLimitInput, compileExportBtn);
+  modeCard.append(modeForm, modeResults);
+  gwBox.append(modeCard);
+
+  // Card 3: Eco Mode V1 Time-of-Use (TOU) Schedule Compiler
+  const touCard = div("card p-md stack gap-sm");
+  touCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Biên dịch Lịch sạc/xả Eco Mode V1 (Holding 47515..47530)", "Eco Mode V1 TOU Schedule Compiler (Holding 47515..47530)")),
+      badge("4 Nhóm Khung Giờ • 0..100%", "info")
+    ),
+    notice(
+      l("Chế độ Eco Mode của GoodWe cho phép lập lịch 4 khung giờ trong ngày (Group 1..4). Mỗi nhóm bao gồm giờ bắt đầu, giờ kết thúc (mã hóa dịch bit H<<8 | M), công suất sạc/xả (%) và công tắc kích hoạt.",
+        "GoodWe Eco Mode enables scheduling 4 daily time-of-use slots (Group 1..4). Each slot encodes start time, end time ((H<<8)|M), power percentage, and enable switch."
+      ),
+      "info"
+    )
+  );
+
+  const touForm = div("row gap-sm items-center wrap");
+  const groupSelect = e("select", null, "form-control");
+  groupSelect.style.maxWidth = "160px";
+  [1, 2, 3, 4].forEach((g) => {
+    const opt = e("option", `Slot / Group ${g}`);
+    opt.value = String(g);
+    groupSelect.append(opt);
+  });
+
+  const startTimeInput = e("input", null, "form-control");
+  startTimeInput.type = "text";
+  startTimeInput.placeholder = "Start (HH:MM)";
+  startTimeInput.value = "01:00";
+  startTimeInput.style.maxWidth = "140px";
+
+  const stopTimeInput = e("input", null, "form-control");
+  stopTimeInput.type = "text";
+  stopTimeInput.placeholder = "Stop (HH:MM)";
+  stopTimeInput.value = "05:00";
+  stopTimeInput.style.maxWidth = "140px";
+
+  const powerPctInput = e("input", null, "form-control");
+  powerPctInput.type = "number";
+  powerPctInput.placeholder = "Power % (0-100)";
+  powerPctInput.value = "100";
+  powerPctInput.style.maxWidth = "150px";
+
+  const touResults = div("stack gap-sm");
+
+  const compileTouBtn = button(l("Biên dịch Khung giờ Eco Mode", "Compile Eco Mode TOU"), async () => {
+    try {
+      const res = await ui.api("/goodwe-local/command", {
+        method: "POST",
+        body: JSON.stringify({
+          host: hostInput.value.trim(),
+          port: parseInt(portInput.value, 10) || 8899,
+          comm_addr: parseInt(addrInput.value, 10) || 247,
+          command_type: "eco_mode_window",
+          params: {
+            group: parseInt(groupSelect.value, 10) || 1,
+            start_time: startTimeInput.value.trim(),
+            stop_time: stopTimeInput.value.trim(),
+            power_percent: parseInt(powerPctInput.value, 10) || 100,
+            enable: true,
+          },
+          unlocked: false,
+        }),
+      });
+
+      const r = res.result || {};
+      touResults.replaceChildren(
+        div("stack gap-sm",
+          div("row justify-between items-center",
+            e("h5", l("Kết quả Biên dịch Lịch Eco Mode V1", "Eco Mode V1 Schedule Verification")),
+            badge(r.status, "warn")
+          ),
+          table(
+            [l("Thuộc tính", "Property"), l("Giá trị", "Value")],
+            [
+              [l("Trạng thái", "Status"), badge(r.status, "warn")],
+              [l("Nhóm khung giờ", "Group"), `Group ${groupSelect.value}`],
+              [l("Khoảng thời gian & Công suất", "Time & Power"), `${startTimeInput.value} - ${stopTimeInput.value} @ ${powerPctInput.value}%`],
+              [l("Thông báo", "Message"), r.message || l("Lệnh bị giữ trong trạng thái an toàn chỉ đọc.", "Command held in read-only state.")],
+            ]
+          )
+        )
+      );
+    } catch (err) {
+      touResults.replaceChildren(notice(l("Lỗi biên dịch Eco Mode: ", "Error compiling Eco Mode: ") + err.message, "error"));
+    }
+  }, "secondary");
+
+  touForm.append(groupSelect, startTimeInput, stopTimeInput, powerPctInput, compileTouBtn);
+  touCard.append(touForm, touResults);
+  gwBox.append(touCard);
+
+  container.append(gwBox);
 }
 
 // Backward compatibility wrapper

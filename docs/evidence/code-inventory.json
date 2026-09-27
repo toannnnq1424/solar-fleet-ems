@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T04:34:39.105468+00:00",
+  "measured_at_utc": "2026-09-27T04:45:35.646601+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 107,
-      "lines": 37110,
-      "nonblank": 32410,
+      "files": 108,
+      "lines": 37842,
+      "nonblank": 33048,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -276,6 +276,11 @@
           "nonblank": 102
         },
         {
+          "path": "src/solar_fleet/goodwe_local_client.py",
+          "lines": 663,
+          "nonblank": 580
+        },
+        {
           "path": "src/solar_fleet/goodwe_sems_client.py",
           "lines": 346,
           "nonblank": 296
@@ -402,8 +407,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2378,
-          "nonblank": 1966
+          "lines": 2447,
+          "nonblank": 2024
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -551,8 +556,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 15638,
-      "nonblank": 14867,
+      "lines": 15994,
+      "nonblank": 15188,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -581,8 +586,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 3140,
-          "nonblank": 2827
+          "lines": 3496,
+          "nonblank": 3148
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -733,9 +738,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 77,
-      "lines": 16255,
-      "nonblank": 13806,
+      "files": 78,
+      "lines": 16517,
+      "nonblank": 14028,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -861,6 +866,11 @@
           "path": "tests/test_goodwe_adapter.py",
           "lines": 71,
           "nonblank": 61
+        },
+        {
+          "path": "tests/test_goodwe_local_client.py",
+          "lines": 262,
+          "nonblank": 222
         },
         {
           "path": "tests/test_goodwe_sems_client.py",

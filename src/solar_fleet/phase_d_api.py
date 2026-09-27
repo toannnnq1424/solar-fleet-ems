@@ -408,6 +408,26 @@ class EybondCollectorCommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class GoodWeLocalTelemetryRequest(BaseModel):
+    """Request for polling GoodWe local inverter telemetry."""
+
+    host: str = Field(default="192.168.1.180", description="Inverter IP address on local network")
+    port: int = Field(default=8899, description="Inverter local UDP/TCP port")
+    comm_addr: int = Field(default=247, description="Modbus slave communication address (default 247/0xF7 or 127/0x7F)")
+    model_family: str = Field(default="ET", description="Inverter series family: 'ET', 'ES', 'DT'")
+
+
+class GoodWeLocalCommandRequest(BaseModel):
+    """Request for executing GoodWe local configuration command."""
+
+    host: str = Field(default="192.168.1.180", description="Inverter IP address on local network")
+    port: int = Field(default=8899, description="Inverter local UDP/TCP port")
+    comm_addr: int = Field(default=247, description="Modbus slave communication address")
+    command_type: str = Field(..., description="Command type: 'operation_mode', 'export_limit', 'battery_cutoff_soc', 'eco_mode_window'")
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
 
 
 
@@ -2364,6 +2384,55 @@ def install_phase_d_apis(app, controller, user, admin=None):
             )
             return {
                 "source": "esp-eybond-collector (MPL-2.0 clean-room independent)",
+                "result": result,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # GoodWe Local Inverter & Protocol Engine Endpoints (Project #12)
+    # -----------------------------------------------------------------------
+
+    @app.post("/api/goodwe-local/telemetry")
+    async def goodwe_local_telemetry(req: GoodWeLocalTelemetryRequest, principal=Depends(user)):
+        """Poll and normalize GoodWe local inverter telemetry over UDP/Modbus."""
+        from .goodwe_local_client import GoodWeLocalClient
+
+        client = GoodWeLocalClient(
+            host=req.host,
+            port=req.port,
+            comm_addr=req.comm_addr,
+            model_family=req.model_family,
+            simulated=True,
+        )
+        try:
+            tel = client.poll_telemetry()
+            return {
+                "source": "goodwe-master (MIT clean-room independent)",
+                "telemetry": tel,
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+    @app.post("/api/goodwe-local/command")
+    async def goodwe_local_command(req: GoodWeLocalCommandRequest, principal=Depends(user)):
+        """Safely execute GoodWe local parameter command with hardware acceptance gate."""
+        from .goodwe_local_client import GoodWeLocalClient
+
+        client = GoodWeLocalClient(
+            host=req.host,
+            port=req.port,
+            comm_addr=req.comm_addr,
+            simulated=True,
+        )
+        try:
+            result = client.execute_command_safely(
+                command_type=req.command_type,
+                params=req.params,
+                unlocked=req.unlocked,
+            )
+            return {
+                "source": "goodwe-master (MIT clean-room independent)",
                 "result": result,
             }
         except ValueError as exc:

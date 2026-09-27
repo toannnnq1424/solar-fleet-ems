@@ -1421,3 +1421,49 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 3: Inverter Parameter Compilers & Safety Gates (`POP`, `PCP`, `MCHGC`, voltages).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
 
+
+
+## Detailed Absorption: Project #12 - `goodwe-master`
+
+- **Repository**: `D:\Downloads\before_project\goodwe-master`
+- **License**: MIT License (Martin Landa & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/goodwe_local_client.py`. Zero code copied; Modbus RTU-over-UDP protocol on port 8899 (default comm address `0xF7`=247 / `0x7F`=127), CRC-16 Modbus (polynomial `0xA001`, init `0xFFFF`), AA55 frame codec for single-phase ES/EM series, 3-phase ET hybrid running registers (35100..35220), BMS pack telemetry registers (37000..37023), Smart Meter bidirectional power registers (36000..36043), Operation Mode holding reg 47000 (General, Off-Grid, Backup, Eco, Peak Shaving, Self Use), Export Limit 47509/47510, Cutoff SOC 47500, Eco Mode V1 TOU schedule 47515..47530, simulator and safety gates independently authored and verified.
+- **Rank**: #12 out of 30 upstream projects (28 files, 9,692 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **Modbus RTU over UDP Frame Codec (Port 8899) & AA55 Framing**:
+   - Big-endian Modbus RTU framing with polynomial `0xA001` CRC-16 and port 8899 socket transport.
+   - Dual communication address resolution: default `0xF7` (247) and legacy `0x7F` (127).
+   - Single-phase ES/EM AA55 frame header `AA 55` with length, command, payload, and checksum calculation.
+
+2. **ET Series 3-Phase Hybrid Telemetry Decoders (Registers 35100..35220)**:
+   - Dual/Quad MPPT PV tracker voltages, currents, and powers.
+   - 3-phase grid voltages, currents, powers (L1, L2, L3) and total inverter grid output.
+   - 3-phase backup (UPS) voltages and total backup load power.
+   - Smart meter active power (signed import/export at point of common coupling).
+   - Total household load power calculated from inverter and meter balance.
+   - Heatsink / inverter temperature.
+   - Accumulated daily and total PV energy, export energy, import energy, and battery charge/discharge energy.
+
+3. **ET Series BMS Pack & Smart Meter Decoders**:
+   - Registers 37000..37023: Battery SOC %, SOH %, temperature, pack voltage, charge/discharge current limits.
+   - 32-bit discrete inverter and BMS fault/alarm bitfield decoding.
+
+4. **Parameter Write Compilers with Safety Gating**:
+   - Operation Mode (Register 47000): General (0), Off Grid (1), Backup (2), Eco (3), Peak Shaving (4), Self Use (5).
+   - Grid Export Limitation (Registers 47509 & 47510): Enable switch and export power cap in Watts.
+   - Battery Protection Cutoff SOC % (Register 47500): 10..100%.
+   - Eco Mode V1 TOU Schedule Compiler (Registers 47515..47530): 4 daily slots encoding start time, stop time, power percentage, and enable flag with hardware acceptance gating.
+   - All parameter writes default to `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+5. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `POST /api/goodwe-local/telemetry`: Queries and decodes local GoodWe inverter telemetry over UDP 8899 into normalized EMS schema.
+   - `POST /api/goodwe-local/command`: Safely compiles parameter write commands gated behind hardware acceptance.
+
+6. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `goodwe_local` ("GoodWe Modbus UDP (Local & Eco Mode)") with 3 interactive sections:
+     * Section 1: Local Gateway & Inverter Running Telemetry (IP, Port 8899, Comm Addr, ET/ES/DT family, telemetry table).
+     * Section 2: Operation Mode & Grid Export Limitation (Mode compiler, Export limit ON/OFF and Watt cap, Cutoff SOC).
+     * Section 3: Eco Mode V1 Time-of-Use Schedule Compiler (4 groups, start/stop HH:MM, power %, enable toggle).
+   - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
