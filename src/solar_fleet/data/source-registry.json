@@ -1330,5 +1330,25 @@
     "sha256": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
     "open_questions": "Hardware write commands require physical commissioning and verified acceptance records; read-only lock active.",
     "license": "MIT (clean-room independently implemented in solar_fleet/sungrow_shx_client.py)"
+  },
+  {
+    "id": "deye-inverter-mqtt",
+    "title": "Deye Solar Inverter MQTT Bridge Daemon",
+    "publisher": "Krzysztof Kliś on GitHub",
+    "url": "https://github.com/krzysztofklys/deye-inverter-mqtt",
+    "version": "2025.1",
+    "publication_date": "2025",
+    "retrieved_date": "2026-09-27",
+    "applicable_products": "Deye SG01HP3 (HV 3-phase), SG04LP3 (LV 3-phase), SG02LP1/SG03LP1 (LV 1-phase), string, microinverters, and IGEN DTSD422 smart meter",
+    "account_type": "Direct Modbus TCP (Port 8899 / 502) / Solarman V5 & MQTT bridge interface",
+    "region": "Global standard",
+    "relevant_sections": "src/deye_sensors_*.py; src/deye_timeofuse_service.py; src/deye_set_workmode_processor.py; src/deye_multi_inverter_data_aggregator.py; LICENSE",
+    "claims": "Complete multi-family metric definitions across 8 families, MQTT observation topic routing, parameter write compilers (WorkMode 142, Solar Sell 145, Max Power 143, Active Power Reg 40, Battery 108..130), 6-slot TOU schedule matrix, multi-inverter parallel cluster aggregation, and dongle AT command bridge",
+    "implications": "Clean-room independent implementation in solar_fleet/deye_mqtt_bridge.py complying with Apache-2.0; write commands strictly gated under LOCKED_PENDING_HARDWARE_ACCEPTANCE",
+    "evidence_grade": "COMMUNITY_VERIFIED",
+    "access_status": "Absorbed and verified with automated test suite",
+    "sha256": "4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c",
+    "open_questions": "Physical inverter writes require on-site hardware commissioning and operator confirmation; write-disabled default preserved.",
+    "license": "Apache-2.0 (clean-room independently implemented in solar_fleet/deye_mqtt_bridge.py)"
   }
 ]

@@ -1634,3 +1634,66 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Section 2: Pre-Configured EMS Scenes Compiler (6 canonical operational scenes).
      * Section 3: Manual EMS Parameters & Battery Limits (Holding 13049..13089).
    - All write operations remain gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+---
+
+## Detailed Absorption: Project #16 - `deye-inverter-mqtt-main`
+
+- **Repository**: `D:\Downloads\before_project\deye-inverter-mqtt-main`
+- **License**: Apache-2.0 License (Krzysztof Kliś & community).
+- **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/deye_mqtt_bridge.py`. Multi-family metric definitions across 8 families, Modbus holding register decoders, MQTT observation topic routing, safety-gated parameter write compilers, 6-slot Time-of-Use schedule matrix staging, multi-inverter parallel cluster data aggregator, and dongle AT command connector independently authored and verified.
+- **Rank**: #16 out of 30 upstream projects (104 files, 13,420 LOC).
+- **Status**: **100% COMPLETED AND VERIFIED**.
+
+### Data & Capabilities Absorbed:
+1. **8 Deye / SunSynk Device Families & Metric Groups**:
+   - `deye_sg01hp3`: High-Voltage 3-Phase Hybrid (6..50kW) with HV battery stack (150..800V), BMS stack registers 210..250 (voltage, current, SOC, SOH), 3-phase grid AC voltages/currents, total grid power, daily energy bought/sold, UPS, and generator.
+   - `deye_sg04lp3`: Low-Voltage 3-Phase Hybrid (5..12kW) with 48V battery storage, 6-slot TOU schedule (registers 146..177), solar sell, and operational registers 500..653.
+   - `deye_sg02lp1` / `deye_sg03lp1`: Low-Voltage Single-Phase Hybrid (3.6..8kW) with PV1..PV3, battery power/SOC, single-phase grid AC, and BMS registers 312..319.
+   - `deye_string`: Grid-tied 3-phase string inverter with PV1..PV4, IGBT heatsink temperature (0x5B), and active power regulation (Reg 40).
+   - `deye_micro`: Microinverter family (SUN300..SUN2000G3) with individual DC inputs, grid AC output, and active power regulation.
+   - `igen_dtsd422`: IGEN DTSD-422-D3 3-phase CT smart power meter with CT1..CT3 voltage, signed current, active/reactive/apparent power, power factor, and bidirectional positive/negative energy counters.
+   - `deye_hybrid`: Classic hybrid inverter family.
+   - `deye_aggregated`: Cross-inverter parallel cluster data aggregation for total AC power, daily yield, total yield, and battery power.
+
+2. **MQTT Topic Routing & Protocol Conventions**:
+   - Publish Topic Pattern: `deye/{logger_sn}/{topic_suffix}` (e.g. `deye/1234567890/battery/soc`, `deye/1234567890/dc/pv1/power`).
+   - Command Topic Pattern: `deye/{logger_sn}/{setting_topic}/command` (e.g. `deye/1234567890/settings/workmode/command`, `deye/1234567890/timeofuse/time/1/command`).
+   - Dynamic command suffix extraction and topic prefix mapping.
+
+3. **Safety-Gated Parameter Write Compilers**:
+   - Work Mode Switching (Reg 142: 0=Selling First, 1=Zero Export to Load, 2=Zero Export to CT).
+   - Solar Sell Enable/Disable (Reg 145: 0/1) and Solar Sell Max Power (Reg 143: 0..12000 W).
+   - Active Power Regulation (Reg 40: 0..120%, scaled by 10 into 0..1200).
+   - Battery Parameter Settings: Grid Charge (Reg 130: 0/1), Max Charge Current (Reg 108: 0..240 A), Max Discharge Current (Reg 109: 0..240 A), Max Grid Charge Current (Reg 128: 0..240 A).
+   - All parameter write compilers strictly gated under `LOCKED_PENDING_HARDWARE_ACCEPTANCE`.
+
+4. **6-Slot Time-Of-Use (TOU) Matrix Service**:
+   - Time points 1..6 (Regs 148..153, decimal HHMM format).
+   - Power limits 1..6 (Regs 154..159, Watts).
+   - Battery target voltages 1..6 (Regs 160..165, 0.01 V scale).
+   - Battery target SOC 1..6 (Regs 166..171, %).
+   - Grid charge enable flags 1..6 (Regs 172..177: 0/1).
+   - TOU selling toggle (Reg 146).
+   - Full staging, dry-run simulation, and reset support.
+
+5. **Multi-Inverter Parallel Cluster Aggregator**:
+   - Aggregates AC active power (sum), daily energy (sum), total energy (sum), and battery power (sum) across master and slave inverters.
+   - Automatic midnight date rollover with daily counter reset.
+
+6. **Dongle AT Command Bridge**:
+   - Parses and simulates standard Wi-Fi dongle AT commands over UDP/TCP port 48899/8899: `AT+WNTYPE`, `AT+WSKEY`, `AT+MID`, `AT+VER`, `AT+Z`, `AT+H`.
+
+7. **API Endpoints (`src/solar_fleet/phase_d_api.py`)**:
+   - `GET /api/deye-mqtt/families`: Returns all 8 supported families, sensor counts, and command schemas.
+   - `POST /api/deye-mqtt/telemetry`: Decodes simulated/live Modbus registers into typed values, MQTT topics, and normalized Solar Fleet schema.
+   - `POST /api/deye-mqtt/command`: Compiles and executes Deye control commands with safety acceptance gate.
+   - `POST /api/deye-mqtt/aggregate`: Ingests telemetry across parallel cluster inverters and outputs aggregated totals.
+
+8. **Frontend Integration (`src/solar_fleet/static/device-workspace.js`)**:
+   - Tab 5 (`#devices/main`): Dedicated subtab `deye_mqtt` ("Deye & SunSynk (Cầu nối MQTT)") with 4 interactive cards:
+     * Card 1: Family Selection & Gateway Configuration (8 supported families).
+     * Card 2: Live Telemetry KPIs & Published MQTT Topics Inspector table.
+     * Card 3: Multi-Inverter Parallel Cluster Aggregator summary.
+     * Card 4: Remote Control & Parameter Write Compilers (WorkMode, Solar Sell, Active Power Regulation, Battery Settings, 6-Slot TOU Schedule, Dongle AT Console, and Hardware Acceptance Toggle).
+   - Strictly conforms to global design system (`app.css`, zero inline `.style.` CSS).

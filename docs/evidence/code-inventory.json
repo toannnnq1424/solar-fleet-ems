@@ -1,14 +1,14 @@
 {
-  "measured_at_utc": "2026-09-27T05:42:15.104332+00:00",
+  "measured_at_utc": "2026-09-27T06:00:47.474177+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
     {
       "key": "backend",
       "label": "Backend Python",
-      "files": 111,
-      "lines": 40400,
-      "nonblank": 35303,
+      "files": 112,
+      "lines": 41486,
+      "nonblank": 36253,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -231,6 +231,11 @@
           "nonblank": 514
         },
         {
+          "path": "src/solar_fleet/deye_mqtt_bridge.py",
+          "lines": 865,
+          "nonblank": 762
+        },
+        {
           "path": "src/solar_fleet/domain.py",
           "lines": 254,
           "nonblank": 209
@@ -412,8 +417,8 @@
         },
         {
           "path": "src/solar_fleet/phase_d_api.py",
-          "lines": 2703,
-          "nonblank": 2256
+          "lines": 2924,
+          "nonblank": 2444
         },
         {
           "path": "src/solar_fleet/power_quality.py",
@@ -571,8 +576,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 31,
-      "lines": 16891,
-      "nonblank": 15987,
+      "lines": 17352,
+      "nonblank": 16388,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -601,8 +606,8 @@
         },
         {
           "path": "src/solar_fleet/static/device-workspace.js",
-          "lines": 4393,
-          "nonblank": 3947
+          "lines": 4854,
+          "nonblank": 4348
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -753,9 +758,9 @@
     {
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
-      "files": 81,
-      "lines": 17233,
-      "nonblank": 14627,
+      "files": 82,
+      "lines": 17681,
+      "nonblank": 14987,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -831,6 +836,11 @@
           "path": "tests/test_deye_hybrid_modbus.py",
           "lines": 321,
           "nonblank": 264
+        },
+        {
+          "path": "tests/test_deye_mqtt_bridge.py",
+          "lines": 448,
+          "nonblank": 360
         },
         {
           "path": "tests/test_dispatch_optimizer.py",

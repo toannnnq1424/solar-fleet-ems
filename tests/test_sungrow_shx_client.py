@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.solar_fleet.sungrow_shx_client import (
+from solar_fleet.sungrow_shx_client import (
     DEFAULT_SLAVE_UNIT_ID,
     SUNGROW_DEVICE_TYPES,
     SUNGROW_FORCED_CMDS,

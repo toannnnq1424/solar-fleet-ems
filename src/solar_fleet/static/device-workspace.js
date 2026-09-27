@@ -25,6 +25,7 @@ export async function renderDevicesMainWorkspace(ui) {
     ["huawei_sun2000", l("Huawei SUN2000 (LUNA2000 & TOU)", "Huawei SUN2000 (LUNA2000 & TOU)")],
     ["solarman_profiles", l("Hồ sơ Solarman (Đa thương hiệu)", "Solarman Profiles (Multi-Vendor)")],
     ["sungrow_shx", l("Sungrow SHx Hybrid (Modbus TCP & SBR)", "Sungrow SHx Hybrid (Modbus TCP & SBR)")],
+    ["deye_mqtt", l("Deye & SunSynk (Cầu nối MQTT)", "Deye & SunSynk (MQTT Bridge)")],
     ["native_config", l("Tham số theo thiết bị", "Device parameters")],
     ["health", l("Sức khỏe & Độ tin cậy", "Health & Reliability")],
     ["firmware", l("Quản lý Firmware & OTA", "Firmware Compliance & OTA")],
@@ -293,6 +294,11 @@ export async function renderDevicesMainWorkspace(ui) {
   // SUB-TAB: SUNGROW SHX HYBRID & SBR MODBUS TCP ENGINE
   if (currentTab === "sungrow_shx") {
     await renderSungrowShxSubtab(ui, container);
+  }
+
+  // SUB-TAB: DEYE & SUNSYNK MULTI-FAMILY INVERTER MQTT BRIDGE
+  if (currentTab === "deye_mqtt") {
+    await renderDeyeMqttSubtab(ui, container);
   }
 
   // SUB-TAB 3: 9 NATIVE PARAMETER GROUPS
@@ -4374,6 +4380,461 @@ async function renderSungrowShxSubtab(ui, container) {
   sgBox.append(manualCard);
 
   container.append(sgBox);
+}
+
+// ---------------------------------------------------------------------------
+// SUBTAB: DEYE & SUNSYNK MULTI-FAMILY INVERTER MQTT BRIDGE (Project #16)
+// ---------------------------------------------------------------------------
+async function renderDeyeMqttSubtab(ui, container) {
+  const { div, e, button, badge, table, notice, l, api } = ui;
+
+  const deyeBox = div("stack gap-md");
+
+  // Header Banner
+  const banner = div("card p-md stack gap-xs");
+  const bannerTitle = div("row justify-between items-center",
+    e("h3", l("Deye & SunSynk (Cầu nối MQTT & Đa dòng Inverter)", "Deye & SunSynk Multi-Family Inverter MQTT Bridge")),
+    badge(l("Nguồn sạch độc lập Apache-2.0 • 8 Dòng Inverter & Cụm song song", "Clean-Room Apache-2.0 • 8 Families + Parallel Cluster"), "info")
+  );
+  const bannerDesc = e("p",
+    l("Kiến trúc cầu nối MQTT và phân rã nhóm chỉ số Modbus holding đa dòng: Cao áp 3 pha SG01HP3 (pin 150..800V & BMS), Hạ áp 3 pha SG04LP3, Hạ áp 1 pha SG02LP1/SG03LP1, Inverter hòa lưới String, Microinverter, và đồng hồ IGEN DTSD422. Tích hợp tổng hợp dữ liệu cụm song song, bộ biên dịch lệnh làm việc WorkMode / TOU 6 khung giờ có khóa an toàn nghiệm thu, và cổng lệnh AT cho dongle.",
+      "Multi-family MQTT bridge architecture and Modbus holding register telemetry decoders: High-Voltage 3-Phase SG01HP3 (150..800V battery stack & BMS), Low-Voltage 3-Phase SG04LP3, Low-Voltage 1-Phase SG02LP1/SG03LP1, Grid String Inverters, Microinverters, and IGEN DTSD422 smart meter. Includes multi-inverter parallel cluster data aggregation, safety-gated WorkMode & 6-slot TOU parameter compilers, and dongle AT command console."
+    ),
+    "text-secondary"
+  );
+  banner.append(bannerTitle, bannerDesc);
+  deyeBox.append(banner);
+
+  // Card 1: Family Selection & Gateway Connection
+  const configCard = div("card p-md stack gap-sm");
+  configCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Cấu hình Dòng Thiết bị & Cổng kết nối MQTT", "Device Family & MQTT Gateway Configuration")),
+      badge("Solarman V5 / Direct TCP / MQTT", "accent")
+    )
+  );
+
+  const connRow = div("row gap-sm items-center wrap");
+
+  const famSelect = e("select", null, "form-control");
+  const families = [
+    { id: "deye_sg04lp3", name: l("Deye SG04LP3 (Hạ áp 3 pha 5..12kW - 48V)", "Deye SG04LP3 (LV 3-Phase 5..12kW - 48V)") },
+    { id: "deye_sg01hp3", name: l("Deye SG01HP3 (Cao áp 3 pha 6..50kW - HV BMS)", "Deye SG01HP3 (HV 3-Phase 6..50kW - HV BMS)") },
+    { id: "deye_sg02lp1", name: l("Deye SG02LP1 (Hạ áp 1 pha 3.6..8kW)", "Deye SG02LP1 (LV 1-Phase 3.6..8kW)") },
+    { id: "deye_string", name: l("Deye String (Hòa lưới 3 pha PV1..PV4)", "Deye String (Grid-Tied 3-Phase PV1..PV4)") },
+    { id: "deye_micro", name: l("Deye Micro (SUN300..2000G3)", "Deye Microinverters (SUN300..2000G3)") },
+    { id: "igen_dtsd422", name: l("IGEN DTSD422 (Đồng hồ 3 pha CT1..CT3)", "IGEN DTSD422 (Smart Meter CT1..CT3)") },
+    { id: "deye_hybrid", name: l("Deye Classic Hybrid", "Deye Classic Hybrid") },
+  ];
+  families.forEach(f => {
+    const opt = new Option(f.name, f.id);
+    famSelect.append(opt);
+  });
+
+  const snInput = e("input", null, "form-control");
+  snInput.type = "text";
+  snInput.placeholder = "Logger Serial Number";
+  snInput.value = "1234567890";
+
+  const prefixInput = e("input", null, "form-control");
+  prefixInput.type = "text";
+  prefixInput.placeholder = "MQTT Topic Prefix";
+  prefixInput.value = "deye";
+
+  const telemetryDisplay = div("stack gap-sm");
+
+  const pollBtn = button(l("Truy vấn Telemetry & Luồng MQTT", "Poll Telemetry & MQTT Stream"), async () => {
+    pollBtn.disabled = true;
+    telemetryDisplay.replaceChildren(notice(l("Đang giải mã telemetry và xây dựng luồng chủ đề MQTT...", "Decoding telemetry and building MQTT topics..."), "info"));
+    try {
+      const resp = await api("/api/deye-mqtt/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          family: famSelect.value,
+          logger_sn: snInput.value.trim() || "1234567890",
+          topic_prefix: prefixInput.value.trim() || "deye",
+        }),
+      });
+
+      renderTelemetryCards(resp);
+    } catch (err) {
+      telemetryDisplay.replaceChildren(notice(l("Lỗi truy vấn: ", "Query error: ") + err.message, "error"));
+    } finally {
+      pollBtn.disabled = false;
+    }
+  }, "primary");
+
+  connRow.append(famSelect, snInput, prefixInput, pollBtn);
+  configCard.append(connRow);
+  deyeBox.append(configCard);
+
+  function renderTelemetryCards(data) {
+    telemetryDisplay.replaceChildren();
+
+    const norm = data.normalized || {};
+    const pv = norm.pv || {};
+    const bat = norm.battery || {};
+    const grid = norm.grid || {};
+    const en = norm.energy || {};
+
+    const kpis = div("plant-card-grid");
+    kpis.append(
+      div("card p-sm stack gap-xs",
+        e("span", l("Tổng công suất Solar", "Total Solar PV Power"), "text-secondary"),
+        e("h3", `${pv.total_power_w || 0} W`),
+        e("small", `PV1: ${pv.pv1_power_w || 0}W • PV2: ${pv.pv2_power_w || 0}W`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Pin lưu trữ BESS", "Battery Storage"), "text-secondary"),
+        e("h3", `${bat.power_w || 0} W`),
+        e("small", `SOC: ${bat.soc_pct || 0}% • ${bat.voltage_v || 0}V (${bat.state || "idle"})`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Công suất Lưới AC", "Grid AC Power"), "text-secondary"),
+        e("h3", `${grid.active_power_w || 0} W`),
+        e("small", `L1: ${grid.voltage_l1_v || 0}V${grid.voltage_l2_v ? " • L2: " + grid.voltage_l2_v + "V" : ""}`, "text-secondary")
+      ),
+      div("card p-sm stack gap-xs",
+        e("span", l("Sản lượng điện năng", "Energy Yield"), "text-secondary"),
+        e("h3", `${en.daily_yield_kwh || 0} kWh`),
+        e("small", `${l("Tổng", "Total")}: ${en.total_yield_kwh || 0} kWh`, "text-secondary")
+      )
+    );
+    telemetryDisplay.append(kpis);
+
+    // MQTT Topic stream table
+    const mqttCard = div("card p-md stack gap-sm");
+    mqttCard.append(
+      div("row justify-between items-center",
+        e("h4", l("Chủ đề MQTT đã Xuất bản (Observations)", "Published MQTT Topics (Observations)")),
+        badge(`${(data.mqtt_messages || []).length} ${l("Chủ đề", "Topics")}`, "info")
+      )
+    );
+
+    const headers = [
+      l("Chủ đề MQTT (Topic)", "MQTT Topic"),
+      l("Tên chỉ số", "Metric Name"),
+      l("Giá trị xuất bản", "Published Value"),
+      l("Đơn vị", "Unit"),
+    ];
+
+    const rows = (data.mqtt_messages || []).map(m => [
+      e("code", m.topic),
+      m.name,
+      badge(m.payload, "accent"),
+      m.unit || "—",
+    ]);
+
+    mqttCard.append(table(headers, rows));
+    telemetryDisplay.append(mqttCard);
+  }
+
+  deyeBox.append(telemetryDisplay);
+
+  // Card 2: Multi-Inverter Parallel Cluster Aggregator
+  const clusterCard = div("card p-md stack gap-sm");
+  clusterCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Bộ Tổng hợp Dữ liệu Cụm Biến tần Song song (Multi-Inverter Aggregator)", "Parallel Cluster Data Aggregator")),
+      badge("Master + Slaves Parallel Aggregation", "accent")
+    ),
+    e("p",
+      l("Thu thập và tổng hợp chỉ số công suất tức thời và sản lượng ngày qua nhiều logger Deye trong cùng một trạm điện (ví dụ: Inverter Chủ + Inverter Phụ 1 + Phụ 2), tự động đặt lại khi qua ngày mới.",
+        "Ingests and aggregates real-time active power and daily yield across multiple Deye loggers in a parallel site cluster (e.g. Master Inverter + Slave 1 + Slave 2), with automatic midnight rollover."
+      ),
+      "text-secondary"
+    )
+  );
+
+  const clusterDisplay = div("stack gap-sm");
+  const aggBtn = button(l("Tổng hợp Dữ liệu Cụm Song song", "Aggregate Parallel Cluster"), async () => {
+    aggBtn.disabled = true;
+    try {
+      const res = await api("/api/deye-mqtt/aggregate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inverters: [
+            { logger_id: "inv_master_10kW", ac_power_w: 7500.0, day_energy_kwh: 38.5, total_energy_kwh: 12500.0, battery_power_w: 2400.0 },
+            { logger_id: "inv_slave_8kW", ac_power_w: 6200.0, day_energy_kwh: 31.2, total_energy_kwh: 9800.0, battery_power_w: 1900.0 },
+            { logger_id: "inv_slave_5kW", ac_power_w: 3900.0, day_energy_kwh: 19.8, total_energy_kwh: 6400.0, battery_power_w: 1200.0 },
+          ],
+        }),
+      });
+
+      const agg = res.aggregated || {};
+      const aggGrid = div("plant-card-grid");
+      aggGrid.append(
+        div("card p-sm stack gap-xs",
+          e("span", l("Quy mô Cụm song song", "Cluster Inverters"), "text-secondary"),
+          e("h3", `${agg.cluster_size || 0} ${l("Biến tần", "Inverters")}`),
+          e("small", (agg.member_loggers || []).join(", "), "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng công suất AC", "Aggregated AC Power"), "text-secondary"),
+          e("h3", `${agg.aggregated_ac_active_power_w || 0} W`),
+          e("small", l("Công suất phát đồng thời", "Synchronous active power"), "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng sản lượng Ngày", "Aggregated Daily Yield"), "text-secondary"),
+          e("h3", `${agg.aggregated_daily_energy_kwh || 0} kWh`),
+          e("small", `${l("Tổng lũy kế", "Total")}: ${agg.aggregated_total_energy_kwh || 0} kWh`, "text-secondary")
+        ),
+        div("card p-sm stack gap-xs",
+          e("span", l("Tổng công suất Pin BESS", "Aggregated Battery Power"), "text-secondary"),
+          e("h3", `${agg.aggregated_battery_power_w || 0} W`),
+          e("small", l("Tổng dòng nạp/xả cụm pin", "Cluster charge/discharge rate"), "text-secondary")
+        )
+      );
+      clusterDisplay.replaceChildren(aggGrid);
+    } catch (err) {
+      clusterDisplay.replaceChildren(notice(l("Lỗi tổng hợp cụm: ", "Cluster error: ") + err.message, "error"));
+    } finally {
+      aggBtn.disabled = false;
+    }
+  }, "secondary");
+
+  clusterCard.append(aggBtn, clusterDisplay);
+  deyeBox.append(clusterCard);
+
+  // Card 3: Remote Control & Parameter Write Compilers
+  const ctrlCard = div("card p-md stack gap-md");
+  ctrlCard.append(
+    div("row justify-between items-center",
+      e("h4", l("Biên dịch Lệnh Điều khiển & Quản trị Tham số (Safety Gated)", "Remote Control & Parameter Write Compilers")),
+      badge(l("Mặc định KHÓA AN TOÀN", "Default LOCKED"), "warn")
+    )
+  );
+
+  // Safety acceptance toggle
+  const safetyRow = div("card p-sm row gap-md items-center justify-between");
+  const safetyCheck = e("input", null, "form-control");
+  safetyCheck.type = "checkbox";
+  safetyCheck.id = "deye-hw-acceptance-chk";
+
+  const safetyLabel = e("label",
+    l("Xác nhận nghiệm thu phần cứng tại hiện trường (Bỏ chọn giữ nguyên chế độ khóa an toàn chỉ đọc LOCKED_PENDING_HARDWARE_ACCEPTANCE)",
+      "Confirm physical on-site hardware acceptance (Unchecked enforces read-only LOCKED_PENDING_HARDWARE_ACCEPTANCE)"
+    )
+  );
+  safetyLabel.htmlFor = "deye-hw-acceptance-chk";
+  safetyRow.append(div("row gap-sm items-center", safetyCheck, safetyLabel));
+  ctrlCard.append(safetyRow);
+
+  const cmdOutput = div("stack gap-sm");
+
+  // Section A: Work Mode & Solar Sell
+  const wmSection = div("card p-sm stack gap-sm");
+  wmSection.append(e("h5", l("Chế độ Vận hành WorkMode & Bán điện Solar Sell", "Work Mode & Solar Sell Settings")));
+  const wmRow = div("row gap-sm items-center wrap");
+
+  const wmSelect = e("select", null, "form-control");
+  wmSelect.append(
+    new Option(l("Bán điện trước (Selling First - 0)", "Selling First (0)"), "0"),
+    new Option(l("Không phát lưới cho phụ tải (Zero Export to Load - 1)", "Zero Export to Load (1)"), "1"),
+    new Option(l("Không phát lưới đo CT (Zero Export to CT - 2)", "Zero Export to CT (2)"), "2")
+  );
+  wmSelect.value = "1";
+
+  const wmBtn = button(l("Đặt WorkMode", "Set WorkMode"), async () => {
+    executeDeyeCommand("workmode", { mode: parseInt(wmSelect.value, 10) });
+  }, "secondary");
+
+  const sellCheck = e("input", null, "form-control");
+  sellCheck.type = "checkbox";
+  sellCheck.checked = true;
+  sellCheck.id = "deye-sell-chk";
+  const sellLabel = e("label", l("Bán điện Solar Sell (Reg 145)", "Solar Sell (Reg 145)"));
+  sellLabel.htmlFor = "deye-sell-chk";
+
+  const sellBtn = button(l("Ghi Solar Sell", "Write Solar Sell"), async () => {
+    executeDeyeCommand("solar_sell", { enable: sellCheck.checked });
+  }, "secondary");
+
+  const maxPwrInput = e("input", null, "form-control");
+  maxPwrInput.type = "number";
+  maxPwrInput.placeholder = "Max Sell Watts";
+  maxPwrInput.value = "5000";
+
+  const maxPwrBtn = button(l("Đặt Công suất Bán Max", "Set Max Sell Power"), async () => {
+    executeDeyeCommand("solar_sell_max_power", { watts: parseInt(maxPwrInput.value, 10) || 5000 });
+  }, "secondary");
+
+  wmRow.append(wmSelect, wmBtn, div("row gap-xs items-center", sellCheck, sellLabel), sellBtn, maxPwrInput, maxPwrBtn);
+  wmSection.append(wmRow);
+  ctrlCard.append(wmSection);
+
+  // Section B: Active Power Regulation & Battery Settings
+  const batSection = div("card p-sm stack gap-sm");
+  batSection.append(e("h5", l("Giảm phát Công suất & Tham số Pin (Active Power Regulation & Battery Settings)", "Active Power Regulation & Battery Settings")));
+  const batRow = div("row gap-sm items-center wrap");
+
+  const regInput = e("input", null, "form-control");
+  regInput.type = "number";
+  regInput.placeholder = "Regulation % (0..120)";
+  regInput.value = "100";
+
+  const regBtn = button(l("Điều tiết Công suất (%)", "Set Active Power %"), async () => {
+    executeDeyeCommand("active_power_regulation", { percentage: parseFloat(regInput.value) || 100.0 });
+  }, "secondary");
+
+  const batParamSelect = e("select", null, "form-control");
+  batParamSelect.append(
+    new Option(l("Cho phép nạp từ lưới (Grid Charge - Reg 130)", "Grid Charge Enabled (Reg 130)"), "grid_charge"),
+    new Option(l("Dòng nạp tối đa (Max Charge Current - Reg 108)", "Max Charge Current (Reg 108)"), "maximum_charge_current"),
+    new Option(l("Dòng xả tối đa (Max Discharge Current - Reg 109)", "Max Discharge Current (Reg 109)"), "maximum_discharge_current"),
+    new Option(l("Dòng nạp từ lưới tối đa (Max Grid Charge - Reg 128)", "Max Grid Charge Current (Reg 128)"), "maximum_grid_charge_current")
+  );
+
+  const batValInput = e("input", null, "form-control");
+  batValInput.type = "number";
+  batValInput.placeholder = "Value (0..240 A hoặc 0/1)";
+  batValInput.value = "100";
+
+  const batBtn = button(l("Ghi Tham số Pin", "Write Battery Param"), async () => {
+    executeDeyeCommand("battery_settings", {
+      setting_name: batParamSelect.value,
+      value: parseInt(batValInput.value, 10) || 0,
+    });
+  }, "secondary");
+
+  batRow.append(regInput, regBtn, batParamSelect, batValInput, batBtn);
+  batSection.append(batRow);
+  ctrlCard.append(batSection);
+
+  // Section C: 6-Slot Time-Of-Use Schedule
+  const touSection = div("card p-sm stack gap-sm");
+  touSection.append(
+    div("row justify-between items-center",
+      e("h5", l("Biểu đồ Giá điện theo Thời gian 6 Khung giờ (6-Slot Time-Of-Use Matrix)", "6-Slot Time-Of-Use Schedule")),
+      badge("Registers 146..177", "accent")
+    )
+  );
+
+  const touHeaders = [
+    l("Khung", "Slot"),
+    l("Giờ kết thúc", "Time (HH:MM)"),
+    l("Công suất (W)", "Power (W)"),
+    l("Điện áp (V)", "Voltage (V)"),
+    l("Mục tiêu SOC (%)", "Target SOC (%)"),
+    l("Cho phép sạc", "Charge En"),
+  ];
+
+  const defaultTouSlots = [
+    { slot_index: 1, time_hhmm: "05:00", power_watts: 3500, voltage: 51.2, target_soc: 80, charge_enabled: true },
+    { slot_index: 2, time_hhmm: "09:00", power_watts: 4000, voltage: 52.0, target_soc: 90, charge_enabled: true },
+    { slot_index: 3, time_hhmm: "13:00", power_watts: 4500, voltage: 53.0, target_soc: 100, charge_enabled: false },
+    { slot_index: 4, time_hhmm: "17:00", power_watts: 4000, voltage: 52.0, target_soc: 90, charge_enabled: false },
+    { slot_index: 5, time_hhmm: "21:00", power_watts: 3500, voltage: 51.2, target_soc: 80, charge_enabled: true },
+    { slot_index: 6, time_hhmm: "01:00", power_watts: 3000, voltage: 50.0, target_soc: 70, charge_enabled: true },
+  ];
+
+  const touRows = defaultTouSlots.map(s => [
+    `Slot ${s.slot_index}`,
+    s.time_hhmm,
+    `${s.power_watts} W`,
+    `${s.voltage} V`,
+    `${s.target_soc} %`,
+    badge(s.charge_enabled ? l("Bật", "ON") : l("Tắt", "OFF"), s.charge_enabled ? "good" : "muted"),
+  ]);
+
+  const touTable = table(touHeaders, touRows);
+
+  const touBtnRow = div("row gap-sm items-center");
+  const touDryBtn = button(l("Thử nghiệm Lập lịch TOU (Dry-Run)", "Compile TOU Schedule (Dry-Run)"), async () => {
+    executeDeyeCommand("timeofuse", { slots: defaultTouSlots, dry_run: true });
+  }, "secondary");
+
+  const touWriteBtn = button(l("Ghi Khung giờ TOU (Modbus Holding)", "Write TOU Schedule (Modbus Holding)"), async () => {
+    executeDeyeCommand("timeofuse", { slots: defaultTouSlots, dry_run: !safetyCheck.checked });
+  }, "primary");
+
+  touBtnRow.append(touDryBtn, touWriteBtn);
+  touSection.append(touTable, touBtnRow);
+  ctrlCard.append(touSection);
+
+  // Section D: Dongle AT Command Console
+  const atSection = div("card p-sm stack gap-sm");
+  atSection.append(e("h5", l("Cổng Giao tiếp Lệnh AT Dongle Wi-Fi (AT Command Console)", "Dongle AT Command Console")));
+  const atRow = div("row gap-sm items-center wrap");
+
+  const atInput = e("input", null, "form-control");
+  atInput.type = "text";
+  atInput.placeholder = "e.g. AT+VER, AT+WNTYPE, AT+WSKEY, AT+MID, AT+Z";
+  atInput.value = "AT+VER";
+
+  const atBtn = button(l("Gửi Lệnh AT", "Send AT Command"), async () => {
+    executeDeyeCommand("at_command", { command: atInput.value.trim() || "AT+VER" });
+  }, "secondary");
+
+  atRow.append(atInput, atBtn);
+  atSection.append(atRow);
+  ctrlCard.append(atSection);
+
+  ctrlCard.append(cmdOutput);
+  deyeBox.append(ctrlCard);
+
+  async function executeDeyeCommand(cmdType, params) {
+    cmdOutput.replaceChildren(notice(l("Đang biên dịch lệnh...", "Compiling command..."), "info"));
+    try {
+      const resp = await api("/api/deye-mqtt/command", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          family: famSelect.value,
+          logger_sn: snInput.value.trim() || "1234567890",
+          command_type: cmdType,
+          params: params,
+          unlocked: safetyCheck.checked,
+        }),
+      });
+
+      const r = resp.result;
+      if (Array.isArray(r)) {
+        // TOU batch result
+        const batchHeaders = [
+          l("Lệnh / Thanh ghi", "Command / Register"),
+          l("Địa chỉ Reg", "Reg Addr"),
+          l("Giá trị thô", "Raw Value"),
+          l("Mô tả hoạt động", "Description"),
+          l("Trạng thái An toàn", "Safety Status"),
+        ];
+        const batchRows = r.map(b => [
+          b.command_name,
+          `Reg ${b.target_register}`,
+          badge(`${b.raw_value}`, "accent"),
+          b.human_readable,
+          badge(b.status, b.status === "UNLOCKED_TEST_ONLY" ? "good" : "warn"),
+        ]);
+        cmdOutput.replaceChildren(
+          notice(l(`Biên dịch thành công ${r.length} thanh ghi TOU. Trạng thái an toàn: `, `Successfully compiled ${r.length} TOU registers. Safety status: `) + (safetyCheck.checked ? "UNLOCKED" : "LOCKED_PENDING_HARDWARE_ACCEPTANCE"), safetyCheck.checked ? "good" : "warn"),
+          table(batchHeaders, batchRows)
+        );
+      } else {
+        const isUnlocked = r.status === "UNLOCKED_TEST_ONLY" || r.status === "EXECUTED_AT_BRIDGE";
+        cmdOutput.replaceChildren(
+          div("card p-sm stack gap-xs",
+            div("row justify-between items-center",
+              e("h5", r.human_readable || r.command_name),
+              badge(r.status, isUnlocked ? "good" : "warn")
+            ),
+            div("row gap-md items-center wrap",
+              e("span", `${l("Thanh ghi Đích", "Target Register")}: ${r.target_register || "N/A"}`),
+              e("span", `${l("Giá trị", "Value")}: ${r.raw_value}`),
+              r.modbus_request_hex ? e("span", `${l("Khung Modbus Hex", "Modbus Frame")}: `) : null,
+              r.modbus_request_hex ? e("code", r.modbus_request_hex) : null,
+              resp.dongle_response ? e("code", resp.dongle_response) : null
+            )
+          )
+        );
+      }
+    } catch (err) {
+      cmdOutput.replaceChildren(notice(l("Lỗi thực thi lệnh: ", "Command error: ") + err.message, "error"));
+    }
+  }
+
+  container.append(deyeBox);
 }
 
 // Backward compatibility wrapper

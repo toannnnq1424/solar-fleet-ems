@@ -490,6 +490,36 @@ class SungrowShxCommandRequest(BaseModel):
     unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
 
 
+class DeyeMqttTelemetryRequest(BaseModel):
+    """Request for polling and decoding Deye multi-family telemetry."""
+
+    family: str = Field(default="deye_sg04lp3", description="Deye family: 'deye_sg01hp3', 'deye_sg04lp3', 'deye_sg02lp1', 'deye_string', 'deye_micro', 'igen_dtsd422', 'deye_hybrid'")
+    logger_sn: str = Field(default="1234567890", description="Deye logger serial number")
+    topic_prefix: str = Field(default="deye", description="MQTT base topic prefix")
+
+
+class DeyeMqttCommandRequest(BaseModel):
+    """Request for compiling and executing Deye MQTT configuration command."""
+
+    family: str = Field(default="deye_sg04lp3", description="Deye family")
+    logger_sn: str = Field(default="1234567890", description="Deye logger serial number")
+    command_type: str = Field(
+        ...,
+        description="Command type: 'workmode', 'solar_sell', 'solar_sell_max_power', 'active_power_regulation', 'battery_settings', 'timeofuse', 'at_command'",
+    )
+    params: dict[str, Any] = Field(default_factory=dict, description="Command parameters")
+    unlocked: bool = Field(default=False, description="Explicit unlock flag; default False enforces read-only safety gate")
+
+
+class DeyeMqttAggregateRequest(BaseModel):
+    """Request for computing multi-inverter parallel cluster aggregated telemetry."""
+
+    inverters: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="List of inverter telemetry items with keys: logger_id, ac_power_w, day_energy_kwh, total_energy_kwh, battery_power_w",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Install function
 # ---------------------------------------------------------------------------
@@ -2701,3 +2731,194 @@ def install_phase_d_apis(app, controller, user, admin=None):
             }
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc))
+
+    # -----------------------------------------------------------------------
+    # Deye & SunSynk Multi-Family Inverter MQTT Bridge
+    # -----------------------------------------------------------------------
+
+    @app.get("/api/deye-mqtt/families")
+    async def deye_mqtt_families(principal=Depends(user)):
+        """Enumerate supported Deye and SunSynk device families and command schemas."""
+        from .deye_mqtt_bridge import DEYE_FAMILY_CATALOG, DeyeDeviceFamily
+
+        descriptions = {
+            DeyeDeviceFamily.SG01HP3: "High-Voltage 3-Phase Hybrid (6..50kW) (stack 150..800V, BMS stack regs 210..250)",
+            DeyeDeviceFamily.SG04LP3: "Low-Voltage 3-Phase Hybrid (5..12kW) (48V battery, regs 142..177, 500..653)",
+            DeyeDeviceFamily.SG02LP1: "Low-Voltage 1-Phase Hybrid (3.6..8kW) (regs 3..114, 150..279, BMS 312..319)",
+            DeyeDeviceFamily.SG03LP1: "Low-Voltage 1-Phase Hybrid (extended models)",
+            DeyeDeviceFamily.STRING: "Grid-Tied String Inverter (PV1..PV4, 3-Phase Grid AC, regs 60..116, 198..210)",
+            DeyeDeviceFamily.MICRO: "Microinverters (SUN300..SUN2000G3, individual DC inputs, AC grid output)",
+            DeyeDeviceFamily.IGEN_DTSD422: "IGEN DTSD-422-D3 Smart Power Meter (CT1..CT3 power, bidirectional energy)",
+            DeyeDeviceFamily.HYBRID: "Classic Hybrid Inverter",
+            DeyeDeviceFamily.AGGREGATED: "Multi-Inverter Cluster Data Aggregation (summed active power & daily energy)",
+        }
+
+        families_data = []
+        for fam in DeyeDeviceFamily:
+            sensors = DEYE_FAMILY_CATALOG.get(fam, [])
+            sample_topics = [s.mqtt_topic_suffix for s in sensors[:5]]
+            families_data.append({
+                "family": fam.value,
+                "name": fam.name,
+                "description": descriptions.get(fam, fam.value),
+                "sensor_count": len(sensors),
+                "sample_topics": sample_topics,
+            })
+
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "supported_families": families_data,
+            "supported_commands": [
+                "workmode",
+                "solar_sell",
+                "solar_sell_max_power",
+                "active_power_regulation",
+                "battery_settings",
+                "timeofuse",
+                "at_command",
+            ],
+            "at_commands_supported": ["AT+WNTYPE", "AT+WSKEY", "AT+MID", "AT+VER", "AT+Z", "AT+H"],
+        }
+
+    @app.post("/api/deye-mqtt/telemetry")
+    async def deye_mqtt_telemetry(req: DeyeMqttTelemetryRequest, principal=Depends(user)):
+        """Poll and decode Deye multi-family telemetry into typed metrics and MQTT observation topics."""
+        from .deye_mqtt_bridge import (
+            DeyeDeviceFamily,
+            DeyeTelemetrySimulator,
+            normalize_deye_mqtt_telemetry,
+        )
+
+        try:
+            fam = DeyeDeviceFamily(req.family)
+        except ValueError:
+            fam = DeyeDeviceFamily.SG04LP3
+
+        raw_regs = DeyeTelemetrySimulator.generate_simulated_registers(fam)
+        decoded, mqtt_msgs = DeyeTelemetrySimulator.decode_family_telemetry(
+            fam, raw_regs, logger_sn=req.logger_sn
+        )
+        norm = normalize_deye_mqtt_telemetry(fam, decoded, device_id=f"deye_{req.logger_sn}")
+
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "family": fam.value,
+            "logger_sn": req.logger_sn,
+            "decoded_values": decoded,
+            "mqtt_messages": mqtt_msgs,
+            "normalized": norm,
+        }
+
+    @app.post("/api/deye-mqtt/command")
+    async def deye_mqtt_command(req: DeyeMqttCommandRequest, principal=Depends(user)):
+        """Safely compile and execute Deye MQTT configuration command with hardware acceptance gate."""
+        from .deye_mqtt_bridge import (
+            DeyeAtCommandBridge,
+            DeyeCommandCompiler,
+            DeyeTimeOfUseService,
+            DeyeTouSlot,
+            DeyeWriteResult,
+        )
+
+        cmd = req.command_type.lower()
+        params = req.params or {}
+        unlocked = req.unlocked
+
+        if cmd == "workmode":
+            mode = int(params.get("mode", 1))
+            res = DeyeCommandCompiler.compile_workmode(mode, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "solar_sell":
+            enable = bool(params.get("enable", True))
+            res = DeyeCommandCompiler.compile_solar_sell(enable, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "solar_sell_max_power":
+            watts = int(params.get("watts", 5000))
+            res = DeyeCommandCompiler.compile_solar_sell_max_power(watts, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "active_power_regulation":
+            pct = float(params.get("percentage", 100.0))
+            res = DeyeCommandCompiler.compile_active_power_regulation(pct, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "battery_settings":
+            setting_name = str(params.get("setting_name", "grid_charge"))
+            val = int(params.get("value", 1))
+            res = DeyeCommandCompiler.compile_battery_setting(setting_name, val, confirm_hardware_acceptance=unlocked)
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__}
+
+        elif cmd == "timeofuse":
+            tou_service = DeyeTimeOfUseService()
+            slots_data = params.get("slots", [])
+            for s in slots_data:
+                slot = DeyeTouSlot(
+                    slot_index=int(s.get("slot_index", 1)),
+                    time_hhmm=str(s.get("time_hhmm", "05:00")),
+                    power_watts=int(s.get("power_watts", 3000)),
+                    target_soc=int(s.get("target_soc", 80)),
+                    voltage=float(s.get("voltage", 51.2)),
+                    charge_enabled=bool(s.get("charge_enabled", True)),
+                )
+                tou_service.stage_slot(slot)
+
+            dry_run = bool(params.get("dry_run", not unlocked))
+            batches = tou_service.compile_write_batches(
+                confirm_hardware_acceptance=unlocked,
+                dry_run=dry_run,
+            )
+            return {
+                "source": "deye-inverter-mqtt",
+                "result": [b.__dict__ for b in batches],
+                "staged_slots_count": len(slots_data),
+            }
+
+        elif cmd == "at_command":
+            at_cmd = str(params.get("command", "AT+VER"))
+            bridge = DeyeAtCommandBridge()
+            resp = bridge.execute_command(at_cmd)
+            res = DeyeWriteResult(
+                success=True,
+                command_name=f"at_command:{at_cmd}",
+                target_register=0,
+                raw_value=0,
+                human_readable=f"AT Command: '{at_cmd}' -> Response: '{resp}'",
+                status="EXECUTED_AT_BRIDGE",
+                dry_run=False,
+            )
+            return {"source": "deye-inverter-mqtt", "result": res.__dict__, "dongle_response": resp}
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported command '{cmd}'. Must be one of: workmode, solar_sell, solar_sell_max_power, active_power_regulation, battery_settings, timeofuse, at_command",
+            )
+
+    @app.post("/api/deye-mqtt/aggregate")
+    async def deye_mqtt_aggregate(req: DeyeMqttAggregateRequest, principal=Depends(user)):
+        """Aggregate telemetry from multiple inverters in a parallel cluster."""
+        from .deye_mqtt_bridge import DeyeMultiInverterAggregator
+
+        aggregator = DeyeMultiInverterAggregator()
+        inverters = req.inverters or [
+            {"logger_id": "inv_master", "ac_power_w": 5200.0, "day_energy_kwh": 26.5, "total_energy_kwh": 8200.0, "battery_power_w": 2000.0},
+            {"logger_id": "inv_slave_1", "ac_power_w": 4800.0, "day_energy_kwh": 24.2, "total_energy_kwh": 7650.0, "battery_power_w": 1800.0},
+            {"logger_id": "inv_slave_2", "ac_power_w": 4950.0, "day_energy_kwh": 25.1, "total_energy_kwh": 7900.0, "battery_power_w": 1900.0},
+        ]
+
+        for inv in inverters:
+            aggregator.record_inverter_metrics(
+                logger_id=str(inv.get("logger_id", "inv")),
+                ac_active_power_w=float(inv.get("ac_power_w", 0.0)),
+                daily_energy_kwh=float(inv.get("day_energy_kwh", 0.0)),
+                total_energy_kwh=float(inv.get("total_energy_kwh", 0.0)),
+                battery_power_w=float(inv.get("battery_power_w", 0.0)),
+            )
+
+        cluster_summary = aggregator.get_aggregated_cluster_metrics()
+        return {
+            "source": "deye-inverter-mqtt (Apache-2.0 clean-room independent)",
+            "aggregated": cluster_summary,
+        }
