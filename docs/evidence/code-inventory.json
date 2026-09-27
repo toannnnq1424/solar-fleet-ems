@@ -1,5 +1,5 @@
 {
-  "measured_at_utc": "2026-09-27T07:49:06.546671+00:00",
+  "measured_at_utc": "2026-09-27T08:08:37.857197+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
@@ -7,8 +7,8 @@
       "key": "backend",
       "label": "Backend Python",
       "files": 115,
-      "lines": 41565,
-      "nonblank": 36290,
+      "lines": 41575,
+      "nonblank": 36297,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -302,8 +302,8 @@
         },
         {
           "path": "src/solar_fleet/growatt_cloud_client.py",
-          "lines": 469,
-          "nonblank": 413
+          "lines": 479,
+          "nonblank": 420
         },
         {
           "path": "src/solar_fleet/growatt_multiphase_modbus.py",
@@ -784,8 +784,8 @@
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
       "files": 89,
-      "lines": 18321,
-      "nonblank": 15539,
+      "lines": 18344,
+      "nonblank": 15558,
       "entries": [
         {
           "path": "tests/conftest.py",
@@ -954,8 +954,8 @@
         },
         {
           "path": "tests/test_growatt_cloud_client.py",
-          "lines": 204,
-          "nonblank": 166
+          "lines": 227,
+          "nonblank": 185
         },
         {
           "path": "tests/test_growatt_multiphase_modbus.py",

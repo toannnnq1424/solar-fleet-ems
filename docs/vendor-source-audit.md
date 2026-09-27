@@ -1325,6 +1325,21 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
 
 ## Detailed Absorption: Project #10 - `PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
 
+> **Review correction, 2026-09-27:** The completion claims below are historical,
+> not acceptance. The newly merged client is a simulator/compiler without HTTPS
+> transport; its production read routes return 503 and command route returns 409.
+> Existing scoped adapters are separate. Re-read public upstream
+> [OpenAPI V1 source at commit 6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5](https://raw.githubusercontent.com/indykoning/PyPi_GrowattServer/6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5/growattServer/open_api_v1/__init__.py)
+> on 2026-09-27: `plant_details` documents 10001 system error, 10002 missing
+> station, 10003 empty station ID, 10004 missing user. These are **community
+> evidence for `/v1/plant/details` only**, not global authentication semantics.
+> The linked official ShowDoc page still returned an HTML shell. Removed the
+> unused global error table in favor of an exact-path lookup; unreviewed pairs
+> remain unknown. No transport/renewal policy, model/firmware, account/region,
+> write/readback or commissioning claim follows. No upstream code was copied
+> and no dependency was added (upstream license: MIT). Other claims below,
+> including universal schedule/region behavior, remain unverified.
+
 - **Repository**: `D:\Downloads\before_project\PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5`
 - **License**: MIT License (@indykoning & community).
 - **Compliance Model**: Clean-room independent implementation in `src/solar_fleet/growatt_cloud_client.py`. Official Growatt OpenAPI V1 showdoc specification (`262556420217021`) and ShineServer communication architecture cleanly abstracted. Password MD5 transformation, multi-region routing (`global`, `cn`, `us`), plant & device registry, SPH hybrid & MIN TL-X telemetry normalizer, and remote parameter compilers independently authored and verified.

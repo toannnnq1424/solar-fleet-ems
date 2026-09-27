@@ -34,6 +34,15 @@ The merged client's global error table must not drive renewal/UI status without
 correction. SPH and MIN have separate device implementations and scheduling
 helpers; do not infer a universal brand-wide schedule contract.
 
+Follow-up: code search confirmed that the global error table had no consumers;
+there was no live response handler in this newly merged client to fix. Replaced
+the table with an exact-endpoint error description helper for the four documented
+plant-details errors, leaving all unreviewed pairs unknown. Corrected the class
+docstring claiming live HTTPS support. Ten regression cases cover reviewed and
+unknown pairs. The helper is not wired into transport or token renewal; existing
+scoped ingestion is unchanged. Re-fetched the pinned public source and official
+page; evidence remains community-only. No upstream code was copied.
+
 The manufacturer-linked page
 <https://www.showdoc.com.cn/262556420217021/1494060394238679> returned only an HTML
 shell; official API behavior was not independently confirmed.
@@ -69,3 +78,10 @@ Final browser suite: **29 passed**, exit 0. Logs:
 `/tmp/solar-merge-final2-python.log`, `/tmp/solar-merge-final-browser.log`,
 `/tmp/solar-merge-final-build.log`. These are software checks, not hardware
 acceptance or complete interaction/translation coverage.
+
+Growatt error-lookup follow-up validation: **1,195 Python tests passed** (12
+dependency warnings), **29 browser tests passed**, and **44 focused tests
+passed**. Ruff, static JavaScript syntax, whitespace checks and source/wheel
+build passed. Logs: `/tmp/solar-growatt-followup-python.log`,
+`/tmp/solar-growatt-followup-browser.log`, `/tmp/solar-growatt-followup-build.log`.
+Code inventory regenerated. No new visual QA or hardware acceptance performed.

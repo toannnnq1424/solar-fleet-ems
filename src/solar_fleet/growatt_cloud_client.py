@@ -46,16 +46,26 @@ GROWATT_SERVERS = {
     "us": "https://openapi-us.growatt.com",
 }
 
-# Error Codes
-ERROR_CODES = {
-    10001: "System internal error",
-    10002: "Authentication token invalid or expired",
-    10003: "Invalid parameter or missing required fields",
-    10004: "Device offline or communication lost",
-    10005: "Rate limit exceeded (too many requests)",
-    10006: "Device serial number not found",
-    10007: "Permission denied for target plant or device",
+# Endpoint-specific community evidence, not a global authentication/error table.
+# PyPi_GrowattServer 6469d881, growattServer/open_api_v1/__init__.py.
+# Official documentation could not be independently read; other endpoints remain unknown.
+ENDPOINT_ERROR_CODES = {
+    "/v1/plant/details": {
+        10001: "System error",
+        10002: "Power station does not exist",
+        10003: "Power station ID is empty",
+        10004: "User does not exist",
+    },
 }
+
+
+def describe_growatt_error(endpoint: str, error_code: int) -> str:
+    """Describe only exact reviewed endpoint/code pairs; never infer token renewal.
+
+    Callers must supply the V1 path, not a URL containing account/query data.
+    This pure lookup does not implement transport, retry or authentication policy.
+    """
+    return ENDPOINT_ERROR_CODES.get(endpoint, {}).get(error_code, "Unknown Growatt API error")
 
 # Mode Maps
 SPH_PRIORITY_CHOOSE_MAP = {
@@ -338,8 +348,8 @@ def compile_min_time_segment(
 class GrowattCloudClient:
     """Client for interacting with Growatt Cloud (OpenAPI V1 & ShineServer).
 
-    Supports simulated loopback mode and live HTTPS transport.
-    Preserves strict default read-only safety gates.
+    Legacy simulator/compiler only; live HTTPS transport is not implemented here.
+    Production routes are disabled. Existing scoped adapters own live ingestion.
     """
 
     def __init__(

@@ -20,9 +20,32 @@ from solar_fleet.growatt_cloud_client import (
     compile_sph_ac_charge_setting,
     compile_sph_charge_discharge_powers,
     compile_sph_priority_setting,
+    describe_growatt_error,
     hash_growatt_password,
     normalize_sph_cloud_data,
 )
+
+
+@pytest.mark.parametrize(("code", "description"), [
+    (10001, "System error"),
+    (10002, "Power station does not exist"),
+    (10003, "Power station ID is empty"),
+    (10004, "User does not exist"),
+])
+def test_growatt_plant_details_errors_are_endpoint_specific(code, description):
+    assert describe_growatt_error("/v1/plant/details", code) == description
+
+
+@pytest.mark.parametrize(("endpoint", "code"), [
+    ("/v1/plant/list", 10002),
+    ("/v1/device/sph/detail", 10002),
+    ("/v1/plant/details", 10005),
+    ("/v1/plant/details", 99999),
+    ("/v1/plant/details/", 10002),
+    ("", 10002),
+])
+def test_growatt_unreviewed_errors_remain_unknown(endpoint, code):
+    assert describe_growatt_error(endpoint, code) == "Unknown Growatt API error"
 
 
 def test_growatt_password_hash():
