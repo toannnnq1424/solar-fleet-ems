@@ -5,6 +5,7 @@ import json
 import sqlite3
 import threading
 import uuid
+from collections.abc import Iterable
 from contextlib import contextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -35,11 +36,61 @@ class Store:
             PRAGMA journal_mode=WAL;
             PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS entities(kind TEXT,id TEXT,body TEXT NOT NULL,PRIMARY KEY(kind,id));
+            CREATE TABLE IF NOT EXISTS entity_revisions(
+                kind TEXT,id TEXT,revision INTEGER NOT NULL,PRIMARY KEY(kind,id));
+            CREATE TRIGGER IF NOT EXISTS entity_revision_insert AFTER INSERT ON entities
+                BEGIN INSERT INTO entity_revisions VALUES(NEW.kind,NEW.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            DROP TRIGGER IF EXISTS entity_revision_update;
+            CREATE TRIGGER entity_revision_update AFTER UPDATE ON entities
+                WHEN OLD.body IS NOT NEW.body OR OLD.kind IS NOT NEW.kind OR OLD.id IS NOT NEW.id
+                BEGIN
+                INSERT INTO entity_revisions VALUES(OLD.kind,OLD.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1;
+                INSERT INTO entity_revisions(kind,id,revision)
+                SELECT NEW.kind,NEW.id,1
+                WHERE OLD.kind IS NOT NEW.kind OR OLD.id IS NOT NEW.id
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS entity_revision_delete AFTER DELETE ON entities
+                BEGIN INSERT INTO entity_revisions VALUES(OLD.kind,OLD.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
             CREATE TABLE IF NOT EXISTS secrets(id TEXT PRIMARY KEY,ciphertext BLOB NOT NULL);
             CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,password_hash TEXT NOT NULL,
                 role TEXT NOT NULL,sites TEXT NOT NULL,permissions TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1);
             CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,
                 csrf TEXT NOT NULL,expires TEXT NOT NULL,FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS security_revisions(
+                kind TEXT,id TEXT,revision INTEGER NOT NULL,PRIMARY KEY(kind,id));
+            CREATE TRIGGER IF NOT EXISTS user_revision_insert AFTER INSERT ON users
+                BEGIN INSERT INTO security_revisions VALUES('user',NEW.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS user_revision_update AFTER UPDATE ON users
+                WHEN OLD.id IS NOT NEW.id OR OLD.password_hash IS NOT NEW.password_hash
+                OR OLD.role IS NOT NEW.role OR OLD.sites IS NOT NEW.sites
+                OR OLD.permissions IS NOT NEW.permissions OR OLD.active IS NOT NEW.active
+                BEGIN
+                INSERT INTO security_revisions VALUES('user',OLD.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1;
+                INSERT INTO security_revisions SELECT 'user',NEW.id,1 WHERE OLD.id IS NOT NEW.id
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS user_revision_delete AFTER DELETE ON users
+                BEGIN INSERT INTO security_revisions VALUES('user',OLD.id,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS session_revision_insert AFTER INSERT ON sessions
+                BEGIN INSERT INTO security_revisions VALUES('session',NEW.token_hash,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS session_revision_update AFTER UPDATE ON sessions
+                WHEN OLD.token_hash IS NOT NEW.token_hash OR OLD.user_id IS NOT NEW.user_id
+                OR OLD.csrf IS NOT NEW.csrf OR OLD.expires IS NOT NEW.expires
+                BEGIN
+                INSERT INTO security_revisions VALUES('session',OLD.token_hash,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1;
+                INSERT INTO security_revisions SELECT 'session',NEW.token_hash,1
+                WHERE OLD.token_hash IS NOT NEW.token_hash
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
+            CREATE TRIGGER IF NOT EXISTS session_revision_delete AFTER DELETE ON sessions
+                BEGIN INSERT INTO security_revisions VALUES('session',OLD.token_hash,1)
+                ON CONFLICT(kind,id) DO UPDATE SET revision=revision+1; END;
             CREATE TABLE IF NOT EXISTS plans(id TEXT PRIMARY KEY,body TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS commands(id TEXT PRIMARY KEY,idempotency_key TEXT NOT NULL UNIQUE,
                 plan_id TEXT NOT NULL UNIQUE,device_id TEXT NOT NULL,site_id TEXT NOT NULL,operator_id TEXT NOT NULL,
@@ -97,6 +148,40 @@ class Store:
     def get(self, kind: str, id: str) -> dict | None:
         row = self.db.execute("SELECT body FROM entities WHERE kind=? AND id=?", (kind, id)).fetchone()
         return json.loads(row[0]) if row else None
+
+    def revisions(self, *kinds: str) -> dict[str, dict[str, int]]:
+        """Durable tombstones catch ABA, including SQL deletes; rollback is atomic.
+
+        Kind-wide fences deliberately invalidate unrelated concurrent changes too.
+        This is a safety fence, not a multiprocess command serialization mechanism.
+        """
+        with self.lock:
+            return {kind: dict(self.db.execute(
+                "SELECT id,revision FROM entity_revisions WHERE kind=? ORDER BY id", (kind,)
+            ).fetchall()) for kind in kinds}
+
+    def object_revisions(self, selection: dict[str, Iterable[str]]) -> dict[str, dict[str, int]]:
+        """Capture only selected identities, including absent rows and tombstones.
+
+        Mapping values are iterables of IDs (snapshot dictionaries work too).
+        A returned snapshot can itself be passed here to revalidate the same set.
+        Full-body revisions intentionally retain heartbeat/write-conflict fencing.
+        """
+        with self.transaction():
+            return {kind: {id: self._entity_revision(kind, id) for id in ids}
+                    for kind, ids in selection.items()}
+
+    def _entity_revision(self, kind: str, id: str) -> int:
+        row = self.db.execute(
+            "SELECT revision FROM entity_revisions WHERE kind=? AND id=?", (kind, id)
+        ).fetchone()
+        return row[0] if row else 0
+
+    def security_revision(self, kind: str, id: str) -> int:
+        row = self.db.execute(
+            "SELECT revision FROM security_revisions WHERE kind=? AND id=?", (kind, id)
+        ).fetchone()
+        return row[0] if row else 0
 
     def list(self, kind: str) -> list[dict]:
         return [

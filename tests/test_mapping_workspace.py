@@ -21,7 +21,7 @@ def test_context_uses_observed_units_labels_and_scoped_permissions(local):
     assert response.status_code == 200, response.text
     context = response.json()
     assert context["can_edit"] is False and context["drafts_activate_hardware"] is False
-    assert context["bindings"] == [{"id": "SIM-BIND", "name": "SIM-BIND", "kind": "binding"}]
+    assert context["bindings"] == [{"id": "69967848e4a53e16df385645", "name": "SIMULATOR cloud provenance", "kind": "binding"}]
     channel = context["channels"][0]
     assert (channel["label"], channel["metric"], channel["value"], channel["unit"]) == (
         "Measured AC flow",
@@ -41,8 +41,8 @@ def test_context_excludes_revoked_cloud_connection_and_credentials(local):
     c, ctl = binding(local)
     connection = {"id": "lab-cloud", "name": "Lab cloud", "enabled": True, "password": "NEVER-EXPOSE"}
     ctl.store.put("integration", "lab-cloud", connection)
-    row = ctl.store.get("binding", "SIM-BIND") | {"integration_id": "lab-cloud"}
-    ctl.store.put("binding", "SIM-BIND", row)
+    row = ctl.store.get("binding", "69967848e4a53e16df385645") | {"integration_id": "lab-cloud"}
+    ctl.store.put("binding", "69967848e4a53e16df385645", row)
     login(local)
     response = c.get("/api/devices/sim-device/mapping-context")
     assert "NEVER-EXPOSE" not in response.text and response.json()["bindings"][0]["name"] == "Lab cloud"
@@ -85,7 +85,8 @@ def test_agent_context_and_revocation_do_not_require_cloud_binding(local):
     ctl.store.put(
         "agent_latest",
         "agent-reading",
-        {"device_id": "sim-device", "agent_id": agent["id"], "samples": [sample.model_dump(mode="json")]},
+        {"device_id": "sim-device", "agent_id": agent["id"], "site_id": "sim-site",
+         "samples": [sample.model_dump(mode="json")]},
     )
     h = login(local)
     context = c.get("/api/devices/sim-device/mapping-context")
@@ -123,14 +124,14 @@ def test_review_revalidates_identity_and_live_binding_without_mutating_revision(
         device["identity"]["firmware"] = "CHANGED"
         ctl.store.put("device", "sim-device", device)
     else:
-        bound = ctl.store.get("binding", "SIM-BIND")
+        bound = ctl.store.get("binding", "69967848e4a53e16df385645")
         if mutation == "binding":
             bound["telemetry_enabled"] = False
         elif mutation == "site":
             bound["site_id"] = "other-site"
         else:
             bound["integration_id"] = "MISSING-INTEGRATION"
-        ctl.store.put("binding", "SIM-BIND", bound)
+        ctl.store.put("binding", "69967848e4a53e16df385645", bound)
     h = login(local, "engineer")
     response = c.post(
         f"/api/mappings/{row['id']}/review",

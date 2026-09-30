@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
 
 def utcnow() -> datetime:
@@ -25,6 +25,9 @@ class Role(StrEnum):
 
 
 class Principal(Model):
+    # Internal snapshots participate in equality but never in API serialization.
+    _authority_revision: int = PrivateAttr(default=0)
+    _session_revision: int = PrivateAttr(default=0)
     id: str
     role: Role
     site_ids: list[str] = Field(default_factory=list)
@@ -234,6 +237,10 @@ class CommandPlan(Model):
     expires_at: datetime
     risks: list[str]
     digest: str = ""
+    binding_digest: str = ""
+    authority_revisions: dict[str, dict[str, int]] = Field(default_factory=dict)
+    operator_revision: int | None = None
+    revision_scope: Literal["kind_wide", "selected_objects_v1"] = "kind_wide"
 
 
 class Ack(Model):

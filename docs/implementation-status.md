@@ -1,10 +1,27 @@
 # Implementation status — 0.2.0 pilot
 
+28 September follow-up: Reports analytics optionally freezes observed import-cost
+inputs (actual sample rows, selected meter/site revisions, tariff versions and
+interval provenance) into immutable CSV/XLSX/HTML artifacts. Not a utility bill;
+30-day/20-site/10,000-sample-per-site limits. Rate correction and archive retention
+remain open. [Verification](evidence/report-cost-snapshot-2026-09-28.md).
+
 Updated **2026-09-27**, based on the source snapshot inspected before commit. This replaces earlier route-count and “completed flow” statements. The repository is **not yet a mature multi-vendor O&M/EMS product**. No customer hardware acceptance was performed in this audit.
 
 The [26-screen coverage matrix](mockup-coverage.md) owns the feature inventory, sidebar responsibilities, estimate → existing code → unbuilt scope → completion criteria, and reproducible BE/FE/test LOC. The [multi-vendor contracts](multivendor-contracts.md) index the researched API differences and subsequent Eybond work. The [validation index](validation.md), including the latest [legacy reuse / flow record](legacy-validation-2026-09-27.md), distinguishes executed checks from pending acceptance. Return to the [documentation index](README.md) or [project README](../README.md).
 
 ## Current application boundaries
+
+### 28 September follow-up: declared import-rate estimates
+
+Settings now appends non-overlapping, UTC-normalized VND import-rate versions with
+source, creator, whole-site optimistic revision and transactional audit. EMS prices
+only accepted observed-power intervals wholly contained in one declared rate version;
+returns interval endpoints/power/energy, version IDs, sources and priced coverage.
+Missing or boundary-crossing prices do not become zero-cost energy. No legacy EVN
+table is silently applied. This is not utility billing or a verified tariff: taxes,
+demand/reactive charges, export credits, tariff correction/supersession and report
+export integration remain unbuilt. See the [batch evidence](evidence/import-rates-2026-09-28.md).
 
 The subsequent [Eybond read integration](eybond-read-integration.md) and [24 September validation](eybond-validation-2026-09-24.md) extend the original audit with DessMonitor/ShineMonitor account→collector→native telemetry workflows. They do not change the pilot or uncommissioned-hardware conclusion.
 

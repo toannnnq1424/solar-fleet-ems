@@ -12,14 +12,14 @@ from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import Depends, HTTPException, Response
+from fastapi import Depends, HTTPException, Request, Response
 from pydantic import ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 from .domain import Model, Role, SafetyError, Sample, utcnow
 from .operational_views import OperationalViews, period_bounds
 from .providers import PROVIDERS
 from .rules import RuleForm, evaluate
-from .security import create_user
+from .security import create_user, require_session_principal, session_user
 
 WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
@@ -345,10 +345,10 @@ def install_workspaces(app, controller, user, admin):
         return site
 
     @app.get("/api/sites/{id}/overview-summary")
-    async def site_overview_summary(id: str, who=Depends(user)):
+    async def site_overview_summary(id: str, request: Request, who=Depends(user)):
         site_access(id, who)
         result = views.overview(id)
-        weather = await site_weather(id, who)
+        weather = await site_weather(id, request, who)
         current = weather.get("current") or {}
         forecast_from_weather = [
             {
@@ -620,16 +620,19 @@ def install_workspaces(app, controller, user, admin):
         return views.control_state(device, who)
 
     @app.post("/api/control/execute")
-    async def execute_control_command(payload: dict, who=Depends(operator)):
+    async def execute_control_command(payload: dict, request: Request, who=Depends(operator)):
         # All UI entry points share the exact capability/identity/freshness engine.
         device = controller.device(payload.get("device_id", ""))
         site_access(device.site_id, who)
         if payload.get("plan_id"):
+            token = request.cookies.get("solar_session")
             return await controller.engine.confirm(
-                who, payload["plan_id"], payload.get("digest", ""), payload.get("idempotency_key", "")
+                who, payload["plan_id"], payload.get("digest", ""), payload.get("idempotency_key", ""),
+                execution_guard=lambda: require_session_principal(store, token, who),
             )
         return await controller.engine.preview(
-            who, device.id, payload.get("intent", ""), payload.get("parameters", {})
+            who, device.id, payload.get("intent", ""), payload.get("parameters", {}),
+            revalidate=lambda: require_session_principal(store, request.cookies.get("solar_session"), who),
         )
 
     @app.get("/api/control/journal/{device_id}")
@@ -1268,7 +1271,7 @@ def install_workspaces(app, controller, user, admin):
     # G10: Weather & Solar Irradiance API (Open-Meteo, free, no key)
     # ==================================================================
     @app.get("/api/weather/{site_id}")
-    async def site_weather(site_id: str, who=Depends(user)):
+    async def site_weather(site_id: str, request: Request, who=Depends(user)):
         """Fetch current weather and 48h GHI/DNI/DHI forecast for a site."""
         site_access(site_id, who)
         site = views.site(site_id)
@@ -1287,6 +1290,12 @@ def install_workspaces(app, controller, user, admin):
             from .weather import fetch_weather
 
             result = await fetch_weather(float(lat), float(lon))
+            session = session_user(store, request.cookies.get("solar_session"))
+            if not session:
+                raise HTTPException(401, "authentication_required")
+            site_access(site_id, session[0])
+            if session[0] != who or views.site(site_id) != site:
+                raise SafetyError("weather_read_context_changed")
             if result is None:
                 return {
                     "status": "offline",

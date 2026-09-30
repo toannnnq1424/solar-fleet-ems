@@ -53,6 +53,20 @@ def test_reports_empty_store(local):
     assert c.get("/api/reports/recent", headers=h).json() == []
 
 
+@pytest.mark.parametrize("fmt", ["csv", "excel", "html"])
+def test_archive_download_rechecks_scope_for_existing_session(local, fmt):
+    c, ctl = local
+    headers = login(local, "engineer")
+    response = c.post("/api/reports/generate", headers=headers,
+                      json={"site_id": "sim-site", "format": fmt})
+    assert response.status_code == 201
+    url = response.json()["download_url"]
+    assert c.get(url).status_code == 200
+    ctl.store.db.execute("UPDATE users SET sites=? WHERE id=?", ('["other-site"]', "engineer"))
+    assert c.get(url).status_code == 403
+    assert c.get("/api/reports/recent").json() == []
+
+
 def test_counter_delta_and_storage_provenance(local):
     c, ctl = local
     h = login(local)

@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from cloud_fixture import cloud_latest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
@@ -346,9 +347,7 @@ def test_device_realtime_monitoring_data(journal_app):
         ]
     ]
     store.add_samples(samples)
-    store.put(
-        "latest",
-        "dev-deye-1",
+    cloud_latest(store, "dev-deye-1",
         {
             "device_id": "dev-deye-1",
             "state": "HAS_DATA",

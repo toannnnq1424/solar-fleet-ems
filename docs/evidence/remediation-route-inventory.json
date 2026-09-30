@@ -1,0 +1,2381 @@
+{
+  "note": "Static declarations, not mounted-route or security coverage proof. See remediation-findings.md for reviewed slices.",
+  "routes": [
+    {
+      "owner": "src/solar_fleet/accounts.py",
+      "symbol": "overview",
+      "method": "get",
+      "route": "/api/accounts/overview",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/accounts.py",
+      "symbol": "check",
+      "method": "post",
+      "route": "/api/integrations/{id}/check",
+      "await_count": 4,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/accounts.py",
+      "symbol": "create_key",
+      "method": "post",
+      "route": "/api/access-keys",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/accounts.py",
+      "symbol": "revoke",
+      "method": "post",
+      "route": "/api/access-keys/{id}/revoke",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/accounts.py",
+      "symbol": "public_fleet",
+      "method": "get",
+      "route": "/api/public/v1/fleet",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_admin_summary",
+      "method": "get",
+      "route": "/api/admin/summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_admin_users",
+      "method": "get",
+      "route": "/api/admin/users",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_roles_matrix",
+      "method": "get",
+      "route": "/api/admin/roles-matrix",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_admin_cloud_accounts",
+      "method": "get",
+      "route": "/api/admin/cloud-accounts",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "check_cloud_account",
+      "method": "post",
+      "route": "/api/admin/cloud-accounts/check",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_admin_security_log",
+      "method": "get",
+      "route": "/api/admin/security-log",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "get_site_config",
+      "method": "get",
+      "route": "/api/admin/site-config/{site_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "update_site_config",
+      "method": "post",
+      "route": "/api/admin/site-config/{site_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "onboard_scan_devices",
+      "method": "post",
+      "route": "/api/admin/devices/onboard-scan",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "onboard_complete_device",
+      "method": "post",
+      "route": "/api/admin/devices/onboard-complete",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/admin_api.py",
+      "symbol": "export_users_csv",
+      "method": "get",
+      "route": "/api/admin/export-users",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/administration.py",
+      "symbol": "change_access",
+      "method": "post",
+      "route": "/api/users/{id}/access",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/administration.py",
+      "symbol": "reset_password",
+      "method": "post",
+      "route": "/api/users/{id}/password",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/administration.py",
+      "symbol": "timeline",
+      "method": "get",
+      "route": "/api/commands/{id}/timeline",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/administration.py",
+      "symbol": "reconcile",
+      "method": "post",
+      "route": "/api/commands/{id}/reconcile",
+      "await_count": 2,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/agent.py",
+      "symbol": "inbox",
+      "method": "post",
+      "route": "/api/agent/inbox",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/analytics.py",
+      "symbol": "analytics",
+      "method": "get",
+      "route": "/api/sites/{id}/analytics",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/analytics.py",
+      "symbol": "excel",
+      "method": "get",
+      "route": "/api/reports/telemetry.xlsx",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "login",
+      "method": "post",
+      "route": "/api/login",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "logout",
+      "method": "post",
+      "route": "/api/logout",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "me",
+      "method": "get",
+      "route": "/api/me",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "fleet",
+      "method": "get",
+      "route": "/api/fleet",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "integrations",
+      "method": "get",
+      "route": "/api/integrations",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "sync",
+      "method": "post",
+      "route": "/api/sync",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "detail",
+      "method": "get",
+      "route": "/api/devices/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "history",
+      "method": "get",
+      "route": "/api/devices/{id}/history",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "vendor_history",
+      "method": "post",
+      "route": "/api/devices/{id}/history",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "configuration",
+      "method": "post",
+      "route": "/api/devices/{id}/configuration",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "alerts",
+      "method": "post",
+      "route": "/api/devices/{id}/alerts",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "research",
+      "method": "get",
+      "route": "/api/research",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "preview",
+      "method": "post",
+      "route": "/api/plans",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "confirm",
+      "method": "post",
+      "route": "/api/commands",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "commands",
+      "method": "get",
+      "route": "/api/commands",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "audit",
+      "method": "get",
+      "route": "/api/audit/{category}",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/app.py",
+      "symbol": "index",
+      "method": "get",
+      "route": "/",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/battery_health.py",
+      "symbol": "get_device_battery_health",
+      "method": "get",
+      "route": "/api/devices/{device_id}/battery-health",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/battery_health.py",
+      "symbol": "get_site_battery_health",
+      "method": "get",
+      "route": "/api/sites/{site_id}/battery-health",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "overview",
+      "method": "get",
+      "route": "/api/data-workspace",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "mapping_context",
+      "method": "get",
+      "route": "/api/devices/{id}/mapping-context",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "create",
+      "method": "post",
+      "route": "/api/mappings",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "update",
+      "method": "post",
+      "route": "/api/mappings/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "versions",
+      "method": "get",
+      "route": "/api/mappings/{id}/versions",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "simulate",
+      "method": "post",
+      "route": "/api/mappings/{id}/simulate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "review",
+      "method": "post",
+      "route": "/api/mappings/{id}/review",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "collection",
+      "method": "get",
+      "route": "/api/collection",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "save_collection",
+      "method": "post",
+      "route": "/api/collection/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "get_data_sources",
+      "method": "get",
+      "route": "/api/data-sources",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "set_data_sources_priority",
+      "method": "post",
+      "route": "/api/data-sources/priority",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "test_data_sources_connection",
+      "method": "post",
+      "route": "/api/data-sources/test-connection",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/data_workspace.py",
+      "symbol": "update_collection_config",
+      "method": "post",
+      "route": "/api/data-sources/collection-config",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/forecast_baseline.py",
+      "symbol": "forecast",
+      "method": "get",
+      "route": "/api/devices/{device_id}/forecast-baseline",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/forecast_baseline.py",
+      "symbol": "site_dispatch_schedule",
+      "method": "get",
+      "route": "/api/sites/{site_id}/dispatch-schedule",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "listing",
+      "method": "get",
+      "route": "/api/incidents",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "summary",
+      "method": "get",
+      "route": "/api/incidents/summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "detail",
+      "method": "get",
+      "route": "/api/incidents/{id}/detail",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "history",
+      "method": "get",
+      "route": "/api/incidents/{id}/history",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "change",
+      "method": "post",
+      "route": "/api/incidents/{id}/transition",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "note",
+      "method": "post",
+      "route": "/api/incidents/{id}/notes",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "triage",
+      "method": "post",
+      "route": "/api/incidents/{id}/triage",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "attach",
+      "method": "post",
+      "route": "/api/incidents/{id}/playbook",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "check",
+      "method": "post",
+      "route": "/api/incidents/{id}/check",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "work_order",
+      "method": "post",
+      "route": "/api/incidents/{id}/work-order",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "acknowledge_incident",
+      "method": "post",
+      "route": "/api/incidents/{id}/acknowledge",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "close_incident",
+      "method": "post",
+      "route": "/api/incidents/{id}/close",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "export_incidents",
+      "method": "get",
+      "route": "/api/incidents/export",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "policy",
+      "method": "get",
+      "route": "/api/incident-policies/{site_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "save_policy",
+      "method": "post",
+      "route": "/api/incident-policies",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "playbooks",
+      "method": "get",
+      "route": "/api/incident-playbooks",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "create_playbook",
+      "method": "post",
+      "route": "/api/incident-playbooks",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/incident_api.py",
+      "symbol": "update_playbook",
+      "method": "post",
+      "route": "/api/incident-playbooks/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "journal_summary",
+      "method": "get",
+      "route": "/api/journal/summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "list_journal_commands",
+      "method": "get",
+      "route": "/api/journal/commands",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "get_journal_command_detail",
+      "method": "get",
+      "route": "/api/journal/commands/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "get_device_realtime_monitoring",
+      "method": "get",
+      "route": "/api/journal/realtime/{device_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "get_journal_audit_trail",
+      "method": "get",
+      "route": "/api/journal/audit",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/journal_api.py",
+      "symbol": "export_journal_csv",
+      "method": "get",
+      "route": "/api/journal/export",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "listing",
+      "method": "get",
+      "route": "/api/maintenance/work-orders",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "detail",
+      "method": "get",
+      "route": "/api/maintenance/work-orders/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "events",
+      "method": "get",
+      "route": "/api/maintenance/work-orders/{id}/events",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "plan",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/plan",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "record_step",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/step",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "record_time",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/time",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "void_time",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/time/{entry_id}/void",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "submit",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/submit",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "review",
+      "method": "post",
+      "route": "/api/maintenance/work-orders/{id}/review",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "calendar",
+      "method": "get",
+      "route": "/api/maintenance/calendar",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "health",
+      "method": "get",
+      "route": "/api/maintenance/health",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "summary",
+      "method": "get",
+      "route": "/api/maintenance/summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "list_plans",
+      "method": "get",
+      "route": "/api/maintenance/plans",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "trigger_plan",
+      "method": "post",
+      "route": "/api/maintenance/plans/{id}/trigger",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "firmware_overview",
+      "method": "get",
+      "route": "/api/maintenance/firmware",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/maintenance.py",
+      "symbol": "stage_firmware",
+      "method": "post",
+      "route": "/api/maintenance/firmware/stage",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "workbench",
+      "method": "get",
+      "route": "/api/workbench",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "save",
+      "method": "post",
+      "route": "/api/workbench/{kind}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "archive",
+      "method": "post",
+      "route": "/api/workbench/{kind}/{id}/archive",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "register_asset",
+      "method": "post",
+      "route": "/api/assets",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "enroll",
+      "method": "post",
+      "route": "/api/agents",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "revoke",
+      "method": "post",
+      "route": "/api/agents/{id}/revoke",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "edit_schedule",
+      "method": "post",
+      "route": "/api/schedules/{id}/edit",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "schedule_versions",
+      "method": "get",
+      "route": "/api/schedules/{id}/versions",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "edit_rule",
+      "method": "post",
+      "route": "/api/rules/{id}/edit",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "diagnostics",
+      "method": "get",
+      "route": "/api/sites/{id}/diagnostics",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "energy",
+      "method": "get",
+      "route": "/api/sites/{id}/energy",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "handover_status",
+      "method": "get",
+      "route": "/api/sites/{id}/handover",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "record_handover",
+      "method": "post",
+      "route": "/api/handovers",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "site_report",
+      "method": "get",
+      "route": "/api/sites/{id}/report",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/management.py",
+      "symbol": "read_notification",
+      "method": "post",
+      "route": "/api/notifications/{id}/read",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/model_api.py",
+      "symbol": "catalog",
+      "method": "get",
+      "route": "/api/model-library",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/model_api.py",
+      "symbol": "detail",
+      "method": "get",
+      "route": "/api/model-library/{profile_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/model_api.py",
+      "symbol": "preview",
+      "method": "post",
+      "route": "/api/model-library/{profile_id}/plan",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/model_api.py",
+      "symbol": "decode_registers",
+      "method": "post",
+      "route": "/api/model-library/{profile_id}/decode",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/model_api.py",
+      "symbol": "validate_collection",
+      "method": "post",
+      "route": "/api/local-collection/{kind}/validate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "mpc_dispatch",
+      "method": "post",
+      "route": "/api/mpc/dispatch",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "mpc_status",
+      "method": "get",
+      "route": "/api/mpc/status",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solar_estimate",
+      "method": "post",
+      "route": "/api/solar/estimate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solar_clearsky",
+      "method": "get",
+      "route": "/api/solar/clearsky",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "anomaly_check",
+      "method": "post",
+      "route": "/api/anomaly/check",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "anomaly_detectors",
+      "method": "get",
+      "route": "/api/anomaly/detectors",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "microgrid_simulate",
+      "method": "post",
+      "route": "/api/microgrid/simulate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "microgrid_states",
+      "method": "get",
+      "route": "/api/microgrid/states",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "modbus_maps",
+      "method": "get",
+      "route": "/api/modbus/maps",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "modbus_map_detail",
+      "method": "get",
+      "route": "/api/modbus/maps/{map_key}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "modbus_growatt_fault",
+      "method": "get",
+      "route": "/api/modbus/faults/growatt/{code}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "inverter_models_list",
+      "method": "get",
+      "route": "/api/inverter/models",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "inverter_efficiency_curve",
+      "method": "get",
+      "route": "/api/inverter/efficiency-curve",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "weather_forecast_api",
+      "method": "get",
+      "route": "/api/weather/forecast",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "pv_forecast_api",
+      "method": "get",
+      "route": "/api/weather/pv-forecast",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "battery_degradation_api",
+      "method": "get",
+      "route": "/api/battery/degradation",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "ev_charger_modes",
+      "method": "get",
+      "route": "/api/ev/charger-modes",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "vpp_services",
+      "method": "get",
+      "route": "/api/vpp/services",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "optimizer_modes",
+      "method": "get",
+      "route": "/api/optimizer/modes",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "pq_event_types",
+      "method": "get",
+      "route": "/api/power-quality/event-types",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "scheduler_component_types",
+      "method": "get",
+      "route": "/api/scheduler/component-types",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "load_predictor_models",
+      "method": "get",
+      "route": "/api/load-predictor/models",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "load_predictor_predict",
+      "method": "post",
+      "route": "/api/load-predictor/predict",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "tariffs_catalogue",
+      "method": "get",
+      "route": "/api/tariffs/catalogue",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "calculate_bill",
+      "method": "post",
+      "route": "/api/tariffs/calculate-bill",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "heat_pump_cop",
+      "method": "post",
+      "route": "/api/thermal/heat-pump-cop",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "sg_ready_evaluate",
+      "method": "post",
+      "route": "/api/thermal/sg-ready-evaluate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "phase_balancer_dispatch",
+      "method": "post",
+      "route": "/api/phase-balancer/dispatch",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "predbat_plan",
+      "method": "post",
+      "route": "/api/predbat/plan",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "vendor_translate_command",
+      "method": "post",
+      "route": "/api/vendor-translator/translate-command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "grid_code_evaluate",
+      "method": "post",
+      "route": "/api/grid-code/evaluate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "meter_supported_models",
+      "method": "get",
+      "route": "/api/meters/supported-models",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "meter_decode_registers",
+      "method": "post",
+      "route": "/api/meters/decode-registers",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "ev_fleet_optimize_dlm",
+      "method": "post",
+      "route": "/api/ev-fleet/optimize-dlm",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "market_submit_and_clear",
+      "method": "post",
+      "route": "/api/market-trader/submit-and-clear",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "market_fcr_response",
+      "method": "get",
+      "route": "/api/market-trader/fcr-response",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "genset_evaluate_dispatch",
+      "method": "post",
+      "route": "/api/genset/evaluate-dispatch",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "genset_black_start_sequence",
+      "method": "post",
+      "route": "/api/genset/black-start-sequence",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "thermal_building_simulation",
+      "method": "post",
+      "route": "/api/thermal/building-simulation",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "vendor_translator_supported_brands",
+      "method": "get",
+      "route": "/api/vendor-translator/supported-brands",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "community_inverters_list_profiles",
+      "method": "get",
+      "route": "/api/community-inverters/profiles",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "community_inverters_get_profile",
+      "method": "get",
+      "route": "/api/community-inverters/profile/{model_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "community_inverters_optimize_polling",
+      "method": "post",
+      "route": "/api/community-inverters/optimize-polling",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "community_inverters_decode_telemetry",
+      "method": "post",
+      "route": "/api/community-inverters/decode-telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "community_inverters_decode_alarms",
+      "method": "post",
+      "route": "/api/community-inverters/decode-alarms",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_mqtt_list_registers",
+      "method": "get",
+      "route": "/api/solis-mqtt/registers",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_mqtt_generate_discovery",
+      "method": "post",
+      "route": "/api/solis-mqtt/discovery-topics",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_mqtt_decode_telemetry",
+      "method": "post",
+      "route": "/api/solis-mqtt/decode-telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_mqtt_simulate_offline",
+      "method": "post",
+      "route": "/api/solis-mqtt/simulate-offline",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_mqtt_compile_control",
+      "method": "post",
+      "route": "/api/solis-mqtt/compile-control",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "goodwe_sems_login",
+      "method": "post",
+      "route": "/api/goodwe-sems/login",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "goodwe_sems_station_detail",
+      "method": "post",
+      "route": "/api/goodwe-sems/station-detail",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "goodwe_sems_monthly_report",
+      "method": "post",
+      "route": "/api/goodwe-sems/monthly-report",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_sph_decode_bms",
+      "method": "post",
+      "route": "/api/growatt-sph/decode-bms",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_sph_decode_cells",
+      "method": "post",
+      "route": "/api/growatt-sph/decode-cells",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_sph_decode_tou_slots",
+      "method": "post",
+      "route": "/api/growatt-sph/decode-tou-slots",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_sph_compile_mode_command",
+      "method": "post",
+      "route": "/api/growatt-sph/compile-mode-command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_hybrid_decode_storage_mode",
+      "method": "post",
+      "route": "/api/solis-hybrid/decode-storage-mode",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_hybrid_compile_grid_charge",
+      "method": "post",
+      "route": "/api/solis-hybrid/compile-grid-charge",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_hybrid_compile_tou_slot",
+      "method": "post",
+      "route": "/api/solis-hybrid/compile-tou-slot",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_hybrid_compile_dispatch",
+      "method": "post",
+      "route": "/api/solis-hybrid/compile-dispatch",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solis_hybrid_decode_tou_slots",
+      "method": "post",
+      "route": "/api/solis-hybrid/decode-tou-slots",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_hybrid_decode_telemetry",
+      "method": "post",
+      "route": "/api/deye-hybrid/decode-telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_hybrid_decode_tou_schedule",
+      "method": "post",
+      "route": "/api/deye-hybrid/decode-tou-schedule",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_hybrid_compile_work_mode",
+      "method": "post",
+      "route": "/api/deye-hybrid/compile-work-mode",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_hybrid_compile_grid_charge",
+      "method": "post",
+      "route": "/api/deye-hybrid/compile-grid-charge",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_hybrid_compile_tou_slot",
+      "method": "post",
+      "route": "/api/deye-hybrid/compile-tou-slot",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_v5_encode_frame",
+      "method": "post",
+      "route": "/api/solarman-v5/encode-frame",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_v5_decode_frame",
+      "method": "post",
+      "route": "/api/solarman-v5/decode-frame",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_v5_compile_request",
+      "method": "post",
+      "route": "/api/solarman-v5/compile-request",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_v5_parse_discovery",
+      "method": "post",
+      "route": "/api/solarman-v5/parse-discovery",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "smartess_poll",
+      "method": "post",
+      "route": "/api/smartess/poll",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "smartess_command",
+      "method": "post",
+      "route": "/api/smartess/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "smartess_parse_frame",
+      "method": "post",
+      "route": "/api/smartess/parse-frame",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_multiphase_decode_telemetry",
+      "method": "post",
+      "route": "/api/growatt-multiphase/decode-telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_multiphase_compile_export_limit",
+      "method": "post",
+      "route": "/api/growatt-multiphase/compile-export-limit",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_multiphase_compile_window",
+      "method": "post",
+      "route": "/api/growatt-multiphase/compile-window",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_multiphase_decode_faults",
+      "method": "post",
+      "route": "/api/growatt-multiphase/decode-faults",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_cloud_plants",
+      "method": "post",
+      "route": "/api/growatt-cloud/plants",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_cloud_devices",
+      "method": "post",
+      "route": "/api/growatt-cloud/devices",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_cloud_sph_detail",
+      "method": "post",
+      "route": "/api/growatt-cloud/sph-detail",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "growatt_cloud_command",
+      "method": "post",
+      "route": "/api/growatt-cloud/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "eybond_collector_discover",
+      "method": "post",
+      "route": "/api/eybond-collector/discover",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "eybond_collector_parse_at",
+      "method": "post",
+      "route": "/api/eybond-collector/parse-at",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "eybond_collector_decode_pigs",
+      "method": "post",
+      "route": "/api/eybond-collector/decode-pigs",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "eybond_collector_command",
+      "method": "post",
+      "route": "/api/eybond-collector/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "goodwe_local_telemetry",
+      "method": "post",
+      "route": "/api/goodwe-local/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "goodwe_local_command",
+      "method": "post",
+      "route": "/api/goodwe-local/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "huawei_sun2000_telemetry",
+      "method": "post",
+      "route": "/api/huawei-sun2000/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "huawei_sun2000_command",
+      "method": "post",
+      "route": "/api/huawei-sun2000/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_profile_list",
+      "method": "get",
+      "route": "/api/solarman-profile/profiles",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_profile_telemetry",
+      "method": "post",
+      "route": "/api/solarman-profile/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "solarman_profile_command",
+      "method": "post",
+      "route": "/api/solarman-profile/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "sungrow_shx_info",
+      "method": "get",
+      "route": "/api/sungrow-shx/info",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "sungrow_shx_telemetry",
+      "method": "post",
+      "route": "/api/sungrow-shx/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "sungrow_shx_command",
+      "method": "post",
+      "route": "/api/sungrow-shx/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_mqtt_families",
+      "method": "get",
+      "route": "/api/deye-mqtt/families",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_mqtt_telemetry",
+      "method": "post",
+      "route": "/api/deye-mqtt/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_mqtt_command",
+      "method": "post",
+      "route": "/api/deye-mqtt/command",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/phase_d_api.py",
+      "symbol": "deye_mqtt_aggregate",
+      "method": "post",
+      "route": "/api/deye-mqtt/aggregate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/planning_configuration.py",
+      "symbol": "read_configuration",
+      "method": "get",
+      "route": "/api/sites/{site_id}/planning-configuration",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/planning_configuration.py",
+      "symbol": "save_configuration",
+      "method": "post",
+      "route": "/api/sites/{site_id}/planning-configuration",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/reports_api.py",
+      "symbol": "report_summary",
+      "method": "get",
+      "route": "/api/reports/analytics/summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/reports_api.py",
+      "symbol": "report_timeseries",
+      "method": "get",
+      "route": "/api/reports/analytics/timeseries",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/reports_api.py",
+      "symbol": "generate_report",
+      "method": "post",
+      "route": "/api/reports/generate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/reports_api.py",
+      "symbol": "recent",
+      "method": "get",
+      "route": "/api/reports/recent",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/reports_api.py",
+      "symbol": "download",
+      "method": "get",
+      "route": "/api/reports/download/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "monitor",
+      "method": "post",
+      "route": "/api/rules/{id}/monitor",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "timeline",
+      "method": "get",
+      "route": "/api/schedules/{id}/timeline",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "rollout",
+      "method": "post",
+      "route": "/api/rollouts",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "preview",
+      "method": "post",
+      "route": "/api/rollouts/{id}/preview",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "confirm",
+      "method": "post",
+      "route": "/api/rollouts/{id}/confirm",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "cancel",
+      "method": "post",
+      "route": "/api/rollouts/{id}/cancel",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/runtime.py",
+      "symbol": "detect_conflicts",
+      "method": "post",
+      "route": "/api/schedules/{id}/detect-conflicts",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/schedule_planning.py",
+      "symbol": "list_plans",
+      "method": "get",
+      "route": "/api/schedule-compilations",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/schedule_planning.py",
+      "symbol": "compile_schedule",
+      "method": "post",
+      "route": "/api/schedules/{id}/compile",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/schedule_planning.py",
+      "symbol": "prepare_rollout",
+      "method": "post",
+      "route": "/api/schedule-compilations/{id}/rollout",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/streams.py",
+      "symbol": "stream",
+      "method": "websocket",
+      "route": "/api/stream",
+      "await_count": 11,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/tariff_engine.py",
+      "symbol": "get_evn_rates",
+      "method": "get",
+      "route": "/api/tariff/evn-rates",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/tariff_engine.py",
+      "symbol": "get_site_tariff_analysis",
+      "method": "get",
+      "route": "/api/sites/{site_id}/tariff-analysis",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "providers",
+      "method": "get",
+      "route": "/api/providers",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "add_integration",
+      "method": "post",
+      "route": "/api/integrations",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "integration_enabled",
+      "method": "post",
+      "route": "/api/integrations/{id}/enabled",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "add_site",
+      "method": "post",
+      "route": "/api/sites",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "site_profile",
+      "method": "post",
+      "route": "/api/sites/{id}/profile",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "site_overview_summary",
+      "method": "get",
+      "route": "/api/sites/{id}/overview-summary",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "apply_site_quick_preset",
+      "method": "post",
+      "route": "/api/sites/{id}/quick-preset",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "site_telemetry_timeseries",
+      "method": "get",
+      "route": "/api/sites/{id}/telemetry-timeseries",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_vendor_registers_endpoint",
+      "method": "get",
+      "route": "/api/vendor-registers/{brand}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_site_diagnostics",
+      "method": "get",
+      "route": "/api/sites/{id}/diagnostics-checklist",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "update_site_diagnostics",
+      "method": "post",
+      "route": "/api/sites/{id}/diagnostics-checklist",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_site_network_status",
+      "method": "get",
+      "route": "/api/sites/{id}/network-status",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "fleet_plants_benchmarking",
+      "method": "get",
+      "route": "/api/fleet/plants-benchmarking",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "fleet_regions_summary",
+      "method": "get",
+      "route": "/api/fleet/regions-summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "fleet_map_data",
+      "method": "get",
+      "route": "/api/fleet/map-data",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "fleet_topology_summary",
+      "method": "get",
+      "route": "/api/fleet/topology-summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "site_topology_detail",
+      "method": "get",
+      "route": "/api/sites/{site_id}/topology-detail",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "fleet_devices_overview",
+      "method": "get",
+      "route": "/api/fleet/devices-overview",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "device_modbus_inspect",
+      "method": "post",
+      "route": "/api/devices/{id}/modbus-inspect",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "device_native_config_groups",
+      "method": "get",
+      "route": "/api/devices/{id}/native-config-groups",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_control_device_state",
+      "method": "get",
+      "route": "/api/control/device-state/{device_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "execute_control_command",
+      "method": "post",
+      "route": "/api/control/execute",
+      "await_count": 2,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_control_device_journal",
+      "method": "get",
+      "route": "/api/control/journal/{device_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "batch_dispatch_control",
+      "method": "post",
+      "route": "/api/control/batch-dispatch",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_safety_quarantine",
+      "method": "get",
+      "route": "/api/control/safety-quarantine",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "operations",
+      "method": "get",
+      "route": "/api/operations",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "create_record",
+      "method": "post",
+      "route": "/api/records/{kind}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "update_record",
+      "method": "post",
+      "route": "/api/records/{kind}/{id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "save_schedule",
+      "method": "post",
+      "route": "/api/schedules",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_evn_tariffs",
+      "method": "get",
+      "route": "/api/tariffs/evn-current",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "get_weekly_plan",
+      "method": "get",
+      "route": "/api/schedules/weekly-plan/{site_id}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "save_weekly_plan",
+      "method": "post",
+      "route": "/api/schedules/weekly-plan/{site_id}",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "deploy_schedule_to_hardware",
+      "method": "post",
+      "route": "/api/schedules/deploy-to-hardware",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "compatibility",
+      "method": "post",
+      "route": "/api/compatibility",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "save_rule",
+      "method": "post",
+      "route": "/api/rules",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "evaluate_rule",
+      "method": "post",
+      "route": "/api/rules/{id}/evaluate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_batch_assess",
+      "method": "post",
+      "route": "/api/ems/batch-assess",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_batch_deploy",
+      "method": "post",
+      "route": "/api/ems/batch-deploy",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_batch_campaigns",
+      "method": "get",
+      "route": "/api/ems/batch-campaigns",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_get_rules_advanced",
+      "method": "get",
+      "route": "/api/ems/rules-advanced",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_save_rule_advanced",
+      "method": "post",
+      "route": "/api/ems/rules-advanced",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_toggle_rule_advanced",
+      "method": "post",
+      "route": "/api/ems/rules-advanced/{id}/toggle",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_simulate_rule",
+      "method": "post",
+      "route": "/api/ems/rules/{id}/simulate",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "ems_execution_logs",
+      "method": "get",
+      "route": "/api/ems/execution-logs",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "commissioning",
+      "method": "post",
+      "route": "/api/commissioning",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "users",
+      "method": "get",
+      "route": "/api/users",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "add_user",
+      "method": "post",
+      "route": "/api/users",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "user_enabled",
+      "method": "post",
+      "route": "/api/users/{id}/enabled",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "report",
+      "method": "get",
+      "route": "/api/reports/telemetry",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "records_export",
+      "method": "get",
+      "route": "/api/reports/records/{kind}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "activity",
+      "method": "get",
+      "route": "/api/activity",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "site_weather",
+      "method": "get",
+      "route": "/api/weather/{site_id}",
+      "await_count": 1,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "decode_alarm_endpoint",
+      "method": "get",
+      "route": "/api/alarms/decode/{vendor}/{code}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "alarm_decoder_summary",
+      "method": "get",
+      "route": "/api/alarms/decoder-summary",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "vendor_alarm_codes",
+      "method": "get",
+      "route": "/api/alarms/vendor-codes/{vendor}",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "notification_config",
+      "method": "get",
+      "route": "/api/notifications/config",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "update_notification_config",
+      "method": "post",
+      "route": "/api/notifications/config",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "test_notification",
+      "method": "post",
+      "route": "/api/notifications/test",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "sync_health",
+      "method": "get",
+      "route": "/api/sync/health",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    },
+    {
+      "owner": "src/solar_fleet/workspaces.py",
+      "symbol": "firmware_matrix",
+      "method": "get",
+      "route": "/api/fleet/firmware-matrix",
+      "await_count": 0,
+      "audit_status": "NOT_EXHAUSTIVELY_VERIFIED"
+    }
+  ]
+}

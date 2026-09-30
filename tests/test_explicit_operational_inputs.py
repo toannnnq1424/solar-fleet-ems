@@ -200,13 +200,15 @@ def test_planning_persists_and_clears_scoped_configuration(local):
     headers = login(local)
     url = "/api/sites/sim-site/planning-configuration"
     body = configuration()
-    result = client.post(url, json=body, headers=headers)
+    revision = client.get(url).json()["revision"]
+    result = client.post(url, json={**body, "expected_revision": revision}, headers=headers)
     assert result.status_code == 200, result.text
     assert result.json()["dispatch_enabled"] is False
     assert client.get(url).json()["configuration"] == body
     assert controller.store.get("site", "sim-site")["dispatch_config"] == body["dispatch_config"]
     cleared = dict.fromkeys(body)
-    assert client.post(url, json=cleared, headers=headers).status_code == 200
+    assert client.post(url, json={**cleared, "expected_revision": result.json()["revision"]},
+                       headers=headers).status_code == 200
     assert client.get(url).json()["configuration"] == cleared
     assert controller.store.list("command") == []
 
@@ -223,6 +225,7 @@ def test_planning_scope_permissions_and_invalid_inputs(local):
                        headers=headers).status_code == 403
     headers = login(local)
     invalid = configuration()
+    invalid["expected_revision"] = client.get(url).json()["revision"]
     invalid["billing_meter_device_id"] = "other-device"
     assert client.post(url, json=invalid, headers=headers).status_code == 422
     invalid = configuration()

@@ -45,12 +45,15 @@ export async function renderEmsWorkspace(ui) {
     try {
       const data = await api(`/sites/${encodeURIComponent(currentSiteId)}/tariff-analysis`);
       tariffContainer.replaceChildren(
-        p(l("Cần biểu giá có hiệu lực tại nhà máy và số đo phản kháng cùng kỳ; không giả định giá điện hoặc công suất phản kháng.",
-          "Effective site tariffs and aligned reactive-energy measurements are required; no assumed rates or reactive power.")),
+        p(l("Ước tính từ công suất quan sát và giá khai báo, không phải hóa đơn. Không tính khoảng thiếu giá hoặc vượt ranh giới giá; chưa gồm thuế, phí, phản kháng.",
+          "Estimate from observed power and declared rates, not a bill. Missing or unaligned tariff intervals excluded; taxes, fees and reactive energy excluded.")),
         table([l("Chỉ số", "Metric"), l("Giá trị", "Value")], [
           [l("Điện nhập đo được (kWh)", "Observed import (kWh)"), number(data.observed_import_kwh)],
           [l("Độ phủ dữ liệu", "Observation coverage"), `${number(data.coverage * 100)}%`],
           [l("Tiền điện", "Bill"), number(data.total_active_bill_vnd)],
+          [l("Chi phí nhập ước tính (VND)", "Estimated import cost (VND)"), number(data.estimated_import_cost_vnd)],
+          [l("Độ phủ được định giá", "Priced coverage"), `${number(data.priced_coverage * 100)}%`],
+          [l("Nguồn giá khai báo", "Declared rate sources"), [...new Set((data.priced_intervals || []).map(v => v.source))].join("; ") || "—"],
           [l("Trạng thái", "Status"), data.status === "PARTIAL_OBSERVATIONS"
             ? l("Số đo chưa đầy đủ", "Partial observations")
             : data.status === "INSUFFICIENT_DATA" ? l("Chưa đủ dữ liệu", "Insufficient data") : t("unknown")]

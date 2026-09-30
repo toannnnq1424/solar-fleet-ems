@@ -1,15 +1,62 @@
 """Account -> encrypted credentials -> cloud adapter -> data views, using only synthetic HTTP."""
 
+import asyncio
 from datetime import timedelta
 
 import pytest
+from cryptography.fernet import Fernet
 from test_dessmonitor_adapter import CREDENTIALS, CloudFixture, adapter
 from test_workspaces import local as local
 from test_workspaces import login
 
-from solar_fleet.controller import entity_id
+from solar_fleet.controller import Controller, entity_id
 from solar_fleet.data_workspace import collection_due, connection_status
-from solar_fleet.domain import utcnow
+from solar_fleet.domain import SafetyError, utcnow
+from solar_fleet.security import Vault
+
+
+async def test_rejected_discovery_cache_requires_complete_refresh_before_poll(store):
+    cloud = CloudFixture()
+    client = adapter(cloud)
+    config = {"id": "SIMULATOR-account", "vendor": "Eybond / SmartESS", "region": "dessmonitor", "enabled": True}
+    store.put("integration", config["id"], config)
+    ctl = Controller(store, Vault(store, Fernet.generate_key()))
+    ctl.adapters[config["id"]] = client
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = client.devices
+
+    async def blocked(id):
+        rows = await original(id)
+        entered.set()
+        await release.wait()
+        return rows
+
+    try:
+        await ctl.discover(config, client)
+        assert client.inventory_ready
+        client.devices = blocked
+        task = asyncio.create_task(ctl.discover(config, client))
+        try:
+            await asyncio.wait_for(entered.wait(), 2)
+            binding = store.list("binding")[0]
+            store.put("binding", binding["id"], binding | {"telemetry_enabled": False})
+        finally:
+            release.set()
+            with pytest.raises(SafetyError, match="discovery_context_changed"):
+                await asyncio.wait_for(task, 2)
+        assert client.routes  # Transport cache exists, but is not accepted inventory.
+        assert not client.inventory_ready
+        client.devices = original
+        before = len(cloud.calls)
+        await ctl.poll()
+        actions = [query["action"][0] for _, query in cloud.calls[before:]]
+        assert "queryPlants" in actions and "queryCollectorDevices" in actions
+        assert "queryDeviceLastData" not in actions
+        assert client.inventory_ready
+        assert store.get("binding", binding["id"])["telemetry_enabled"] is False
+        assert store.list("latest") == []
+    finally:
+        await client.close()
 
 
 def connect(local):

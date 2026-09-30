@@ -30,7 +30,8 @@ class Simulator:
             device_timestamp=utcnow() - timedelta(seconds=60 if self.stale else 0),
         )
 
-    async def send(self, call):
+    async def send(self, call, *, before_send):
+        before_send()
         self.sent += 1
         self.concurrent += 1
         self.max_concurrent = max(self.max_concurrent, self.concurrent)
@@ -67,6 +68,97 @@ def setup(store, device, operator, capability):
 
 async def settle(engine):
     await asyncio.gather(*list(engine.tasks))
+
+
+@pytest.mark.parametrize("pause", ["auth", "budget"])
+@pytest.mark.parametrize("change", ["revoke", "disable", "replace", "unchanged"])
+async def test_deye_transport_wait_revalidates_before_http(
+    store, device, operator, capability, pause, change,
+):
+    from test_deye import auth, make, ok
+
+    entered, release = asyncio.Event(), asyncio.Event()
+    writes = []
+
+    async def handler(request):
+        if result := auth(request):
+            if pause == "auth":
+                entered.set()
+                await release.wait()
+            return result
+        if request.method == "POST":
+            writes.append(request)
+            return ok(orderId="SIM-ORDER", connectionStatus=1)
+        return ok(status=666)
+
+    engine, sim = setup(store, device, operator, capability)
+    engine.timeout_seconds = 5
+    transport = make(handler)
+    transport.configuration = sim.configuration
+    original_acquire = transport.budgets.acquire
+
+    async def acquire(account, devices):
+        if pause == "budget" and devices:
+            entered.set()
+            await release.wait()
+        await original_acquire(account, devices)
+
+    transport.budgets.acquire = acquire
+    engine.adapter = lambda d: transport
+    engine.compiler = lambda d, i, p: ([VendorCall(
+        path="/v1.0/order/battery/parameter/update",
+        body={"deviceSn": d.vendor_id, "paramterType": "MAX_CHARGE_CURRENT", "value": p["value"]},
+    )], {"maxChargeCurrent": p["value"]})
+    plan = await engine.preview(operator, device.id, capability.intent, {"value": 20})
+    await engine.confirm(operator, plan.id, plan.digest, "sim-transport-barrier-key")
+    try:
+        await asyncio.wait_for(entered.wait(), 2)
+        if change == "revoke":
+            engine.principal = lambda id: None
+        elif change == "disable":
+            def disabled(d):
+                raise SafetyError("integration_not_available")
+            engine.adapter = disabled
+        elif change == "replace":
+            engine.adapter = lambda d: sim
+        else:
+            sim.value = 20
+    finally:
+        release.set()
+        await settle(engine)
+        await transport.close()
+    assert len(writes) == (1 if change == "unchanged" else 0)
+    row = store.command(plan.id)
+    assert row["status"] == ("VERIFIED" if change == "unchanged" else "TIMEOUT")
+    assert store.verify_audit()
+
+
+@pytest.mark.parametrize("field", ["integration_id", "vendor_id", "logger_id", "metadata"])
+async def test_preview_binding_cannot_be_replaced_before_execution(
+    store, device, operator, capability, field,
+):
+    engine, sim = setup(store, device, operator, capability)
+    plan = await engine.preview(operator, device.id, capability.intent, {"value": 20})
+    setattr(device, field, {"route": "replacement"} if field == "metadata" else "sim-replacement")
+    await engine.confirm(operator, plan.id, plan.digest, "sim-preview-binding-key")
+    await settle(engine)
+    assert sim.sent == 0
+    assert store.command(plan.id)["error"] == "device_binding_changed"
+
+
+async def test_preview_rejects_binding_drift_during_configuration(store, device, operator, capability):
+    engine, sim = setup(store, device, operator, capability)
+    original = sim.configuration
+
+    async def changed(d):
+        result = await original(d)
+        device.integration_id = "sim-replacement"
+        return result
+
+    sim.configuration = changed
+    with pytest.raises(SafetyError, match="device_binding_changed"):
+        await engine.preview(operator, device.id, capability.intent, {"value": 20})
+    assert sim.sent == 0
 
 
 @pytest.mark.asyncio
@@ -225,6 +317,78 @@ async def test_queued_operator_revocation_is_enforced(store, device, operator, c
     engine.locks[device.id].release()
     await settle(engine)
     assert sim.sent == 0 and store.command(plan.id)["error"] == "operator_revoked"
+
+
+@pytest.mark.parametrize("change,error", [
+    ("revoke", "operator_revoked"),
+    ("role", "control_role_denied"),
+    ("scope", "site_access_denied"),
+    ("disable", "write_disabled_or_plan_expired"),
+    ("binding", "device_binding_changed"),
+])
+async def test_configuration_await_rechecks_authority_before_send(
+    store, device, operator, capability, change, error,
+):
+    engine, sim = setup(store, device, operator, capability)
+    plan = await engine.preview(operator, device.id, capability.intent, {"value": 20})
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = sim.configuration
+
+    async def blocked_configuration(d):
+        entered.set()
+        await release.wait()
+        return await original(d)
+
+    sim.configuration = blocked_configuration
+    await engine.confirm(operator, plan.id, plan.digest, "sim-await-authority-key")
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=2)
+        if change == "revoke":
+            engine.principal = lambda id: None
+        elif change == "role":
+            operator.role = Role.VIEWER
+        elif change == "scope":
+            operator.site_ids = []
+        elif change == "disable":
+            engine.writes_enabled = False
+        else:
+            device.integration_id = "sim-replacement-account"
+    finally:
+        release.set()
+        await settle(engine)
+    row = store.command(plan.id)
+    assert sim.sent == 0
+    assert row["status"] == "FAILED"
+    assert row["error"] == error
+    assert store.verify_audit()
+
+
+async def test_revocation_between_calls_stops_remaining_writes_and_quarantines(
+    store, device, operator, capability,
+):
+    engine, sim = setup(store, device, operator, capability)
+    engine.compiler = lambda d, i, p: (
+        [VendorCall(path="/simulator", body=p), VendorCall(path="/simulator", body=p)],
+        {"maxChargeCurrent": p["value"]},
+    )
+    plan = await engine.preview(operator, device.id, capability.intent, {"value": 20})
+    original = sim.order
+
+    async def revoke_after_order(id):
+        result = await original(id)
+        engine.principal = lambda id: None
+        return result
+
+    sim.order = revoke_after_order
+    await engine.confirm(operator, plan.id, plan.digest, "sim-multicall-revoke-key")
+    await settle(engine)
+    row = store.command(plan.id)
+    assert sim.sent == 1
+    assert row["status"] == "TIMEOUT"
+    assert row["error"] == "operator_revoked"
+    with pytest.raises(SafetyError, match="device_has_unresolved_command"):
+        engine.assert_clear(device.id)
+    assert store.verify_audit()
 
 
 async def test_unrelated_configuration_change_also_invalidates_preview(store, device, operator, capability):

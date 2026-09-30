@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 import pytest
+from cloud_fixture import cloud_latest
 from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
 
@@ -140,9 +141,7 @@ def test_maintenance_summary_empty_and_populated(maint_app):
         stale=False,
         binding_id="pv1_power",
     )
-    store.put(
-        "latest",
-        "dev-deye-1",
+    cloud_latest(store, "dev-deye-1",
         {
             "device_id": "dev-deye-1",
             "received_at": now.isoformat(),

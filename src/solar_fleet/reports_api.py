@@ -6,16 +6,19 @@ import base64
 import csv
 import html
 import io
+import json
 import uuid
 from datetime import datetime, timedelta
 from typing import Literal
 
-from fastapi import Depends, HTTPException, Query, Response
+from fastapi import Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from .analytics import workbook
 from .domain import utcnow
 from .operational_views import OperationalViews, period_bounds
+from .report_costs import import_cost_snapshot
+from .security import require_session_principal
 from .telemetry import energy_ratios
 
 
@@ -29,6 +32,7 @@ class ReportGenerateForm(BaseModel):
     start: datetime | None = None
     end: datetime | None = None
     email_recipient: str | None = None
+    include_import_estimate: bool = False
 
 
 def install_reports(app, controller, operator, viewer):
@@ -224,16 +228,22 @@ def install_reports(app, controller, operator, viewer):
         return {k: v for k, v in record.items() if k != "artifact_base64"}
 
     @app.post("/api/reports/generate", status_code=201)
-    async def generate_report(body: ReportGenerateForm, who=Depends(operator)):
+    async def generate_report(body: ReportGenerateForm, request: Request, who=Depends(operator)):
         if body.email_recipient:
             raise HTTPException(422, "email_delivery_not_configured")
         fmt = body.format.lower()
         if fmt not in {"csv", "excel", "html"}:
             raise HTTPException(422, "supported_formats_csv_excel_html")
-        sites = sites_for(who, body.site_id)
-        if not sites:
-            raise HTTPException(422, "empty_report_scope")
-        data = summary(sites, *bounds(sites, body.period, body.start, body.end), body.period)
+        with store.transaction():
+            require_session_principal(store, request.cookies.get("solar_session"), who)
+            sites = sites_for(who, body.site_id)
+            if not sites:
+                raise HTTPException(422, "empty_report_scope")
+            start, end = bounds(sites, body.period, body.start, body.end)
+            data = summary(sites, start, end, body.period)
+            if body.include_import_estimate:
+                data["import_cost_snapshot"] = import_cost_snapshot(
+                    store, [s["id"] for s in sites], start, end)
         title = body.title or "SolarOne energy report"
         rows = [
             {"Metric": name, "Value": data[key], "Unit": "kWh"}
@@ -245,6 +255,22 @@ def install_reports(app, controller, operator, viewer):
                 ("Self Consumption", "self_consumption_kwh"),
             )
         ]
+        if body.include_import_estimate:
+            snapshot = data["import_cost_snapshot"]
+            rows.append({"Metric": "Import estimate disclaimer", "Value": snapshot["disclaimer"], "Unit": ""})
+            for site in snapshot["sites"]:
+                rows.extend([
+                    {"Metric": "Estimated import cost: " + site["site_id"],
+                     "Value": site["estimated_import_cost_vnd"], "Unit": "VND"},
+                    {"Metric": "Priced coverage: " + site["site_id"],
+                     "Value": site["priced_coverage"], "Unit": "ratio"},
+                ])
+            # One row per input/interval avoids spreadsheet cell-length truncation.
+            for site in snapshot["sites"]:
+                for key, value in site.items():
+                    for item in value if isinstance(value, list) else [value]:
+                        rows.append({"Metric": "Import provenance: " + site["site_id"] + " / " + key,
+                                     "Value": json.dumps(item, ensure_ascii=False, sort_keys=True), "Unit": "JSON"})
         if fmt == "csv":
             stream = io.StringIO(newline="")
             writer = csv.DictWriter(stream, fieldnames=["Metric", "Value", "Unit"])
@@ -298,6 +324,7 @@ def install_reports(app, controller, operator, viewer):
             "artifact_base64": base64.b64encode(artifact).decode(),
         }
         with store.transaction():
+            require_session_principal(store, request.cookies.get("solar_session"), who)
             store.put("report_archive", id, record)
             store.audit(
                 "report",

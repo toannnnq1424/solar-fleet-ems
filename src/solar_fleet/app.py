@@ -18,12 +18,13 @@ from .administration import install_administration
 from .agent import install_agent
 from .analytics import install_analytics
 from .catalog import data, native_catalog
-from .controller import Controller
+from .controller import Controller, entity_id
 from .domain import Model, Principal, Role, SafetyError, utcnow
 from .incident_api import install_incidents
 from .management import install_management
 from .runtime import install_runtime
-from .security import new_session, redact, session_user, verify_password
+from .security import new_session, redact, require_session_principal, session_user, verify_password
+from .transport_guard import guarded_read
 from .workspaces import install_workspaces
 
 
@@ -237,32 +238,89 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         return {"samples": store.history(id), "scope": "LOCAL_RETENTION_7_DAYS"}
 
     @app.post("/api/devices/{id}/history")
-    async def vendor_history(id: str, body: HistoryQuery, who=Depends(user)):
+    async def vendor_history(id: str, body: HistoryQuery, request: Request, who=Depends(user)):
         device = authorized_device(id, who)
         if "history" not in controller.registry.describe(device.identity.vendor)["features"]:
             raise SafetyError("adapter_feature_not_implemented")
-        payload = await controller.adapter(device).history(
-            device.vendor_id, body.start, body.end, body.points
+        adapter, revalidate = vendor_read_context(device, request, who)
+        payload = await guarded_read(
+            revalidate, adapter.history, device.vendor_id, body.start, body.end, body.points
         )
+        revalidate()
         return {"source": "VENDOR_CLOUD", "quality": "UNVERIFIED", "native": redact(payload)}
 
     @app.post("/api/devices/{id}/configuration")
-    async def configuration(id: str, who=Depends(user)):
+    async def configuration(id: str, request: Request, who=Depends(user)):
         device = authorized_device(id, who)
         if "configuration" not in controller.registry.describe(device.identity.vendor)["features"]:
             raise SafetyError("adapter_feature_not_implemented")
-        return await controller.adapter(device).configuration(device)
+        adapter, revalidate = vendor_read_context(device, request, who)
+        payload = await guarded_read(revalidate, adapter.configuration, device)
+        revalidate()
+        return payload
+
+    def vendor_read_context(device, request, who):
+        adapter = controller.adapter(device)
+        config = store.get("integration", device.integration_id)
+        site = store.get("site", device.site_id)
+        binding_id = entity_id(device.integration_id, "binding", device.vendor_id)
+        binding = store.get("binding", binding_id)
+        revisions = store.object_revisions({
+            "integration": [device.integration_id], "site": [device.site_id],
+            "binding": [binding_id], "device": [device.id],
+        })
+        expected = {
+            "id": binding_id,
+            "device_id": device.id,
+            "site_id": device.site_id,
+            "integration_id": device.integration_id,
+            "vendor_device_sn": device.vendor_id,
+            "source": "VENDOR_CLOUD",
+        }
+        if (
+            not binding
+            or not binding.get("telemetry_enabled")
+            or any(binding.get(key) != value for key, value in expected.items())
+            or not config
+            or not config.get("enabled")
+            or config.get("vendor") != device.identity.vendor
+            or not site
+        ):
+            raise SafetyError("vendor_read_binding_identity_mismatch")
+
+        def revalidate():
+            session = session_user(store, request.cookies.get("solar_session"))
+            if not session:
+                raise HTTPException(401, "authentication_required")
+            current_user = session[0]
+            current_device = authorized_device(device.id, current_user)
+            if (
+                current_user != who
+                or store.object_revisions(revisions) != revisions
+                or current_device != device
+                or store.get("integration", device.integration_id) != config
+                or controller.adapters.get(device.integration_id) is not adapter
+                or store.get("binding", binding_id) != binding
+                or store.get("site", device.site_id) != site
+            ):
+                raise SafetyError("vendor_read_context_changed")
+
+        return adapter, revalidate
 
     @app.post("/api/devices/{id}/alerts")
-    async def alerts(id: str, who=Depends(user)):
+    async def alerts(id: str, request: Request, who=Depends(user)):
         device = authorized_device(id, who)
         if "alarms" not in controller.registry.describe(device.identity.vendor)["features"]:
             raise SafetyError("adapter_feature_not_implemented")
+        adapter, revalidate = vendor_read_context(device, request, who)
         end = int(utcnow().timestamp())
-        rows = await controller.adapter(device).alerts(device.vendor_id, end - 86400, end)
+        rows = await guarded_read(revalidate, adapter.alerts, device.vendor_id, end - 86400, end)
+        revalidate()
         payload = {"source": "VENDOR_CLOUD", "received_at": utcnow().isoformat(), "native": redact(rows)}
-        store.put("alerts", id, payload)
-        payload["correlation"] = controller.collect_alarms(device, rows)
+        with store.transaction():
+            revalidate()
+            store.put("alerts", id, payload)
+            payload["correlation"] = controller.collect_alarms(device, rows)
         return payload
 
     @app.get("/api/research")
@@ -275,12 +333,19 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         }
 
     @app.post("/api/plans")
-    async def preview(body: Preview, who=Depends(user)):
-        return await controller.engine.preview(who, body.device_id, body.intent, body.parameters)
+    async def preview(body: Preview, request: Request, who=Depends(user)):
+        return await controller.engine.preview(
+            who, body.device_id, body.intent, body.parameters,
+            revalidate=lambda: require_session_principal(store, request.cookies.get("solar_session"), who),
+        )
 
     @app.post("/api/commands", status_code=202)
-    async def confirm(body: Confirmation, who=Depends(user)):
-        return await controller.engine.confirm(who, body.plan_id, body.digest, body.idempotency_key)
+    async def confirm(body: Confirmation, request: Request, who=Depends(user)):
+        token = request.cookies.get("solar_session")
+        return await controller.engine.confirm(
+            who, body.plan_id, body.digest, body.idempotency_key,
+            execution_guard=lambda: require_session_principal(store, token, who),
+        )
 
     @app.get("/api/commands")
     async def commands(who=Depends(user)):

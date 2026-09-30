@@ -1,0 +1,791 @@
+{
+  "reviewed_at_utc": "2026-09-28T06:05:23.207874+00:00",
+  "root_label": "before_project",
+  "method": "sha256 of sorted UTF-8 relative-path NUL file-sha256 LF; excludes symlinks/cache/build",
+  "scope": "local presence, license-file hashes and existing selected-source locks; not legal acceptance",
+  "projects": [
+    {
+      "project": "batpred-main",
+      "present": true,
+      "files": 590,
+      "previous_files": 590,
+      "tree_sha256_path_nul_digest_lf": "3b254319d869fdfaedda40fa600ca4ac63a633fb75214e200b8d9825abe35ad4",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "License.md",
+          "sha256": "4925e1cedc47560936a7b141948539c82fe6f6be2e7be0db41f0203e65feb2ca"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "deye-inverter-mqtt-main",
+      "present": true,
+      "files": 120,
+      "previous_files": 120,
+      "tree_sha256_path_nul_digest_lf": "f88d7aa382bf710624c35b730c3947b1a752884f1fd023d2d19d1b779f460269",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "deye-modbus-ha-main",
+      "present": true,
+      "files": 26,
+      "previous_files": 26,
+      "tree_sha256_path_nul_digest_lf": "bbfad52892ff6d1204168ee4cd8022cf767a6121ae331a6986e65dde326c7615",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "dfeb80cc56eb70e24883db8b2a2e2ecbcba86abea2304804674a931a15a03e28"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "emhass-master",
+      "present": true,
+      "files": 256,
+      "previous_files": 256,
+      "tree_sha256_path_nul_digest_lf": "b2316c1d48cd98eb0530fcb1a1f388f40e71e67dbd056d2bbf43b3b391f4382e",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "64273ae3bc20885fb3b09805e1d10ece652b7a7616438d0492ca33b81e13aa96"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "esp-eybond-collector-main",
+      "present": true,
+      "files": 65,
+      "previous_files": 65,
+      "tree_sha256_path_nul_digest_lf": "1e53e4055d11a8eec69f604a1a9b15b55aeaea9980165b5d25357b37baa8d251",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "evcc-master",
+      "present": true,
+      "files": 2708,
+      "previous_files": 2708,
+      "tree_sha256_path_nul_digest_lf": "5a52c2bf743423dca3334617259d81afbe82d1cf71a9b85908ab12bda6a2ff22",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c2c931924d5eb62fc90d393e3567a5f41ae249b71ff491abd4b3999cee09f194"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "goodwe-master",
+      "present": true,
+      "files": 98,
+      "previous_files": 98,
+      "tree_sha256_path_nul_digest_lf": "604558982b0d4c0fd8212e2c69f1235345903db9a7eb527811e6832be9be45a0",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "6990219379517584f561957e20a44721211c73f28d52681fb8d3b742145a98d3"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "growatt_modbus-main",
+      "present": true,
+      "files": 30,
+      "previous_files": 30,
+      "tree_sha256_path_nul_digest_lf": "dd2cbf9ca84b3cfb98bb4ea02fc296ca3fd58db5808422e71657f0520706a99b",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "Growatt_ModbusTCP-main",
+      "present": true,
+      "files": 277,
+      "previous_files": 277,
+      "tree_sha256_path_nul_digest_lf": "a203dfdee7fb2db66d22bf05b712c6021b82b5a91603f55235d1df4a88b9d804",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "54b2d40d8394c6ad7a88596683752a34d59e8a7d2982909b936a5ef47225f8a7"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ha-dessmonitor-3b530bf34d91eef43ec2474d971019fa48c5ae16",
+      "present": true,
+      "files": 129,
+      "previous_files": 129,
+      "tree_sha256_path_nul_digest_lf": "58dc7de50a87a17ae041243991739c31cec6f6f2dfc981d6e24275d29822d67a",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "00699f652286b5ed57033aa5d6d9cf42f2a71b00295f470260bd15805fdc6cf0"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ha-eybond-local-main",
+      "present": true,
+      "files": 855,
+      "previous_files": 855,
+      "tree_sha256_path_nul_digest_lf": "96ad940e1d3c1d23fc1961dd767409488e1da8782d852d9443f31f9ffe9af32b",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ha-growatt-modbus-main",
+      "present": true,
+      "files": 37,
+      "previous_files": 37,
+      "tree_sha256_path_nul_digest_lf": "4e4aa160385bfc9b05ebf63c70d4b150921720f435b44729feffb3a9a4729231",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "b77a7bd966b752416ca35bd86090edef4a48ef3f502cab24bbc5c732236f5cbf"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ha-smartess-local-master",
+      "present": true,
+      "files": 30,
+      "previous_files": 30,
+      "tree_sha256_path_nul_digest_lf": "e91de1b0487e5865762c5daeed49ab3227b360f1cc95fba7e871561f957d6ea1",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "47051108e8d9594b1019d31b8be9e4e02fbc84050d281a3682519598a6656fac"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ha-solarman-main",
+      "present": true,
+      "files": 94,
+      "previous_files": 94,
+      "tree_sha256_path_nul_digest_lf": "7c2f8d3b46a2f5278dfa4bcbd89f56e5b2641863b00d4df41655aec64cfd48a2",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "custom_components/solarman/pysolarman/license",
+          "sha256": "22c2851dd69cc38024645a42e56f620a79e8b516fe6bf563c533b131cde90066"
+        },
+        {
+          "path": "custom_components/solarman/pysolarman/umodbus/license",
+          "sha256": "af175b9d96ee93c21a036152e1b905b0b95304d4ae8c2c921c7609100ba8df7e"
+        },
+        {
+          "path": "license",
+          "sha256": "97042f338a3225d0b2c20f1e40ba9dbc340a1ae508d1fa1032a03c52f94ddb97"
+        }
+      ],
+      "locked_files": [
+        {
+          "path": "custom_components/solarman/inverter_definitions/afore_2mppt.yaml",
+          "expected_sha256": "1f1069a1108f94d7ea778cb08f0d1ed45549d50e5fa6800c9c2a243dbdd4d79e",
+          "actual_sha256": "1f1069a1108f94d7ea778cb08f0d1ed45549d50e5fa6800c9c2a243dbdd4d79e",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/afore_BNTxxxKTL-2mppt.yaml",
+          "expected_sha256": "b03c3baf698684a5c43bfd5422501eee6a2e0bbcdbe94745af2b7491f46354f4",
+          "actual_sha256": "b03c3baf698684a5c43bfd5422501eee6a2e0bbcdbe94745af2b7491f46354f4",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/afore_hybrid.yaml",
+          "expected_sha256": "47da9b8084224d9ea23d899c8af99ecfb1d06a31ba66d99e7e95a9f2d92340ba",
+          "actual_sha256": "47da9b8084224d9ea23d899c8af99ecfb1d06a31ba66d99e7e95a9f2d92340ba",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/anenji_hybrid.yaml",
+          "expected_sha256": "0478a591a276090278236fad7db13184dbbfa17fbcebce2ee7f9a074cfb70d13",
+          "actual_sha256": "0478a591a276090278236fad7db13184dbbfa17fbcebce2ee7f9a074cfb70d13",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/astro-energy_micro.yaml",
+          "expected_sha256": "d410665e50885de32e4b3c4f771cffb544f4beb1a61c1db96888c11652c61a46",
+          "actual_sha256": "d410665e50885de32e4b3c4f771cffb544f4beb1a61c1db96888c11652c61a46",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/chint_cps-scetl.yaml",
+          "expected_sha256": "8b4442e71d7f6fd90a21c07ebc92e9293ac5ddd1f7041220c37587312eee104c",
+          "actual_sha256": "8b4442e71d7f6fd90a21c07ebc92e9293ac5ddd1f7041220c37587312eee104c",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/deye_hybrid.yaml",
+          "expected_sha256": "5ec40445fdb66cc2389f92c190eec0be40a970ef3ac0acdfd651af207716a51b",
+          "actual_sha256": "5ec40445fdb66cc2389f92c190eec0be40a970ef3ac0acdfd651af207716a51b",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/deye_micro.yaml",
+          "expected_sha256": "18d11190205f0af5c9b99dde05a0e57173743563a47e819ed52d156a8c84d816",
+          "actual_sha256": "18d11190205f0af5c9b99dde05a0e57173743563a47e819ed52d156a8c84d816",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/deye_p3.yaml",
+          "expected_sha256": "2b10a4ef79f65bed1447bc1be5553dc4d73495464b2ebbdfedf21763aba4cecd",
+          "actual_sha256": "2b10a4ef79f65bed1447bc1be5553dc4d73495464b2ebbdfedf21763aba4cecd",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/deye_string.yaml",
+          "expected_sha256": "b9d37f508e0457e5f80855cfa84b446323104d5812788af0824520d0c75725ce",
+          "actual_sha256": "b9d37f508e0457e5f80855cfa84b446323104d5812788af0824520d0c75725ce",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/hinen_hybrid.yaml",
+          "expected_sha256": "5639881e2a10afb8a431d7d9f726c982e2017d6367d29d89e366082264d1138a",
+          "actual_sha256": "5639881e2a10afb8a431d7d9f726c982e2017d6367d29d89e366082264d1138a",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/invt_xd-tl.yaml",
+          "expected_sha256": "6b7b9262a5d442fc835544372e63feb736f95fdf3ff22ca9fa5ceceaab730a48",
+          "actual_sha256": "6b7b9262a5d442fc835544372e63feb736f95fdf3ff22ca9fa5ceceaab730a48",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/kstar_hybrid.yaml",
+          "expected_sha256": "63acaaf5c85a1ce727e1afb235a8cf9001c567f91700e2bdf74208012c041d52",
+          "actual_sha256": "63acaaf5c85a1ce727e1afb235a8cf9001c567f91700e2bdf74208012c041d52",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/maxge_string.yaml",
+          "expected_sha256": "3900150dbbc0caaea926f771a73cd73e6a2c302d4ff8e8eb8935be8888b145ac",
+          "actual_sha256": "3900150dbbc0caaea926f771a73cd73e6a2c302d4ff8e8eb8935be8888b145ac",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/megarevo_r-3h.yaml",
+          "expected_sha256": "d761b4e51b0d679130650fbb986e8a3dc7a95f9801785808081dd4700ae4411e",
+          "actual_sha256": "d761b4e51b0d679130650fbb986e8a3dc7a95f9801785808081dd4700ae4411e",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/pylontech_force.yaml",
+          "expected_sha256": "db9af000655f4ff17e3aff69592b78c155476000049a38b67a894c7ac0f91c9a",
+          "actual_sha256": "db9af000655f4ff17e3aff69592b78c155476000049a38b67a894c7ac0f91c9a",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/renon_ifl.yaml",
+          "expected_sha256": "9e8558a2bb797cf14bde5c03cd2cf2ef5e12290f480f349d581b0b9bba646726",
+          "actual_sha256": "9e8558a2bb797cf14bde5c03cd2cf2ef5e12290f480f349d581b0b9bba646726",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/sofar_g3.yaml",
+          "expected_sha256": "d110b83849f489fe3310dbf4b9c6bb57ddeee695e03162f04d565c2f937c902f",
+          "actual_sha256": "d110b83849f489fe3310dbf4b9c6bb57ddeee695e03162f04d565c2f937c902f",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/sofar_g3hyd.yaml",
+          "expected_sha256": "2cd6105df7d273261a67290fd018d9d4bc8672824e656e78c284a28db92d0e27",
+          "actual_sha256": "2cd6105df7d273261a67290fd018d9d4bc8672824e656e78c284a28db92d0e27",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/sofar_hybrid.yaml",
+          "expected_sha256": "d9d1a0d49b6e65981ceb73f73e11b81cbfa3a4014447329cc650be394682124e",
+          "actual_sha256": "d9d1a0d49b6e65981ceb73f73e11b81cbfa3a4014447329cc650be394682124e",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/sofar_string.yaml",
+          "expected_sha256": "a5c2eef3b8c6a1550d512824517a3199f0ba6565742aab4044f5542a22498c40",
+          "actual_sha256": "a5c2eef3b8c6a1550d512824517a3199f0ba6565742aab4044f5542a22498c40",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solarman_dtsd422-d3.yaml",
+          "expected_sha256": "3614243ebf4855611ba92bccbec018bca511739464350dd07e089a0807fb5024",
+          "actual_sha256": "3614243ebf4855611ba92bccbec018bca511739464350dd07e089a0807fb5024",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solis_1p-5g.yaml",
+          "expected_sha256": "33e7f095f9d2530fa599d50da8548b6af1a6c8173645026a3f638d480783f6aa",
+          "actual_sha256": "33e7f095f9d2530fa599d50da8548b6af1a6c8173645026a3f638d480783f6aa",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solis_3p-4g.yaml",
+          "expected_sha256": "a9cd8703d3d4c211ef7355a59d7c7c68458b69ec2be7fcf866e399390df753fe",
+          "actual_sha256": "a9cd8703d3d4c211ef7355a59d7c7c68458b69ec2be7fcf866e399390df753fe",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solis_3p-5g.yaml",
+          "expected_sha256": "06138a87a06c37c32de3daba082c89ea7e45dcc0cdc23cfb74f10404b9843988",
+          "actual_sha256": "06138a87a06c37c32de3daba082c89ea7e45dcc0cdc23cfb74f10404b9843988",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solis_hybrid.yaml",
+          "expected_sha256": "c4e3eb3324ebd690026b0c2f0890469ef26b268863896316e6270b74ebf1b1c2",
+          "actual_sha256": "c4e3eb3324ebd690026b0c2f0890469ef26b268863896316e6270b74ebf1b1c2",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/solis_s6-gr1p.yaml",
+          "expected_sha256": "deda5f3596b80460a41fbdebaea73b9c9223afca7beacf982d9d3af22105f47e",
+          "actual_sha256": "deda5f3596b80460a41fbdebaea73b9c9223afca7beacf982d9d3af22105f47e",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/srne_asf.yaml",
+          "expected_sha256": "4026ca5454b6fce80d71508314c7911ebf275f3eae7c0af87eeb86971fba15b6",
+          "actual_sha256": "4026ca5454b6fce80d71508314c7911ebf275f3eae7c0af87eeb86971fba15b6",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/swatten_sih-th.yaml",
+          "expected_sha256": "6d47d1e4aedbc3ada8b2564bd34b11b3cd89dc63d8ebbb527d4bf61989c3fdf6",
+          "actual_sha256": "6d47d1e4aedbc3ada8b2564bd34b11b3cd89dc63d8ebbb527d4bf61989c3fdf6",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/inverter_definitions/tsun_tsol-ms.yaml",
+          "expected_sha256": "721a35e9ed72f4e00c92a6301ba84c8a7e0a7aa384fc316e2fd27d0b6605a542",
+          "actual_sha256": "721a35e9ed72f4e00c92a6301ba84c8a7e0a7aa384fc316e2fd27d0b6605a542",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/parser.py",
+          "expected_sha256": "41fa6e1eaebd14bc999119f8fbdb483cd235c497707a9684ab44b5e0605935c0",
+          "actual_sha256": "41fa6e1eaebd14bc999119f8fbdb483cd235c497707a9684ab44b5e0605935c0",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/common.py",
+          "expected_sha256": "85a5f116572c7953f2eb3da9100ae4df0a6e0ba7ce30020ceb7374da40a85184",
+          "actual_sha256": "85a5f116572c7953f2eb3da9100ae4df0a6e0ba7ce30020ceb7374da40a85184",
+          "status": "MATCH"
+        },
+        {
+          "path": "custom_components/solarman/const.py",
+          "expected_sha256": "e674449c7fd8852981aa224cc86cdcb20481a5a8522fa0022256445dda1b0c12",
+          "actual_sha256": "e674449c7fd8852981aa224cc86cdcb20481a5a8522fa0022256445dda1b0c12",
+          "status": "MATCH"
+        },
+        {
+          "path": "license",
+          "expected_sha256": "97042f338a3225d0b2c20f1e40ba9dbc340a1ae508d1fa1032a03c52f94ddb97",
+          "actual_sha256": "97042f338a3225d0b2c20f1e40ba9dbc340a1ae508d1fa1032a03c52f94ddb97",
+          "status": "MATCH"
+        }
+      ],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "home_assistant_solarman-main",
+      "present": true,
+      "files": 53,
+      "previous_files": 53,
+      "tree_sha256_path_nul_digest_lf": "d0cbd8b45a22fd613392a0bce92f5345b67bcedec7cfed1d51b2c98dd3043001",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "homeassistant-growatt-modbus-main",
+      "present": true,
+      "files": 111,
+      "previous_files": 111,
+      "tree_sha256_path_nul_digest_lf": "1003425ab4a40eb6578ecbbc2ea2c667ceb35d1e23a5f2dcc38c8a786fc03c7d",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "huawei-solar-lib-develop",
+      "present": true,
+      "files": 58,
+      "previous_files": 58,
+      "tree_sha256_path_nul_digest_lf": "416af2286f041768a6e6fd8678a8f56894d208c03860b4042057631cd8ae6fd2",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "db52e3daad9260a1cc638efaf3f6b7a6bdead236365586a60078a9a287613037"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "huawei_solar-main",
+      "present": true,
+      "files": 64,
+      "previous_files": 64,
+      "tree_sha256_path_nul_digest_lf": "e4792f570c5875687d7eb86f79c9cacd432c871f00b158e5bf041d307c30fd83",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "36f8acfb7872cdb55a00f54b806a0409baea62e3269832d14af441ea896a4955"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "ioBroker.goodwe-sems-main",
+      "present": true,
+      "files": 45,
+      "previous_files": 45,
+      "tree_sha256_path_nul_digest_lf": "91203c2a2659c9170be9670ee8c6e891bbb69a0510ca91c285a2deabaaba3424",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "75bf759cd81b633ea2282066a0e9498795beefdd86871ad044acf0d8036235bd"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "openems-develop",
+      "present": true,
+      "files": 17011,
+      "previous_files": 9161,
+      "tree_sha256_path_nul_digest_lf": "335fde6278d451fe4ed7191694ddbba3aacdc2c04400123c4298f8dec0364f59",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE-AGPL-3.0",
+          "sha256": "e0eedba615d5cd1b986afb6c5b3a4b1ae33713e7e9dc74d19daec5e3221f9d2e"
+        },
+        {
+          "path": "LICENSE-EPL-2.0",
+          "sha256": "22b203a3f2bfa35ff272ed57702d154aed8966ea0978c44ceca6658f2c60bc51"
+        },
+        {
+          "path": "ui/LICENSE",
+          "sha256": "76a97c878c9c7a8321bb395c2b44d3fe2f8d81314d219b20138ed0e2dddd5182"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "pygoodwe-main",
+      "present": true,
+      "files": 29,
+      "previous_files": 29,
+      "tree_sha256_path_nul_digest_lf": "62b9242c3b1cf01879816172d981d88889236eed08462c826c5f0447c894d3c5",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "e9942cdf6a23348a8a17433a04179998824eb9b40efb03765bb4c984f4fd485e"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "PyPi_GrowattServer-6469d881462eaa4a3b3c6e3cfa6f17082e86eaf5",
+      "present": true,
+      "files": 46,
+      "previous_files": 46,
+      "tree_sha256_path_nul_digest_lf": "26a2dbf8d36b393870f7a5ed44a034acb7e2b4a9701f04e94f89033fb3382f1a",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "9582bfa263b0af9e23b989c3fa2852965e8fd10c38159b9e93387a82b471d31f"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "pysolarmanv5-8cfe84650f48f0803c32b3c4ca061364abd9cf49",
+      "present": true,
+      "files": 40,
+      "previous_files": 40,
+      "tree_sha256_path_nul_digest_lf": "860850d1cf5315a165ad24d098b3871250ed8a4b28f18c21fb0fb040ba0dc39b",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "c7632be30ad3be116ad8c55f858da28d187d93cc28e1696e8a501d561b06bff9"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "sem-community-main",
+      "present": true,
+      "files": 891,
+      "previous_files": 891,
+      "tree_sha256_path_nul_digest_lf": "00b1fc6854047603583c6beb3c09a335e59b06854dceb330e1699cd5836f3075",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "05bea3fef21fcfa4fd20f315a7f0ff00ad392147daa3db3c8d4dcd1fa214addb"
+        }
+      ],
+      "locked_files": [
+        {
+          "path": "analytics/consumption_predictor.py",
+          "expected_sha256": "3fa0e43e4e58b5b06318d905d25d2ef95e50bbcbca091f81dbd385123fdbefb2",
+          "actual_sha256": "3fa0e43e4e58b5b06318d905d25d2ef95e50bbcbca091f81dbd385123fdbefb2",
+          "status": "MATCH"
+        },
+        {
+          "path": "LICENSE",
+          "expected_sha256": "05bea3fef21fcfa4fd20f315a7f0ff00ad392147daa3db3c8d4dcd1fa214addb",
+          "actual_sha256": "05bea3fef21fcfa4fd20f315a7f0ff00ad392147daa3db3c8d4dcd1fa214addb",
+          "status": "MATCH"
+        },
+        {
+          "path": "dashboard/card/src/cards/sem-flow-card.js",
+          "expected_sha256": "6173cd291c6618ad285d1ef399aa70e838fd7ce153cf7e775eb75cc1299e1287",
+          "actual_sha256": "6173cd291c6618ad285d1ef399aa70e838fd7ce153cf7e775eb75cc1299e1287",
+          "status": "MATCH"
+        },
+        {
+          "path": "dashboard/card/src/base/sem-shared.js",
+          "expected_sha256": "50660a1d4f2242840c15691727d4ed37cf7c0c75d4f4a0f8f6461f959dd480e2",
+          "actual_sha256": "50660a1d4f2242840c15691727d4ed37cf7c0c75d4f4a0f8f6461f959dd480e2",
+          "status": "MATCH"
+        }
+      ],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "solar-inverter-modbus-registers-main",
+      "present": true,
+      "files": 5,
+      "previous_files": 5,
+      "tree_sha256_path_nul_digest_lf": "71c73cd78273bcaecc1a146c0afc4767d8c556366612c96e2918b387a0b6148d",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "56630322aa13503b75ee5eb69ac90785442d076d6900e126327861ddbae1da98"
+        }
+      ],
+      "locked_files": [
+        {
+          "path": "supported_inverters.json",
+          "expected_sha256": "e97cc4a0bd441ba9d0c143c367644a580e7d3c189391f1a61ebc2d035e1d3d32",
+          "actual_sha256": "e97cc4a0bd441ba9d0c143c367644a580e7d3c189391f1a61ebc2d035e1d3d32",
+          "status": "MATCH"
+        },
+        {
+          "path": "LICENSE",
+          "expected_sha256": "56630322aa13503b75ee5eb69ac90785442d076d6900e126327861ddbae1da98",
+          "actual_sha256": "56630322aa13503b75ee5eb69ac90785442d076d6900e126327861ddbae1da98",
+          "status": "MATCH"
+        },
+        {
+          "path": "README.md",
+          "expected_sha256": "b6ee5a98c4e702150abc2823a3e1c853a8d4e4ef3b24a74783027dd4b571946c",
+          "actual_sha256": "b6ee5a98c4e702150abc2823a3e1c853a8d4e4ef3b24a74783027dd4b571946c",
+          "status": "MATCH"
+        }
+      ],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "solis-modbus-ha-main",
+      "present": true,
+      "files": 12,
+      "previous_files": 12,
+      "tree_sha256_path_nul_digest_lf": "889b8101100437338cd604d72ca36a3de24c232f1fee1a7ef89bbfce3089a87f",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "solis2mqtt-main",
+      "present": true,
+      "files": 17,
+      "previous_files": 17,
+      "tree_sha256_path_nul_digest_lf": "92b97d8d70f29406c5bd2a37aa1e422f3ea48938cbd1d236dd31ca7192394730",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "Sungrow-SHx-Inverter-Modbus-Home-Assistant-main",
+      "present": true,
+      "files": 67,
+      "previous_files": 67,
+      "tree_sha256_path_nul_digest_lf": "7182bc97568433928b96822cbe5af818d3d4721fcd1b0fe1e24c0a69a35e2e57",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "fd35b3f247fc7f2d61943071ad0285fbd7c1083672929d530b7f83fb029ec55f"
+        }
+      ],
+      "locked_files": [
+        {
+          "path": "modbus_sungrow.yaml",
+          "expected_sha256": "4c1580bb02cd2e6213ea5f600b0b593231841e4991b066ba08476554f50ea0b6",
+          "actual_sha256": "4c1580bb02cd2e6213ea5f600b0b593231841e4991b066ba08476554f50ea0b6",
+          "status": "MATCH"
+        },
+        {
+          "path": "LICENSE",
+          "expected_sha256": "fd35b3f247fc7f2d61943071ad0285fbd7c1083672929d530b7f83fb029ec55f",
+          "actual_sha256": "fd35b3f247fc7f2d61943071ad0285fbd7c1083672929d530b7f83fb029ec55f",
+          "status": "MATCH"
+        }
+      ],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "virtual-power-plant-main",
+      "present": true,
+      "files": 317,
+      "previous_files": 317,
+      "tree_sha256_path_nul_digest_lf": "5e405f507dedeac373055740ae791d39de61cd1168709d416b5718f33f4d4019",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ca740a9f250ed9307d20f98a4f60155ec1653c8885fea897fc2d318dc08e20ae"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    },
+    {
+      "project": "vpplib-dev",
+      "present": true,
+      "files": 117,
+      "previous_files": 117,
+      "tree_sha256_path_nul_digest_lf": "af3aca3274c80e9a91d74e0d2547fc07ea6863e0e60f03302993310cd8fc9668",
+      "historical_tree_comparison": "UNVERIFIABLE_WITHOUT_ORIGINAL_ALGORITHM",
+      "license_files": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+        }
+      ],
+      "locked_files": [],
+      "disposition": "reference-only; no new import authorized",
+      "blocker": "file/dependency license and feature-owner review required before new reuse"
+    }
+  ]
+}

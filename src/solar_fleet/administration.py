@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from pydantic import Field, SecretStr
 
-from .control import fresh
+from .control import binding_fingerprint, fresh
 from .domain import CommandStatus, Model, Role, SafetyError
-from .security import authorize_control, password_hash
+from .security import authorize_control, password_hash, session_user
+from .transport_guard import guarded_read
 
 
 class AccessChange(Model):
@@ -92,7 +93,7 @@ def install_administration(app, controller, user, admin):
         return {"command": command, "plan": plan, "events": events}
 
     @app.post("/api/commands/{id}/reconcile")
-    async def reconcile(id: str, who=Depends(user)):
+    async def reconcile(id: str, request: Request, who=Depends(user)):
         command = store.command(id)
         if not command or not who.can_access(command["site_id"]):
             raise HTTPException(404)
@@ -104,18 +105,48 @@ def install_administration(app, controller, user, admin):
         authorize_control(who, device.site_id, capability)
         if device.identity != plan.capability.identity or capability != plan.capability:
             raise SafetyError("capability_profile_changed")
+        integration = store.get("integration", device.integration_id)
+        revisions = store.revisions("integration", "device", "site", "binding")
+        adapter = controller.adapter(device)
+
+        def revalidate():
+            session = session_user(store, request.cookies.get("solar_session"))
+            if not session:
+                raise HTTPException(401, "authentication_required")
+            current_user = session[0]
+            current_device = controller.device(device.id)
+            current_capability = controller.capability(current_device, plan.intent)
+            authorize_control(current_user, current_device.site_id, current_capability)
+            if (
+                current_user != who
+                or store.revisions(*revisions) != revisions
+                or current_device != device
+                or current_device.site_id != command["site_id"]
+                or current_capability != capability
+                or not plan.binding_digest
+                or binding_fingerprint(current_device) != plan.binding_digest
+                or store.get("integration", device.integration_id) != integration
+                or controller.adapters.get(device.integration_id) is not adapter
+                or store.command(id) != command
+            ):
+                raise SafetyError("reconciliation_context_changed")
+
         async with controller.engine.locks[device.id]:
+            revalidate()
             current = store.command(id)
             if current["status"] != "TIMEOUT":
                 raise SafetyError("command_changed_reload")
             orders = json.loads(current["order_ids"])
             if not orders:
                 raise SafetyError("missing_vendor_order_manual_investigation_required")
-            adapter = controller.adapter(device)
-            outcomes = [await adapter.order(order) for order in orders]
+            outcomes = []
+            for order in orders:
+                outcomes.append(await guarded_read(revalidate, adapter.order, order))
+                revalidate()
             if any(o.state == "PENDING" for o in outcomes):
                 raise SafetyError("vendor_order_still_pending")
-            config = await adapter.configuration(device)
+            config = await guarded_read(revalidate, adapter.configuration, device)
+            revalidate()
             fresh(config, after=plan.created_at)
             if not all(key in config.values for key in plan.expected):
                 raise SafetyError("readback_fields_incomplete")

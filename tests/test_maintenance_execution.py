@@ -4,6 +4,7 @@ import sqlite3
 from datetime import timedelta
 
 import pytest
+from cloud_fixture import cloud_latest
 from test_workspaces import PASSWORD, login
 from test_workspaces import local as local
 
@@ -460,8 +461,7 @@ def test_health_reports_observation_limits_without_invented_health_or_firmware(l
         stale=False,
         binding_id="SIMULATOR",
     )
-    controller.store.put(
-        "latest", device.id, {"device_id": device.id, "samples": [sample.model_dump(mode="json")]}
+    cloud_latest(controller.store, device.id, {"device_id": device.id, "samples": [sample.model_dump(mode="json")]}
     )
     second = client.get("/api/maintenance/health").json()["items"][0]
     assert second["state"] == "OBSERVABLE" and second["verified_channels"] == 1

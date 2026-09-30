@@ -23,10 +23,29 @@ from .domain import (
 from .integration import no_mapping
 from .security import authorize_control
 from .storage import Store, encoded
+from .transport_guard import guarded_read
 
 
 def fingerprint(plan: CommandPlan) -> str:
-    return hashlib.sha256(encoded(plan.model_dump(mode="json", exclude={"digest"})).encode()).hexdigest()
+    excluded = {"digest"}
+    # Preserve the pre-scope digest of persisted kind-wide plans exactly.
+    if plan.revision_scope == "kind_wide":
+        excluded.add("revision_scope")
+    return hashlib.sha256(encoded(plan.model_dump(mode="json", exclude=excluded)).encode()).hexdigest()
+
+
+def command_selection(device: Device) -> dict[str, list[str]]:
+    # Same primary binding identity used by discovery and vendor read contexts.
+    binding_id = hashlib.sha256(
+        f"{device.integration_id}|binding|{device.vendor_id}".encode()
+    ).hexdigest()[:24]
+    return {"integration": [device.integration_id], "device": [device.id],
+            "site": [device.site_id], "binding": [binding_id]}
+
+
+def binding_fingerprint(device: Device) -> str:
+    binding = device.model_dump(mode="json", exclude={"last_seen", "online", "name"})
+    return hashlib.sha256(encoded(binding).encode()).hexdigest()
 
 
 def fresh(config: Configuration, *, after=None):
@@ -85,13 +104,48 @@ class CommandEngine:
         if row:
             raise SafetyError("device_has_unresolved_command")
 
-    async def preview(self, user: Principal, device_id: str, intent: str, parameters: dict) -> CommandPlan:
-        device = self.device(device_id)
-        capability = self.capability(device, intent)
-        self.validate(user, device, capability, parameters)
-        async with self.locks[device.id]:
+    async def preview(
+        self, user: Principal, device_id: str, intent: str, parameters: dict,
+        *, revalidate: Callable[[], None] | None = None, persist: bool = True,
+    ) -> CommandPlan:
+        with self.store.transaction():
+            device = self.device(device_id)
+            capability = self.capability(device, intent).model_copy(deep=True)
+            self.validate(user, device, capability, parameters)
+            binding_digest = binding_fingerprint(device)
+            integration = self.store.get("integration", device.integration_id)
+            revisions = self.store.object_revisions(command_selection(device))
+        adapter = self.adapter(device)
+
+        def check_context():
+            if self.store.object_revisions(revisions) != revisions:
+                raise SafetyError("authority_revision_changed")
+            if revalidate is not None:
+                revalidate()
+            current_user = self.principal(user.id)
+            if current_user is None:
+                raise SafetyError("operator_revoked")
+            if current_user._authority_revision != user._authority_revision:
+                raise SafetyError("operator_authority_changed")
+            current = self.device(device_id)
+            current_capability = self.capability(current, intent)
+            self.validate(current_user, current, current_capability, parameters)
+            if binding_fingerprint(current) != binding_digest:
+                raise SafetyError("device_binding_changed")
+            if current_capability != capability:
+                raise SafetyError("capability_profile_changed")
+            if self.store.get("integration", device.integration_id) != integration or (
+                integration is not None and not integration.get("enabled")
+            ):
+                raise SafetyError("integration_context_changed")
+            if self.adapter(current) is not adapter:
+                raise SafetyError("control_adapter_changed")
             self.assert_clear(device.id)
-            before = await self.adapter(device).configuration(device)
+
+        async with self.locks[device.id]:
+            check_context()
+            before = await guarded_read(check_context, adapter.configuration, device)
+            check_context()
             fresh(before)
             calls, expected = self.compiler(device, intent, parameters)
             if set(expected) != set(capability.readback_fields) or not set(expected) <= set(before.values):
@@ -110,6 +164,10 @@ class CommandEngine:
                 expected=expected,
                 calls=calls,
                 capability=capability,
+                binding_digest=binding_digest,
+                authority_revisions=revisions,
+                revision_scope="selected_objects_v1",
+                operator_revision=user._authority_revision,
                 created_at=now,
                 expires_at=now + timedelta(seconds=120),
                 risks=[
@@ -118,24 +176,33 @@ class CommandEngine:
                 ],
             )
             plan.digest = fingerprint(plan)
+            if persist:
+                self.persist_preview(plan)
+            return plan
+
+    def persist_preview(self, plan: CommandPlan):
+        """Persist a freshly revalidated preview; callers must not await before saving."""
+        with self.store.transaction():
             self.store.save_plan(plan)
             self.store.audit(
                 "control",
                 {
                     "event": "dry_run",
                     "plan_id": plan.id,
-                    "operator": user.id,
-                    "device_id": device.id,
-                    "intent": intent,
-                    "before": previous,
-                    "expected": expected,
+                    "operator": plan.operator_id,
+                    "device_id": plan.device_id,
+                    "intent": plan.intent,
+                    "before": plan.previous,
+                    "expected": plan.expected,
                     "plan_digest": plan.digest,
                 },
-                device.site_id,
+                plan.site_id,
             )
-            return plan
 
-    async def confirm(self, user: Principal, plan_id: str, digest: str, key: str) -> dict:
+    async def confirm(
+        self, user: Principal, plan_id: str, digest: str, key: str,
+        *, execution_guard: Callable[[], None] | None = None,
+    ) -> dict:
         if not self.writes_enabled:
             raise SafetyError("controller_is_read_only")
         plan = self.store.plan(plan_id)
@@ -153,6 +220,10 @@ class CommandEngine:
         if current != plan.capability:
             raise SafetyError("capability_profile_changed")
         existing = self.store.command(plan_id)
+        # An authorized idempotent replay retrieves its existing outcome; it does
+        # not authorize another send under a stale revision.
+        if not existing:
+            self.validate_revisions(plan)
         if not existing and utcnow() > plan.expires_at:
             raise SafetyError("plan_expired")
         try:
@@ -161,7 +232,7 @@ class CommandEngine:
             raise SafetyError("idempotency_conflict") from None
         if created:
             self.transition(plan, CommandStatus.CREATED)
-            task = asyncio.create_task(self._execute(plan))
+            task = asyncio.create_task(self._execute(plan, execution_guard=execution_guard))
             self.tasks.add(task)
             task.add_done_callback(self.tasks.discard)
         return row
@@ -184,11 +255,53 @@ class CommandEngine:
             plan.site_id,
         )
 
-    async def _execute(self, plan: CommandPlan):
+    def validate_revisions(self, plan: CommandPlan):
+        user = self.principal(plan.operator_id)
+        if user is None:
+            raise SafetyError("operator_revoked")
+        if plan.operator_revision != user._authority_revision:
+            raise SafetyError("operator_authority_changed")
+        current = (
+            self.store.object_revisions(plan.authority_revisions)
+            if plan.revision_scope == "selected_objects_v1"
+            else self.store.revisions(*plan.authority_revisions)
+        )
+        if not plan.authority_revisions or current != plan.authority_revisions:
+            raise SafetyError("authority_revision_changed")
+
+    def validate_before_send(self, plan: CommandPlan, snapshot: Device):
+        # No await between this check and adapter.send: the single-controller
+        # event loop must not reuse authority cached before network I/O.
+        if not self.writes_enabled or utcnow() > plan.expires_at:
+            raise SafetyError("write_disabled_or_plan_expired")
+        self.validate_revisions(plan)
+        user = self.principal(plan.operator_id)
+        if user is None:
+            raise SafetyError("operator_revoked")
+        device = self.device(plan.device_id)
+        capability = self.capability(device, plan.intent)
+        self.validate(user, device, capability, plan.parameters)
+        if not plan.binding_digest or binding_fingerprint(device) != plan.binding_digest:
+            raise SafetyError("device_binding_changed")
+        if capability != plan.capability or device.site_id != plan.site_id:
+            raise SafetyError("device_or_capability_changed")
+        # Heartbeats and display names may change during I/O; routing, identity
+        # and metadata must still describe the device used for configuration.
+        excluded = {"last_seen", "online", "name"}
+        if device.model_dump(exclude=excluded) != snapshot.model_dump(exclude=excluded):
+            raise SafetyError("device_binding_changed")
+        calls, expected = self.compiler(device, plan.intent, plan.parameters)
+        if calls != plan.calls or expected != plan.expected:
+            raise SafetyError("compiled_plan_changed")
+        self.assert_clear(plan.device_id, plan.id)
+
+    async def _execute(self, plan: CommandPlan, *, execution_guard: Callable[[], None] | None = None):
         sent = False
         orders = []
         try:
             async with self.locks[plan.device_id]:
+                if execution_guard is not None:
+                    execution_guard()
                 self.transition(plan, CommandStatus.VALIDATING)
                 self.assert_clear(plan.device_id, plan.id)
                 if not self.writes_enabled or utcnow() > plan.expires_at:
@@ -203,8 +316,18 @@ class CommandEngine:
                 self.validate(user, device, capability, plan.parameters)
                 if capability != plan.capability or device.site_id != plan.site_id:
                     raise SafetyError("device_or_capability_changed")
+                snapshot = device.model_copy(deep=True)
                 adapter = self.adapter(device)
-                before = await adapter.configuration(device)
+
+                def before_send():
+                    if execution_guard is not None:
+                        execution_guard()
+                    self.validate_before_send(plan, snapshot)
+                    if self.adapter(self.device(plan.device_id)) is not adapter:
+                        raise SafetyError("control_adapter_changed")
+
+                before = await guarded_read(before_send, adapter.configuration, device)
+                before_send()
                 fresh(before)
                 if any(before.values.get(k) != v for k, v in plan.previous.items()):
                     raise SafetyError("configuration_changed_since_preview")
@@ -215,24 +338,29 @@ class CommandEngine:
                 sent_at = utcnow()
                 async with asyncio.timeout(self.timeout_seconds):
                     for call in calls:
+                        self.validate_before_send(plan, snapshot)
                         self.transition(plan, CommandStatus.SENDING, orders=orders)
                         sent = True
-                        ack = await adapter.send(call)
+                        ack = await adapter.send(call, before_send=before_send)
                         orders.append(ack.order_id)
+                        before_send()
                         self.transition(plan, CommandStatus.ACCEPTED, orders=orders)
                         if not ack.online:
                             raise SafetyError("vendor_accepted_while_device_offline")
                         self.transition(plan, CommandStatus.WAITING_DEVICE, orders=orders)
                         while True:
-                            result = await adapter.order(ack.order_id)
+                            result = await guarded_read(before_send, adapter.order, ack.order_id)
+                            before_send()
                             if result.state in ("FAILED", "CANCELLED"):
                                 # A failed order does not prove that an earlier part of a multi-step write did not apply.
                                 raise SafetyError("vendor_order_failed_reconcile_required")
                             if result.state == "SUCCEEDED":
                                 break
                             await asyncio.sleep(self.poll_seconds)
+                            before_send()
                     self.transition(plan, CommandStatus.VERIFYING, orders=orders)
-                    after = await adapter.configuration(device)
+                    after = await guarded_read(before_send, adapter.configuration, device)
+                    before_send()
                     fresh(after, after=sent_at)
                     readback = {k: after.values.get(k) for k in plan.expected}
                     if readback != plan.expected:

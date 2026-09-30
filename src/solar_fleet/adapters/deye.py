@@ -14,6 +14,7 @@ from jsonschema import Draft7Validator
 from ..budgets import Budgets
 from ..catalog import data
 from ..domain import Ack, Configuration, Device, OrderResult, VendorCall, VendorError
+from ..transport_guard import check_transport_guard
 
 CONTRACTS = {row["path"]: row for row in data("deye-contract.json")}
 
@@ -96,14 +97,20 @@ class Deye:
     async def close(self):
         await self.client.aclose()
 
-    async def _http(self, method: str, path: str, body: dict | None, *, token=None, params=None) -> dict:
+    async def _http(self, method: str, path: str, body: dict | None, *, token=None, params=None, before_send=None) -> dict:
+        check_transport_guard()
         if time.monotonic() < self.cooldown_until:
             raise VendorError("vendor_backoff_active")
         devices = body.get("deviceList", []) if body else []
         if body and "deviceSn" in body:
             devices = [body["deviceSn"]]
         await self.budgets.acquire(self.account_budget_key, devices)
+        check_transport_guard()
         headers = {"Authorization": f"Bearer {token}"} if token else {}
+        # Revalidate after authentication and the budget lock, not before them.
+        # Once client.request starts, a physical outcome can no longer be ruled out.
+        if before_send is not None:
+            before_send()
         try:
             # Use a fully allowlisted host and no redirects/proxies; credentials never leave the selected region.
             response = await self.client.request(
@@ -111,6 +118,9 @@ class Deye:
             )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.ProtocolError):
             raise VendorError("vendor_network_outcome_unknown") from None
+        # Only guarded reads carry this task-local context. Sends retain ACKs
+        # before the command engine's post-send authority check.
+        check_transport_guard()
         if response.status_code == 429:
             try:
                 delay = min(3600, max(60, int(response.headers.get("Retry-After", "60"))))
@@ -139,6 +149,7 @@ class Deye:
 
     async def authenticate(self) -> str:
         async with self.auth_lock:
+            check_transport_guard()
             if self.access_token and time.monotonic() < self.expires_at:
                 return self.access_token
             c = self.credentials
@@ -256,14 +267,16 @@ class Deye:
             size=100,
         )
 
-    async def send(self, call: VendorCall) -> Ack:
+    async def send(self, call: VendorCall, *, before_send=None) -> Ack:
         if call.path not in CONTRACTS or CONTRACTS[call.path]["mode"] != "CONTROL":
             raise VendorError("control_endpoint_not_allowed")
         if call.path == "/v1.0/order/customControl":
             raise VendorError("raw_control_locked")
         self.validate(call.path, call.body)
         # Exactly one request; retrying after a timeout could dispatch a second physical action.
-        payload = await self._http("POST", call.path, call.body, token=await self.authenticate())
+        payload = await self._http(
+            "POST", call.path, call.body, token=await self.authenticate(), before_send=before_send
+        )
         order_id = payload.get("orderId")
         if not isinstance(order_id, (str, int)) or isinstance(order_id, bool) or not str(order_id):
             raise VendorError("vendor_missing_order_outcome_unknown")

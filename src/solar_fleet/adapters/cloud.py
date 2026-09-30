@@ -10,6 +10,7 @@ import httpx
 
 from ..budgets import Budgets
 from ..domain import VendorError
+from ..transport_guard import check_transport_guard
 
 
 class ReadCloud:
@@ -46,15 +47,18 @@ class ReadCloud:
             self.expires_at = 0
 
     async def http(self, path, body=None, *, headers=None, params=None, serial=None, method="POST"):
+        check_transport_guard()
         if time.monotonic() < self.cooldown_until:
             raise VendorError("vendor_backoff_active")
         await self.budgets.acquire(self.account_key, [serial] if serial else [])
+        check_transport_guard()
         try:
             response = await self.client.request(
                 method, self.host + path, content=body, headers=headers, params=params
             )
         except httpx.HTTPError:
             raise VendorError("vendor_network_outcome_unknown") from None
+        check_transport_guard()
         if response.status_code == 429:
             try:
                 delay = min(3600, max(60, int(response.headers.get("Retry-After", "60"))))

@@ -37,16 +37,20 @@ export async function renderReportWorkspace(ui) {
       series.main_chart.map(row=>[row.date,...["pv_kwh","load_kwh","grid_export_kwh"].map(k=>row[k]==null?"—":number(row[k]))]))));
   const format = select([["csv","CSV"],["excel","Excel (.xlsx)"],["html",l("HTML có thể in","Printable HTML")]],"csv");
   const outcome = div("stack");
+  const includeEstimate = select([["no",l("Không", "No")],["yes",l("Có", "Yes")]], "no");
   const generate = btn(l("Tạo báo cáo","Generate report"), async()=>{
     generate.disabled = true;
     try {
-      const record=await api("/reports/generate",{site_id:state.site||null,period,format:format.value,report_type:"energy"});
+      const record=await api("/reports/generate",{site_id:state.site||null,period,format:format.value,report_type:"energy",include_import_estimate:includeEstimate.value === "yes"});
       await download(record.download_url.replace(/^\/api/,""),"solarone-report."+record.extension);
       outcome.replaceChildren(p(l("Đã lưu báo cáo và tải tệp.","Report saved and downloaded.")));
     } catch(error) {outcome.replaceChildren(p(error.message,"bad"));}
     finally {generate.disabled=false;}
   },"primary");
-  if (operator()) root.append(card(l("Xuất báo cáo","Export report"),field(l("Định dạng","Format"),format),generate,outcome));
+  if (operator()) root.append(card(l("Xuất báo cáo","Export report"),field(l("Định dạng","Format"),format),
+    field(l("Kèm snapshot chi phí nhập ước tính", "Include import estimate snapshot"), includeEstimate),
+    p(l("Không phải hóa đơn. Lưu giá, revision và mẫu đo; tối đa 30 ngày, 20 nhà máy, 10.000 mẫu/nhà máy. Cần meter thanh toán được chọn.",
+      "Not a utility bill. Freezes rates, revisions and sample rows; maximum 30 days, 20 sites, 10,000 samples/site. Requires a selected billing meter.")),generate,outcome));
   else root.append(p(l("Cần quyền vận hành để tạo báo cáo. Có thể tải báo cáo đã lưu trong phạm vi được phép.", "Operator access is required to generate reports. Authorized archived reports remain downloadable.")));
   root.append(card(l("Báo cáo đã lưu","Report archive"),
     table([l("Tên","Title"),l("Định dạng","Format"),l("Kích thước","Size"),l("Thao tác","Action")],

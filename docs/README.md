@@ -6,6 +6,8 @@ Cập nhật 27/09/2026. Mục lục này phân biệt **code hiện có**, **th
 
 ## Sản phẩm và tiến độ hiện tại
 
+**Khi yêu cầu “tiếp tục”:** làm theo [lộ trình sửa chữa và cải tiến](remediation-roadmap.md), bắt đầu từ checkpoint đã lưu. Tài liệu này sở hữu thứ tự thực thi và tiêu chí đóng đợt, không thay thế bằng chứng triển khai/kiểm thử bên dưới.
+
 | Tài liệu | Nội dung sở hữu |
 |---|---|
 | [Implementation status](implementation-status.md) | Tóm tắt BE/FE đã nối, giới hạn pilot và phần còn thiếu |

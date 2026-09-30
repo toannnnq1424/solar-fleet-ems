@@ -325,9 +325,11 @@ async function api(path, body) {
       state.csrf = "";
       showLogin();
     }
-    throw new Error(
+    const error = new Error(
       errorText(result.error || result.detail || "request_failed"),
     );
+    error.status = response.status;
+    throw error;
   }
   return result;
 }

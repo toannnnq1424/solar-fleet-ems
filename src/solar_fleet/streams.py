@@ -120,11 +120,10 @@ def install_stream(app, controller, origins, hosts):
         connections[who.id] += 1
         try:
             await socket.accept()
-            scope = tuple(sorted(who.site_ids))
             await asyncio.wait_for(socket.send_json({"type": "ready", "cadence_seconds": 2}), 5)
             while True:
                 session = session_user(controller.store, socket.cookies.get("solar_session"))
-                if session is None or tuple(sorted(session[0].site_ids)) != scope:
+                if session is None or session[0] != who:
                     await socket.close(code=1008)
                     break
                 packet = events_since(controller.store, session[0], cursor)

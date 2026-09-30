@@ -77,6 +77,7 @@ def integrate_directional_power(rows, metric, start, end, max_gap_seconds=900):
     if invalid_timestamp:
         points = []
     intervals, seconds = [], 0.0
+    bounded_intervals = []
     for (left, a), (right, b) in zip(points, points[1:]):
         duration = (right - left).total_seconds()
         if a < 0 or b < 0 or not 0 < duration <= max_gap_seconds:
@@ -84,11 +85,14 @@ def integrate_directional_power(rows, metric, start, end, max_gap_seconds=900):
         if bisect_right(barriers, right) > bisect_left(barriers, left):
             continue
         intervals.append((left, (a + b) / 2 * duration / 3_600_000))
+        bounded_intervals.append({"start": left, "end": right, "energy_kwh": intervals[-1][1],
+                                  "start_w": a, "end_w": b})
         seconds += duration
     window = (end - start).total_seconds()
     return {
         "energy_kwh": sum(value for _, value in intervals) if intervals else None,
         "intervals": intervals,
+        "bounded_intervals": bounded_intervals,
         "covered_seconds": seconds,
         "coverage": seconds / window if window > 0 else 0.0,
         "method": "OBSERVED_TRAPEZOIDAL_NO_GAP_FILL",

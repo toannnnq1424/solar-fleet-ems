@@ -9,6 +9,7 @@ from datetime import timedelta
 
 import httpx
 import uvicorn
+from cloud_fixture import cloud_latest
 from cryptography.fernet import Fernet
 
 from solar_fleet.app import create_app
@@ -124,9 +125,9 @@ def fixture_app(port=8767):
     # Dedicated observed source for mapping browser flows; remains UNVERIFIED.
     store.put(
         "binding",
-        "SIM-MAPPING-BIND",
+        "3bf742c08373c13aa1d04d8c",
         {
-            "id": "SIM-MAPPING-BIND",
+            "id": "3bf742c08373c13aa1d04d8c",
             "device_id": "SIM-DEVICE-0",
             "site_id": "SIM-SITE-0",
             "telemetry_enabled": True,
@@ -141,14 +142,14 @@ def fixture_app(port=8767):
         source=Source.SIMULATOR,
         source_timestamp=now,
         quality="UNVERIFIED",
-        binding_id="SIM-MAPPING-BIND",
+        binding_id="3bf742c08373c13aa1d04d8c",
     )
     latest = store.get("latest", "SIM-DEVICE-0")
     latest["samples"].append(mapping_sample.model_dump(mode="json"))
     latest["native"]["dataList"].append(
         {"key": "lab_power", "title": "SIMULATOR AC flow", "value": "2.5", "unit": "kW"}
     )
-    store.put("latest", "SIM-DEVICE-0", latest)
+    cloud_latest(store, "SIM-DEVICE-0", latest)
     original = ctl.capability
 
     def capability(device, intent):
@@ -177,7 +178,8 @@ def fixture_app(port=8767):
                 values={"maxChargeCurrent": self.value}, device_timestamp=utcnow(), freshness_verified=True
             )
 
-        async def send(self, call):
+        async def send(self, call, *, before_send):
+            before_send()
             self.value = call.body["value"]
             return Ack(order_id="SIMULATOR-ORDER", online=True)
 

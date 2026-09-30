@@ -1,6 +1,7 @@
 """Synthetic account checks, read-key isolation and bounded OSS collector calls."""
 
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 
@@ -50,6 +51,52 @@ def linked(ctl):
     return config
 
 
+@pytest.mark.parametrize("pause", ["stations", "devices", "latest"])
+@pytest.mark.parametrize("change", ["session", "role", "disabled", "config", "adapter", "unchanged"])
+@pytest.mark.parametrize("alias", [False, True])
+def test_connection_check_revalidates_after_each_await(local, pause, change, alias):
+    client, ctl = local
+    config = linked(ctl)
+    headers = login(local)
+    adapter = ctl.adapters[config["id"]]
+    calls = []
+
+    for name in ("stations", "devices", "latest"):
+        original = getattr(adapter, name)
+
+        async def wrapped(*args, name=name, original=original):
+            calls.append(name)
+            result = await original(*args)
+            if name == pause:
+                if change == "session":
+                    ctl.store.db.execute("DELETE FROM sessions")
+                elif change == "role":
+                    ctl.store.db.execute("UPDATE users SET role='Viewer' WHERE id='admin'")
+                elif change in ("disabled", "config"):
+                    updated = {**config, "enabled": False} if change == "disabled" else {
+                        **config, "region": "changed",
+                    }
+                    ctl.store.put("integration", config["id"], updated)
+                elif change == "adapter":
+                    ctl.adapters[config["id"]] = type(adapter)()
+            return result
+
+        setattr(adapter, name, wrapped)
+
+    path = "/api/admin/cloud-accounts/check" if alias else f"/api/integrations/{config['id']}/check"
+    response = client.post(path, json={"account_id": config["id"]}, headers=headers)
+    if change == "unchanged":
+        assert response.status_code == 200
+        assert response.json()["state"] == "PASS"
+        assert calls == ["stations", "devices", "latest"]
+    else:
+        assert response.status_code in (401, 403, 409)
+        assert calls == ["stations", "devices", "latest"][:["stations", "devices", "latest"].index(pause) + 1]
+        assert ctl.store.get("connection_check", config["id"])["state"] != "PASS"
+        assert ctl.adapters.get(config["id"]) is not adapter
+    assert not ctl.store.commands()
+
+
 def test_accounts_overview_requires_full_admin_and_hides_secret(local):
     c, ctl = local
     linked(ctl)
@@ -76,6 +123,47 @@ def test_connection_checks_read_only_and_rate_limited(local):
     checks = {c["key"]: c for c in result.json()["checks"]}
     assert checks["sample"]["count"] == 1 and checks["control"]["state"] == "NOT_COMMISSIONED"
     assert c.post(f"/api/integrations/{config['id']}/check", json={}, headers=h).status_code == 429
+    assert not ctl.store.commands()
+
+
+@pytest.mark.parametrize("pause", ["stations", "devices", "latest"])
+def test_connection_check_holds_poll_lock_across_transport_awaits(local, pause):
+    client, ctl = local
+    config = linked(ctl)
+    headers = login(local)
+    adapter = ctl.adapters[config["id"]]
+    original = getattr(adapter, pause)
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def paused(*args):
+        entered.set()
+        await release.wait()
+        return await original(*args)
+
+    setattr(adapter, pause, paused)
+
+    async def wait():
+        await asyncio.wait_for(entered.wait(), 2)
+
+    async def finish():
+        release.set()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(client.post, f"/api/integrations/{config['id']}/check",
+                             json={}, headers=headers)
+        try:
+            client.portal.call(wait)
+            response = client.post("/api/sync", json={}, headers=headers)
+            assert response.status_code == 409
+            assert response.json()["error"] == "poll_already_running"
+            response = client.post(f"/api/integrations/{config['id']}/enabled",
+                                   json={"enabled": False}, headers=headers)
+            assert response.status_code == 409
+            assert ctl.store.get("integration", config["id"])["enabled"]
+        finally:
+            client.portal.call(finish)
+        assert future.result(timeout=5).json()["state"] == "PASS"
+    assert not ctl.poll_lock.locked()
     assert not ctl.store.commands()
 
 

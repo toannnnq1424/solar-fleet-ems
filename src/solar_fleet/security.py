@@ -66,10 +66,17 @@ class Vault:
 
     def put(self, id: str, value: dict):
         ciphertext = self.fernet.encrypt(json.dumps(value).encode())
-        self.store.db.execute(
-            "INSERT INTO secrets VALUES(?,?) ON CONFLICT(id) DO UPDATE SET ciphertext=excluded.ciphertext",
-            (id, ciphertext),
-        )
+        with self.store.transaction():
+            self.store.db.execute(
+                "INSERT INTO secrets VALUES(?,?) ON CONFLICT(id) DO UPDATE SET ciphertext=excluded.ciphertext",
+                (id, ciphertext),
+            )
+            integration = self.store.get("integration", id)
+            if integration is not None:
+                # Opaque generation, never a digest of credentials. Even A→B→A
+                # replacements invalidate captured contexts; rollback is atomic.
+                integration["credential_revision"] = secrets.token_hex(16)
+                self.store.put("integration", id, integration)
 
     def get(self, id: str) -> dict:
         row = self.store.db.execute("SELECT ciphertext FROM secrets WHERE id=?", (id,)).fetchone()
@@ -112,8 +119,12 @@ def create_user(
 
 
 def principal(store, id: str) -> Principal | None:
-    row = store.db.execute("SELECT * FROM users WHERE id=? AND active=1", (id,)).fetchone()
-    return (
+    row = store.db.execute(
+        "SELECT users.*, COALESCE(r.revision,0) AS authority_revision FROM users "
+        "LEFT JOIN security_revisions r ON r.kind='user' AND r.id=users.id "
+        "WHERE users.id=? AND active=1", (id,),
+    ).fetchone()
+    user = (
         Principal(
             id=row["id"],
             role=row["role"],
@@ -123,6 +134,9 @@ def principal(store, id: str) -> Principal | None:
         if row
         else None
     )
+    if user is not None:
+        user._authority_revision = row["authority_revision"]
+    return user
 
 
 def new_session(store, id: str) -> tuple[str, str]:
@@ -139,12 +153,26 @@ def new_session(store, id: str) -> tuple[str, str]:
 def session_user(store, token: str | None) -> tuple[Principal, str] | None:
     if not token:
         return None
-    row = store.db.execute(
-        "SELECT * FROM sessions WHERE token_hash=? AND expires>?",
-        (hashlib.sha256(token.encode()).hexdigest(), utcnow().isoformat()),
-    ).fetchone()
-    user = principal(store, row["user_id"]) if row else None
+    # One read transaction captures session and user authority consistently, also
+    # when a separate SQLite connection changes permissions concurrently.
+    with store.transaction():
+        row = store.db.execute(
+            "SELECT sessions.*, COALESCE(r.revision,0) AS session_revision FROM sessions "
+            "LEFT JOIN security_revisions r ON r.kind='session' AND r.id=sessions.token_hash "
+            "WHERE token_hash=? AND expires>?",
+            (hashlib.sha256(token.encode()).hexdigest(), utcnow().isoformat()),
+        ).fetchone()
+        user = principal(store, row["user_id"]) if row else None
+        if user is not None:
+            user._session_revision = row["session_revision"]
     return (user, row["csrf"]) if user else None
+
+
+def require_session_principal(store, token: str | None, expected: Principal):
+    """Recheck the originating session at synchronous post-await boundaries."""
+    session = session_user(store, token)
+    if session is None or session[0] != expected:
+        raise SafetyError("session_authority_changed")
 
 
 def authorize_control(user: Principal, site_id: str, capability: Capability):

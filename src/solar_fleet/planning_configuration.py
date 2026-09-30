@@ -3,8 +3,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .security import require_session_principal
 
 
 class ExplicitModel(BaseModel):
@@ -72,7 +74,14 @@ class PlanningConfiguration(ExplicitModel):
         return self
 
 
+class PlanningUpdate(PlanningConfiguration):
+    expected_revision: int = Field(ge=0)
+
+
 def install_planning_configuration(app, controller, user, admin):
+    from .import_tariffs import install_import_tariffs
+
+    install_import_tariffs(app, controller, user, admin)
     store = controller.store
 
     def scoped_site(site_id, who):
@@ -83,24 +92,31 @@ def install_planning_configuration(app, controller, user, admin):
 
     @app.get("/api/sites/{site_id}/planning-configuration")
     def read_configuration(site_id: str, who=Depends(user)):
-        site = scoped_site(site_id, who)
-        return {"configuration": {key: site.get(key) for key in PlanningConfiguration.model_fields},
-                "dispatch_enabled": False, "status": "ADVISORY_CONFIGURATION",
-                "updated_at": site.get("planning_configuration_updated_at")}
-
-    @app.post("/api/sites/{site_id}/planning-configuration")
-    def save_configuration(site_id: str, body: PlanningConfiguration, who=Depends(admin)):
-        scoped_site(site_id, who)
         with store.transaction():
             site = scoped_site(site_id, who)
+            return {"configuration": {key: site.get(key) for key in PlanningConfiguration.model_fields},
+                    "revision": store.object_revisions({"site": [site_id]})["site"][site_id],
+                    "dispatch_enabled": False, "status": "ADVISORY_CONFIGURATION",
+                    "updated_at": site.get("planning_configuration_updated_at")}
+
+    @app.post("/api/sites/{site_id}/planning-configuration")
+    def save_configuration(site_id: str, body: PlanningUpdate, request: Request, who=Depends(admin)):
+        scoped_site(site_id, who)
+        with store.transaction():
+            require_session_principal(store, request.cookies.get("solar_session"), who)
+            site = scoped_site(site_id, who)
+            revision = store.object_revisions({"site": [site_id]})["site"][site_id]
+            if body.expected_revision != revision:
+                raise HTTPException(409, "planning_configuration_changed_reload_required")
             for device_id in (body.dispatch_device_id, body.billing_meter_device_id):
                 if device_id is not None:
                     device = store.get("device", device_id)
                     if not device or device.get("site_id") != site_id:
                         raise HTTPException(422, "measurement_device_must_belong_to_site")
-            site.update(body.model_dump())
+            site.update(body.model_dump(exclude={"expected_revision"}))
             site["planning_configuration_updated_at"] = datetime.now(timezone.utc).isoformat()
             store.put("site", site_id, site)
             store.audit("security", {"event": "planning_configuration_updated", "operator": who.id,
-                                     "site_id": site_id, "dispatch_enabled": False}, site_id)
-        return read_configuration(site_id, who)
+                                     "site_id": site_id, "previous_revision": revision,
+                                     "dispatch_enabled": False}, site_id)
+            return read_configuration(site_id, who)

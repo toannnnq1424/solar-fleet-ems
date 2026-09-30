@@ -14,7 +14,7 @@ from datetime import datetime, time, timedelta
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from .domain import utcnow
@@ -319,29 +319,40 @@ def install_tariff_engine(app, controller, user):
     @app.get("/api/sites/{site_id}/tariff-analysis")
     def get_site_tariff_analysis(
         site_id: str,
+        request: Request,
         customer_class: str = "MANUFACTURING",
         voltage_tier: str = "MEDIUM_VOLTAGE_22_110KV",
         who=Depends(user),
     ):
-        site = controller.store.get("site", site_id)
-        if not site or not who.can_access(site_id):
-            raise HTTPException(404, "site_not_found")
-
+        from .import_tariffs import price_observations
         from .observed_energy import integrate_directional_power
+        from .security import require_session_principal
 
         now = utcnow()
         start = now - timedelta(days=30)
         # Do not sum overlapping inverter/meter boundaries. The billing meter
         # must be explicitly selected in site configuration.
-        meter_id = site.get("billing_meter_device_id")
-        meter = controller.store.get("device", meter_id) if meter_id else None
-        if not meter or meter.get("site_id") != site_id:
-            raise HTTPException(422, "site_billing_meter_required")
-        rows = controller.store.report_samples(meter_id, start, now, "grid_import_w", 10001)
+        with controller.store.transaction():
+            require_session_principal(controller.store, request.cookies.get("solar_session"), who)
+            site = controller.store.get("site", site_id)
+            if not site or not who.can_access(site_id):
+                raise HTTPException(404, "site_not_found")
+            meter_id = site.get("billing_meter_device_id")
+            meter = controller.store.get("device", meter_id) if meter_id else None
+            if not meter or meter.get("site_id") != site_id:
+                raise HTTPException(422, "site_billing_meter_required")
+            rows = controller.store.report_samples(meter_id, start, now, "grid_import_w", 10001)
+            revision = controller.store.object_revisions({"site": [site_id]})["site"][site_id]
         if len(rows) > 10000:
             raise HTTPException(422, "tariff_history_limit; reviewed_rollup_required")
         result = integrate_directional_power(rows, "grid_import_w", start, now)
+        costs = price_observations(result, site.get("import_tariff_versions", []))
         return {
+            **costs,
+            "site_revision": revision,
+            "method": result["method"],
+            "binding_ids": sorted({r["binding_id"] for r in rows if r.get("binding_id")}),
+            "priced_coverage": costs["priced_seconds"] / (now - start).total_seconds(),
             "site_id": site_id,
             "status": "PARTIAL_OBSERVATIONS" if result["energy_kwh"] is not None else "INSUFFICIENT_DATA",
             "meter_device_id": meter_id,
@@ -353,5 +364,5 @@ def install_tariff_engine(app, controller, user):
             "solar_savings_vnd": None,
             "power_factor_analysis": None,
             "peak_shaving_opportunity": None,
-            "reason": "Effective site tariff and aligned reactive-energy measurements required; no assumed rates or reactive power.",
+            "reason": "Observed import cost estimate only; unaligned or unpriced intervals excluded. Not a utility bill.",
         }

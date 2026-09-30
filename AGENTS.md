@@ -1,5 +1,13 @@
 # Repository workflow
 
+## Persistent continuation roadmap
+
+- For a generic "continue" / "tiếp tục" request, read `/Users/toanlamsaoduocc/Desktop/solar-fleet-ems/docs/remediation-roadmap.md` first and follow its current checkpoint, priorities, dependencies and acceptance gates. More specific current user instructions take precedence; plan mode remains read-only.
+- Verify Git state and recorded evidence instead of trusting prior conversation summaries. Complete coherent slices, record blockers without stopping independent work, and update the roadmap progress/checkpoint before ending each batch. Do not silently skip higher-priority safety/data work for cosmetic changes.
+- The roadmap does not authorize live credentials, hardware writes, production deployment or pushing. Preserve all existing safety and licensing rules below.
+
+## Implementation rules
+
 - Read docs/research-architecture-report.md, docs/implementation-status.md and the scoped vendor evidence before changing an adapter or control.
 - Do not infer protocol/register/control semantics from branding, a UI menu, a similar field name, or a public endpoint alone. Missing evidence stays UNKNOWN.
 - Default READ ONLY. Never use real credentials, hardware, browser sessions or production writes in automated tests. Simulator fixtures belong only under tests/.

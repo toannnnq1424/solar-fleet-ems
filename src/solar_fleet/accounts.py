@@ -15,7 +15,7 @@ from fastapi import Depends, HTTPException, Request
 from pydantic import Field
 
 from .domain import Model, Role, SafetyError, utcnow
-from .security import principal
+from .security import principal, session_user
 
 
 class ReadKeyForm(Model):
@@ -81,7 +81,7 @@ def install_accounts(app, controller, admin):
         }
 
     @app.post("/api/integrations/{id}/check")
-    async def check(id: str, who=Depends(admin)):
+    async def check(id: str, request: Request, who=Depends(admin)):
         config = store.get("integration", id)
         if config is None:
             raise HTTPException(404, "integration_not_found")
@@ -106,23 +106,41 @@ def install_accounts(app, controller, admin):
 
         started = time.monotonic()
         async with controller.poll_lock:
+            adapter = controller.integration_adapter(id)
+
+            def revalidate():
+                session = session_user(store, request.cookies.get("solar_session"))
+                if not session:
+                    raise HTTPException(401, "authentication_required")
+                current = session[0]
+                if current != who or current.role != Role.ADMIN or "*" not in current.site_ids:
+                    raise HTTPException(403, "admin_required")
+                if (
+                    store.get("integration", id) != config
+                    or controller.adapters.get(id) is not adapter
+                ):
+                    raise HTTPException(409, "connection_check_context_changed")
+
+            revalidate()
             store.put("connection_check", id, result)
             try:
                 async with asyncio.timeout(90):
-                    adapter = controller.integration_adapter(id)
                     stations = await adapter.stations()
+                    revalidate()
                     mark("api", "PASS")
                     mark("authentication", "PASS")
                     mark("plants", "PASS", count=len(stations))
                     if stations:
                         # One plant and at most one device sample; never actuate or scan a network.
                         found = await adapter.devices(stations[0]["id"])
+                        revalidate()
                         mark("devices", "PASS", count=len(found), scope="FIRST_PLANT")
                         if found:
                             serial = found[0].get("deviceSn")
                             if not isinstance(serial, str) or not serial:
                                 raise SafetyError("device_identity_invalid")
                             readings = await adapter.latest([serial])
+                            revalidate()
                             if any(r.get("deviceSn") != serial for r in readings):
                                 raise SafetyError("latest_response_device_mismatch")
                             count = sum(len(r.get("dataList") or []) for r in readings)
@@ -133,6 +151,10 @@ def install_accounts(app, controller, admin):
                         mark("devices", "NO_DATA")
                         mark("sample", "NO_DATA")
                     result["state"] = "PASS"
+            except HTTPException:
+                result["state"] = "FAILED"
+                result["reason"] = "connection_check_context_changed"
+                raise
             except asyncio.CancelledError:
                 result["state"] = "INTERRUPTED"
                 raise
@@ -146,6 +168,16 @@ def install_accounts(app, controller, admin):
                 result["state"] = "FAILED"
                 result["reason"] = "invalid_vendor_response"
             finally:
+                # A partial diagnostic may have populated account-specific route caches.
+                # Never reuse those caches after a failed or revoked check; do not evict
+                # a replacement adapter installed by another operation.
+                if result["state"] != "PASS":
+                    if controller.adapters.get(id) is adapter:
+                        controller.adapters.pop(id)
+                    try:
+                        await adapter.close()
+                    except Exception:
+                        pass  # Cleanup failure must not replace the authorization denial.
                 # Reading an account never proves hardware write permission or acceptance.
                 mark("control", "NOT_COMMISSIONED")
                 result["duration_ms"] = round((time.monotonic() - started) * 1000)

@@ -1,5 +1,22 @@
 # Rà soát và tái sử dụng before_project — 27/09/2026
 
+## Đối chiếu lại trên macOS — 28/09/2026
+
+Đã kiểm tra thực tế `/Users/toanlamsaoduocc/Downloads/before_project` bằng
+`scripts/reconcile_legacy.py`. [Bằng chứng từng dự án](evidence/legacy-reconciliation-2026-09-28.json)
+ghi đủ 30/30 thư mục, hash license và disposition **reference-only cho mọi import mới**;
+không thay đổi quyết định reuse đã được ghim bên dưới. Cả **43 file nguồn được ghim** trong
+model-source-lock khớp SHA-256 hiện tại. Không tải/chạy code upstream hoặc thêm dependency.
+
+29/30 dự án có số file khớp inventory cũ; OpenEMS có 17.011 thay vì 9.161 file theo bộ loại trừ
+đã ghi. Không suy ra cùng revision chỉ từ số file: original per-file manifest và thuật toán
+tree hash lịch sử không có trong checkout này. Script công bố thuật toán mới riêng, không so
+hai loại tree hash như thể tương đương. `solis-modbus-ha-main` vẫn không tìm thấy license file;
+không cho phép sao chép. Hash license không thay cho rà nghĩa vụ từng file/dependency.
+
+R04 đã có đối chiếu local tái lập; vẫn mở deep license/owner review trước reuse mới và đối chiếu
+phần OpenEMS khác biệt. Không gọi toàn bộ 30 dự án READY hoặc release sạch license.
+
 [README dự án](../README.md) · [Mục lục](README.md) · [26 mockup và LOC](mockup-coverage.md) · [Hướng dẫn kết nối](model-library-and-home-assistant.md) · [Kiểm thử đợt này](legacy-validation-2026-09-27.md)
 
 ## Phạm vi thực sự đã đọc

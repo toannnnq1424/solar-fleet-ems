@@ -21,7 +21,7 @@ import math
 import urllib.parse
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, Query, Response
+from fastapi import Depends, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -417,8 +417,8 @@ def install_admin_api(app, controller, user_dep, admin_dep, account_services):
         }
 
     @app.post("/api/admin/cloud-accounts/check")
-    async def check_cloud_account(body: dict, who=Depends(admin_dep)):
-        result = await account_services["check"](str(body.get("account_id", "")), who)
+    async def check_cloud_account(body: dict, request: Request, who=Depends(admin_dep)):
+        result = await account_services["check"](str(body.get("account_id", "")), request, who)
         return {
             **result,
             "success": result["state"] == "PASS",

@@ -6,17 +6,19 @@ import asyncio
 import hashlib
 import json
 import uuid
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from pydantic import Field
 
+from .control import binding_fingerprint
 from .domain import Model, Role, SafetyError, Sample, utcnow
 from .rules import RuleAction, RuleForm, evaluate
 from .schedule_planning import require_schedule_source
-from .security import principal
+from .security import principal, require_session_principal
 from .storage import encoded
 
 
@@ -273,6 +275,64 @@ def install_runtime(app, controller, user):
         if not all(who.can_access(id) for id in (row.get("site_ids") or [row.get("site_id")])):
             raise HTTPException(403, "site_access_denied")
 
+    def rollout_guard(id, request, who, *, execution=False):
+        token = request.cookies.get("solar_session")
+        expected = store.get("rollout", id)
+        scoped(expected, who)
+        snapshot = deepcopy(expected)
+        contexts = []
+        for target in expected["targets"]:
+            device = controller.device(target["device_id"])
+            contexts.append((
+                target, binding_fingerprint(device),
+                deepcopy(store.get("integration", device.integration_id)),
+                controller.engine.capability(device, target["intent"]).model_copy(deep=True),
+                controller.adapters.get(device.integration_id),
+                deepcopy(store.get("site", device.site_id)),
+            ))
+
+        def semantic(row):
+            return {
+                **{key: value for key, value in row.items() if key not in ("state", "targets")},
+                "targets": [
+                    {key: value for key, value in target.items()
+                     if key not in ("status", "reason", "command_id")}
+                    for target in row["targets"]
+                ],
+            }
+
+        def check():
+            require_session_principal(store, token, who)
+            current = store.get("rollout", id)
+            if execution:
+                if not current or current.get("state") not in (
+                    "CANARY_RUNNING", "CANARY_VERIFIED", "RUNNING", "VERIFIED",
+                ):
+                    raise SafetyError("rollout_execution_stopped")
+                if semantic(current) != semantic(snapshot):
+                    raise SafetyError("rollout_execution_context_changed")
+            elif current != snapshot:
+                raise SafetyError("rollout_context_changed")
+            scoped(snapshot, who)
+            require_schedule_source(store, snapshot)
+            for index, (target, binding, integration, capability, adapter, site) in enumerate(contexts):
+                device = controller.device(target["device_id"])
+                if adapter is None:
+                    adapter = controller.adapters.get(device.integration_id)
+                    contexts[index] = (target, binding, integration, capability, adapter, site)
+                if (
+                    binding_fingerprint(device) != binding
+                    or store.get("integration", device.integration_id) != integration
+                    or controller.engine.capability(device, target["intent"]) != capability
+                    or (adapter is not None and controller.adapters.get(device.integration_id) is not adapter)
+                    or store.get("site", device.site_id) != site
+                ):
+                    raise SafetyError("rollout_target_context_changed")
+                if not who.can_access(device.site_id) or device.site_id != target["site_id"]:
+                    raise SafetyError("site_access_denied")
+
+        return check
+
     @app.post("/api/rules/{id}/monitor")
     async def monitor(id: str, body: MonitorForm, who=Depends(operator)):
         rule = store.get("rule", id)
@@ -369,14 +429,17 @@ def install_runtime(app, controller, user):
         return row
 
     @app.post("/api/rollouts/{id}/preview")
-    async def preview(id: str, who=Depends(operator)):
+    async def preview(id: str, request: Request, who=Depends(operator)):
+        check = rollout_guard(id, request, who)
         async with runtime.lock:
+            check()
             row = store.get("rollout", id)
             scoped(row, who)
             require_schedule_source(store, row)
             if row["owner_id"] != who.id or row["state"] not in {"DRAFT", "PREVIEWED", "CANARY_VERIFIED"}:
                 raise SafetyError("rollout_state_or_owner_invalid")
             targets = []
+            plans = []
             for target in row["targets"]:
                 if target.get("command_id"):
                     targets.append(target)
@@ -384,21 +447,35 @@ def install_runtime(app, controller, user):
                 target = {k: v for k, v in target.items() if k not in {"plan", "reason"}}
                 try:
                     plan = await controller.engine.preview(
-                        who, target["device_id"], target["intent"], target["parameters"]
+                        who, target["device_id"], target["intent"], target["parameters"],
+                        revalidate=check, persist=False,
                     )
+                    plans.append(plan)
                     target.update(plan=plan.model_dump(mode="json"), status="READY", reason=None)
                 except SafetyError as exc:
+                    check()
                     target.update(status="BLOCKED", reason=str(exc))
                 targets.append(target)
+            check()
             row["targets"] = targets
             row["digest"] = hashlib.sha256(encoded(targets).encode()).hexdigest()
             row["state"] = "CANARY_VERIFIED" if any(t.get("command_id") for t in targets) else "PREVIEWED"
-            store.put("rollout", id, row)
+            with store.transaction():
+                for plan in plans:
+                    device = controller.device(plan.device_id)
+                    controller.engine.validate(who, device, plan.capability, plan.parameters)
+                    if utcnow() >= plan.expires_at:
+                        raise SafetyError("plan_expired")
+                    controller.engine.assert_clear(plan.device_id)
+                    controller.engine.persist_preview(plan)
+                store.put("rollout", id, row)
             return row
 
     @app.post("/api/rollouts/{id}/confirm")
-    async def confirm(id: str, body: RolloutConfirmation, who=Depends(operator)):
+    async def confirm(id: str, body: RolloutConfirmation, request: Request, who=Depends(operator)):
+        check = rollout_guard(id, request, who)
         async with runtime.lock:
+            check()
             row = store.get("rollout", id)
             scoped(row, who)
             require_schedule_source(store, row)
@@ -421,11 +498,14 @@ def install_runtime(app, controller, user):
             ):
                 raise SafetyError("rollout_preview_required_for_all_targets")
             selected = pending[:1] if body.stage == "canary" else pending
+            execution_guard = rollout_guard(id, request, who, execution=True)
+
             for target in selected:
                 plan = target["plan"]
                 try:
                     command = await controller.engine.confirm(
-                        who, plan["id"], plan["digest"], "rollout_" + plan["id"]
+                        who, plan["id"], plan["digest"], "rollout_" + plan["id"],
+                        execution_guard=execution_guard,
                     )
                     target.update(command_id=command["id"], status=command["status"])
                 except SafetyError as exc:
@@ -438,8 +518,9 @@ def install_runtime(app, controller, user):
             return row
 
     @app.post("/api/rollouts/{id}/cancel")
-    async def cancel(id: str, who=Depends(operator)):
+    async def cancel(id: str, request: Request, who=Depends(operator)):
         async with runtime.lock:
+            require_session_principal(store, request.cookies.get("solar_session"), who)
             row = store.get("rollout", id)
             scoped(row, who)
             if row["owner_id"] != who.id:

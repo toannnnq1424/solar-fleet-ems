@@ -1,5 +1,7 @@
 // Administration views share persisted accounts, site metadata and discovery.
 import { icon } from "./icons.js";
+import { planningEditor } from "./planning-editor.js";
+import { importTariffEditor } from "./import-tariff-editor.js";
 import { l, t, date, number } from "./i18n.js";
 
 export async function renderSettingsWorkspace(ctx) {
@@ -469,15 +471,10 @@ export async function renderSettingsWorkspace(ctx) {
     });
     f.finish(field(l('Chủ sở hữu', 'Owner'), entity), field(l('Hợp đồng', 'Contract'), contract), field(l('Phụ trách kỹ thuật', 'Technical contact'), notes));
     const planning = await api('/sites/' + encodeURIComponent(currentSiteId) + '/planning-configuration');
-    const planningInput = document.createElement('textarea');
-    planningInput.rows = 12;
-    planningInput.setAttribute('aria-label', 'Advisory planning configuration JSON');
-    planningInput.value = JSON.stringify(planning.configuration, null, 2);
-    const planningForm = form(async () => {
-      await api('/sites/' + encodeURIComponent(currentSiteId) + '/planning-configuration', JSON.parse(planningInput.value));
-      await refresh();
-    });
-    planningForm.finish(planningInput);
+    const planningForm = planningEditor(ctx, currentSiteId, planning);
+    const importRates = await api('/sites/' + encodeURIComponent(currentSiteId) + '/import-tariffs');
+    planningForm.append(card(l("Giá điện nhập có hiệu lực", "Effective import rates"),
+      importTariffEditor(ctx, currentSiteId, importRates)));
     return div('stack', field(t('plants'), picker),
       notice('Thông tin lưu tại đây là hồ sơ nhà máy. Điều khiển, lịch, biểu giá và nguồn dữ liệu dùng các luồng riêng bên dưới.',
         'This page stores plant records. Use the linked workflows for control, schedules, tariffs and data sources.'),
@@ -485,7 +482,7 @@ export async function renderSettingsWorkspace(ctx) {
       card(l('Ranh giới đo và cấu hình quy hoạch', 'Measurement boundaries and planning configuration'),
         p(l('Lưu cấu hình tư vấn, không kích hoạt điều khiển. Chỉ quản trị viên được lưu. Biểu giá USD cần 24 giờ UTC liên tiếp và nguồn gốc; thiếu dữ liệu đo vẫn chặn tính toán.',
           'Advisory configuration only; no dispatch enabled. Only administrators can save. USD prices require 24 consecutive UTC hours and provenance; missing observations still block calculation.')),
-        p('dispatch_config: capacity_kwh, usable_kwh, max_charge_kw, max_discharge_kw, charge_efficiency, discharge_efficiency, min_soc_pct, max_soc_pct, reserve_soc_pct, replacement_cost_usd, rated_cycle_life, currency, tariff_source, hourly_prices [{timestamp, import_per_kwh, export_per_kwh}]. Set both dispatch_device_id and dispatch_config to null to clear dispatch configuration.'),
+        p(l('Bỏ chọn thiết bị tư vấn để xóa cấu hình pin và giá; không thay đổi quyền điều khiển.', 'Choose Not configured for the advisory device to clear battery and price inputs; control permissions are unchanged.')),
         planningForm),
       card(l('Cấu hình vận hành', 'Operating configuration'), div('row wrap',
         btn(l('Biểu giá điện', 'Electricity tariffs'), () => go('reports', '', 'tariff')),

@@ -1,3 +1,132 @@
+# R03/R06/R08 follow-up — declared import rates
+
+Settings → Site configuration owns the append-only effective VND rate editor;
+EMS owns observed import cost/coverage and declared sources. Both reuse the shared
+shell and global styles, with VI/EN labels. API provides bounded interval provenance;
+optional report/export snapshots now freeze source rows, rates and revisions in
+CSV/XLSX/HTML ([evidence](evidence/report-cost-snapshot-2026-09-28.md)). This adds no sidebar/screen: the existing
+15-sidebar/26-screen matrix remains applicable. Estimate → implementation: versioned
+declared rates and interval estimates now exist; utility billing, correction workflow,
+rate supersession, archive retention and full visual/mobile acceptance remain open. Completion requires
+those workflows and release/hardware gates, not LOC. Counts regenerated with
+`scripts/measure_code.py --update-doc`; [actual verification](evidence/import-rates-2026-09-28.md).
+
+# Đợt rộng R04/R06/R09/R10/R11 — 28/09/2026
+
+Settings planning now uses labeled device/battery fields and explicit USD hourly-price JSON,
+not a whole-configuration JSON editor. BE requires the revision returned by GET; stale save
+returns 409, session authority is rechecked inside the write transaction, and audit remains atomic.
+FE preserves inputs and stops blind retry after conflicts. Advisory only: no command or billing
+acceptance. Added API and browser contracts; consolidated evidence is recorded in
+[wide-batch evidence](evidence/remediation-wide-2026-09-28.md).
+
+R04: 30 local projects reconciled, 43 locked source files match; OpenEMS inventory differs and
+Solis license remains unresolved. R11: separate browser CI job added (hosted execution pending).
+R02: alerts revalidates after acquiring persistence lock; four second-connection ABA regressions.
+The existing 15-sidebar/26-screen matrix and estimate → code → unbuilt → acceptance table remain
+applicable: effective billing, optimizer, operational recovery and full visual acceptance are still
+unbuilt/unverified, not merely waiting for credentials. No new screen or commissioned profile.
+
+# R01/R02 selected-object read fences
+
+Poll baseline follow-up: capture Device models, provenance and revisions in one synchronous transaction, released before latest I/O. Two regressions reproduced before fix; focused controller/authority 104 passed, browser 33 passed, Ruff/JS/build/diff passed. Backend pending at `/tmp/solar-poll-capture-backend.{log,exit}`. Alerts persistence lock-boundary remains a source-inspected next task; no FE or multiprocess acceptance claimed.
+
+Poll lock-boundary follow-up: repeat full context validation inside the persistence transaction. Four regressions cover selected heartbeat conflicts and second-connection ABA for returned/omitted devices. Focused 68 passed; browser 33 passed; backend independently verified 1644 passed/12 warnings, exit 0 in `/tmp/solar-poll-lock-backend.{log,exit}`. Full-body heartbeat fences remain; no FE/protocol changes or multiprocess acceptance.
+
+Command continuation: new scope-versioned plans fence selected device/site/integration/primary binding; legacy plans retain kind-wide digest semantics and non-sending replay. Full-device heartbeat invalidation remains. Eleven new synthetic cases; focused 211 passed. Browser initially 32 passed/1 maintenance timeout, unchanged full rerun 33 passed; cause unresolved. Final backend 1640 passed/12 warnings, exit 0 at `/tmp/solar-command-scope-backend.{log,exit}`. No FE/protocol or commissioned capability change; R01/R02 remain open.
+
+Discovery follow-up: selected transport integration revision replaces the integration-wide fence; shared/unknown inventory remains kind-wide. Six extra paused-network cases cover unrelated integration and selected delete/restore versus inventory ABA. No UI/protocol/control change. Browser 33 passed; final backend 1629 passed/12 warnings, exit 0 in `/tmp/solar-discovery-backend.{log,exit}`. Command revision semantics and legacy plan compatibility remain open.
+
+Follow-up storage correction: entity primary-key UPDATE now revises both old/new identity even with unchanged body; legacy trigger migration and rollback have two regressions. Final source: 1623 backend passed/12 warnings, 33 browser passed; focused 154 passed. No FE/protocol/commissioning changes; command/discovery dependency and heartbeat refinements remain open. See leading findings for artifacts and scope limits.
+
+Poll and shared HTTP vendor history/configuration/alerts now capture only selected identity revisions, preserving full-body snapshots and tombstone ABA detection. Eight new synthetic cases cover unrelated writes and storage absence/ABA/rollback/second-connection/reopen. Focused 123 passed; Ruff/JS/build/diff check passed; full-suite evidence pending in the leading findings section. No screen, FE, adapter or commissioned capability changes; the existing 26-screen inventory remains applicable. Discovery/command kind-wide fences and selected-device heartbeat invalidation remain unbuilt refinements, not closed acceptance items.
+
+# R01/R02 user/session authority batch
+
+Durable per-user/per-session SQLite revisions now fence captured principals across shared read/command/rollout/reconciliation owners; command plans retain operator revision and WebSocket closes on changed authority, including ABA. No new screen, sidebar, stylesheet, protocol mapping or commissioned control. Synthetic tests cover storage migration/rollback/reopen/second connection, unrelated identities, HTTP boundaries, post-ACK quarantine, atomic rollout preview and WebSocket. Final evidence is in the leading findings section; inventory regenerated separately from tests. Existing 26-screen estimate → code → unbuilt → acceptance tables remain applicable.
+
+Still unbuilt: exact-object entity fencing and fleet-scale availability (kind-wide heartbeat invalidation persists), complete transport/history/report/security-surface matrices, remaining background authority, restart/multiprocess/crash recovery and visual/hardware acceptance. Session snapshot reads now use a write-reserving transaction; contention is unmeasured. R01/R02 remain open.
+
+# R01/R02 consolidated authority/telemetry batch
+
+Backend now has persistent entity ABA fences for command preview/confirm/send and guarded read owners, shared ReadCloud budget/response authority checks, and cloud latest per-sample validation. Existing device/overview/EMS consumers use the same latest owner; no new FE workflow, stylesheet, sidebar or 26-screen responsibility was added. Simulator regressions cover rollback/reopen/tombstones, post-ACK quarantine, HTTP boundary counts, malformed cloud siblings and route/poll/discovery/reconciliation ABA. Final consolidated verification is recorded in remediation findings; until final artifacts are verified this batch is not a passed full-tree attestation.
+
+Verification completed: 1542 backend passed / 12 warnings, 33 browser passed, exit 0. Full runs precede the final idempotent-replay-only refinement, which passed a subsequent 185-case command-family rerun; not an exact-final-tree full-suite claim. Final Ruff/build/inventory/whitespace checks passed; 33-module JS linkage passed. No manual visual or hardware acceptance. See findings for artifact paths and initial failures.
+
+Unbuilt scope remains engineering work, not credential-only blockers: exact-object revisions (current kind-wide fences may invalidate on unrelated heartbeat), user/session ABA, remaining transports/owners and history/report consumer matrix, restart/multiprocess safety, security surface audit and hardware acceptance. Existing estimate → code → unbuilt → acceptance tables remain applicable; no LOC-based completion claim. R01/R02 stay open.
+
+# R01.20 malformed agent observation checkpoint
+
+Stored agent telemetry can no longer break device reads through malformed envelopes or invalid Sample fields; valid authorized siblings remain visible. No screen/sidebar/tab responsibility or FE code changed; no new visual/hardware acceptance claimed. Fourteen synthetic route cases; reproducer 9 failed/5 passed (one fixture corrected afterwards, no pre-fix claim), focused 43 passed/1 warning, exit 0. Ruff/JS/build passed, inventory regenerated; final backend 1501 passed/12 warnings and browser 33 passed, both exit 0 (`/tmp/solar-r0120-{backend,browser}.{log,exit}`). Cloud data and other consumers, general revision/ABA and remaining read transports are still unbuilt audit/remediation scope, not credential-only blockers. R01/R02 remain open.
+
+# R01.19 internal read/order guard checkpoint
+
+Final backend verification supersedes pending wording below: **1487 passed / 12 warnings**, exit 0 (`/tmp/solar-r0119-backend.log`, `/tmp/solar-r0119-backend.exit`), including all final additions.
+
+Task-local guards now connect preview/execution/reconciliation/configuration reads to Deye auth-lock/budget/HTTP boundaries. No FE behavior or 26-screen responsibility changed. Synthetic pre-fix 7 failed/4 passed; focused 206 passed/1 warning, browser 33 passed, exit 0. Ruff/whitespace/JS linkage/build passed; inventory regenerated. Full backend pending in `/tmp/solar-r0119-backend.log`. Other adapters/read owners, general ABA, malformed telemetry and hardware acceptance remain open; R01/R02 not closed. Findings document exact evidence and scope.
+
+# R01.18 partial checkpoint
+
+Credential replacement now updates an opaque integration revision atomically and rejects stale cached authentication. Initial backend log verified: 1455 passed / 12 warnings (no separate exit artifact). After 19 additional queued/wave/credential cases, focused suite 144 passed / 1 warning and browser 33 passed, both exit 0; no final expanded full-tree run claimed. Initial pre-fix cases: 3 failed / 1 passed; no pre-fix claim for the expansion. Ruff/whitespace/build and JS syntax/linkage passed; inventory regenerated. No FE behavior or 26-screen responsibility changed. No hardware acceptance; general ABA, internal read/order transport awaits and malformed telemetry remain open. R01/R02 not closed.
+
+## R01.17 command-origin / whole-wave context — 28/09/2026
+
+Direct confirm routes now retain originating sessions; queued rollouts recheck live context of all targets. Net 28 added cases, including two-step order-wait quarantine and real device-lock contention. Corrected pre-fix 7 failed/45 passed; focused 151 passed/1 warning, browser 33 passed; final backend 1451 passed/12 warnings, exit 0. Ruff/JS/build passed, inventory regenerated. No frontend behavior or hardware acceptance added; 26-screen responsibilities and unfinished workflow criteria unchanged. ABA/credentials/internal read transport/malformed telemetry remain open; R01/R02 not closed. See findings for exact scope.
+
+## R01.16 queued rollout safety — 28/09/2026
+
+Final backend: **1420 passed / 12 warnings**, exit 0; supersedes pending status below. Collected before the final three cases, separately passed in the 99-case focused run; not a 1423-case full-tree attestation.
+
+Queued rollout tasks now inherit origin-session/source/cancellation guards across device lock, configuration and transport/readback boundaries. Added 19 synthetic cases; focused 99 passed/1 warning, browser 33 passed; full backend pending. Ruff/JS/build passed and inventory regenerated. No new FE behavior or hardware acceptance; existing 26-screen responsibilities, estimates and unfinished-work criteria unchanged. Snapshot/ABA, credential revisions, exhaustive owner and transport-race coverage remain open. R01/R02 are not closed. See findings for artifact and fixture limitations.
+
+## R01.15 rollout request/wave safety — 28/09/2026
+
+Rollout preview now rechecks session, source and all target contexts and persists the wave atomically; confirm/cancel recheck authority after runtime.lock. Added 20 synthetic regression cases (pre-fix 15 failures / 5 controls); focused 113 passed, browser 33 passed. Final backend **1404 passed / 12 warnings**, exit 0; final-tree targeted rerun 20 passed. See findings for artifact scope and local-only limitations. No UI runtime or hardware acceptance added; 26-screen responsibilities and unfinished workflow criteria unchanged. Queued execution session/source fencing, ABA/credentials and malformed telemetry remain release-blocking; R01/R02 remain open.
+
+## R01.14 preview safety verification — 28/09/2026
+
+Final local verification: backend **1384 passed/12 warnings**, browser **33 passed**, both exit 0. Source/test/static hash check verified 264 unchanged files. These results supersede the pending-run status below; see findings for commands/artifacts and evidence limits.
+
+Preview engine now revalidates live authority/context after lock and configuration awaits; both direct HTTP preview entry points recheck the originating session before plan persistence/disclosure. Added 24 synthetic cases: pre-fix 20 failed/4 controls passed; focused post-fix control/preview/reconciliation suite 80 passed/1 warning. Ruff, JS linkage and build passed; full backend/browser results pending. No frontend runtime feature or hardware acceptance added; 26-screen responsibilities and unfinished workflow criteria remain unchanged. Rollout session/revisions, credential/ABA and malformed telemetry remain release-blocking gates. R01/R02 remain open.
+
+## R01.13 safety verification — 27/09/2026
+
+Final local results: backend **1360 passed/12 warnings**, separate browser **33 passed**, mapping **18 passed/1 warning**, all exit 0. Ruff, JS syntax/linkage and no-isolation build passed; inventory updated. Evidence limits, including an unsuccessful durable hash-manifest verification command, are recorded in findings. Python 3.14 local results do not establish CI 3.12 matrix acceptance.
+
+Account diagnostics (including admin alias), command reconciliation and weather/site overview now revalidate authority/context after vendor awaits. Failed account checks discard their adapter cache; denied reconciliation retains TIMEOUT quarantine. Latest reads reject stale caller Device before cloud/agent fallback. Synthetic regressions reproduce four confirmed gaps (RF-014–017); focused suites: 131 passed/12 warnings and 16 passed/1 warning. Final full-suite evidence is recorded in remediation-findings.md. No new frontend feature or hardware acceptance; unchanged 26-screen ownership/incomplete-workflow tables remain applicable. Preview/rollout authority, credential/ABA revisions, malformed samples and complete owner audit remain open release gates, not merely a need for credentials.
+
+## R01.12 safety verification — 27/09/2026
+
+Cloud latest read rejects inconsistent envelope/sample provenance and disabled current integration/binding, including native payload. Ingest stores site/binding; legacy snapshots remain NO_DATA until valid poll. Eleven failing reproducers now pass; focused 82 passed/1 warning. Final backend 1305 passed/12 warnings; browser 33 passed; Ruff, JS linkage, build, inventory and diff checks passed. Explicit synthetic cloud fixtures replace provenance-less test snapshots, without production bypass. No FE runtime capability or hardware acceptance added. Evidence in remediation-findings.md; access-check and direct store consumers remain open.
+
+## R01.11 safety verification — 27/09/2026
+
+Poll now validates device vendor and site id/vendor/source before transport and rejects selected-site changes across latest await. Five failing reproducers now pass; controller 41 passed, browser 33 passed. Ruff, JS syntax/linkage, build and inventory update passed. No FE or hardware capability added; cloud latest read provenance and access-check context/session/cache remain open. Backend full-suite result is recorded in remediation-findings.md.
+
+## R01.10 safety verification — 27/09/2026
+
+History/configuration now share alerts' pre-read context validation and post-await live session/scope/provenance revalidation (RF-013). Event barriers reproduced 14 failures before fix; unchanged controls pass. Three access-check barrier controls verify poll/disable route exclusion at stations/devices/latest, not complete DessMonitor cache correctness. Final focused 51 passed/1 warning, backend 1288 passed/12 warnings, browser separately 33 passed; Ruff, JS syntax/linkage, build, inventory and diff checks passed. No FE/commissioned capability changes or visual/hardware acceptance. R01.11 retains poll site/vendor identity, cloud latest and access-check context/session/cache audit.
+
+# R01.9 safety verification — 27/09/2026
+
+Alerts now reject changed authorization/integration/device/binding context after transport await; raw alerts and incident correlation persist atomically. Agent latest filters current device allowlist, snapshot site, sample device/binding/source. Synthetic regressions: 10 pre-fix failures plus two unchanged controls; final focused 49 passed, backend 1268 passed (12 warnings), browser separately 33 passed. Ruff/JS syntax/build/inventory/diff checks passed. No FE workflow or hardware capability added. Access-check/cache concurrency, poll site/vendor identity and cloud latest/history/configuration provenance remain open (R01.10); see remediation-findings.md RF-011/012. No production or visual acceptance implied.
+
+# Control safety remediation — 27/09/2026
+
+R01.8 rejects pre-existing cloud binding identity mismatches before latest requests and rolls back the entire latest persistence batch on decode/storage failure. Added 17 regression cases, including real DessMonitor with synthetic HTTP proving rejected discovery requires cache refresh before poll. Final backend 1256 passed (12 warnings), browser separately 33 passed, focused 45 passed (1 warning); Ruff/JS/build/inventory/diff verified. Covers final R01.7 refinements; no new UI/hardware acceptance. Alarm/agent/latest-read provenance, concurrent access-check and site-row/vendor identity remain audit work.
+
+R01.7 stages discovery reads, revalidates context after each await and commits inventory atomically. Rediscovery preserves telemetry disable; poll excludes disabled/missing bindings and skips empty latest calls. Eleven regression cases added; final controller suite 20 passed. No FE screen or hardware capability added. Adapter internal cache, pre-existing binding identity mismatch and latest batch atomicity remain open; full-suite snapshot limitations are recorded in the findings register.
+
+R01.6 guards poll persistence against integration/adapter/device/binding changes during latest await, including missing-device responses. Six poll and three existing-session report scope tests added. Backend 1228 passed (12 warnings); browser separately 33 passed; Ruff/JS/build/inventory verified. No UI screens or hardware capabilities added. Discovery awaits, pre-disabled telemetry bindings and full batch atomicity remain outside this acceptance.
+
+R01.5 adds two real integration-disable route/controller tests with Deye MockTransport (authentication and budget barriers): no control request, adapter cache removed, TIMEOUT/quarantine retained. Focused backend validation: 99 passed, 1 warning; no runtime/UI changes or new full-suite/browser acceptance in this batch.
+
+R01.4 extends the engine guard through Deye authentication/budget awaits to the HTTP request boundary; eight transport-barrier cases pass, full backend 1217 and browser 33 passed. Browser simulator follows the callback contract; no FE screen, vendor mapping or hardware capability added. Route-level integration-disable concurrency and HTTP-client internal awaits remain outside this slice's acceptance.
+
+R01.3 adds a persisted preview binding fingerprint and five simulator regressions; no new FE screen or commissioned capability. Transport auth/budget-await revocation remains open as RF-006 in the remediation findings. The 26-screen feature inventory and unbuilt scope are unchanged.
+
+RF-002 engine slice: revalidate current authority/binding immediately before each send; six simulator regressions, 1204 backend and 33 browser tests passed. No screen, FE workflow or hardware capability added. Existing 26-screen inventory and unbuilt acceptance scope remain unchanged. See [remediation findings](remediation-findings.md) for evidence and remaining transport/preview boundaries.
+
 # Verified continuation — shared observation time and EMS VI/EN
 
 Account-form follow-up: [VI/EN vendor forms](vendor-form-localization-2026-09-27.md)
@@ -270,20 +399,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-09-27T14:06:15.551579+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-09-28T06:38:46.862413+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 115 | 41,593 | 36,315 |
-| Frontend JavaScript | 33 | 16,996 | 16,061 |
+| Backend Python | 118 | 42,487 | 37,143 |
+| Frontend JavaScript | 35 | 17,125 | 16,188 |
 | Frontend CSS / HTML | 2 | 6,020 | 5,509 |
-| Test BE / simulator / fixture | 89 | 18,370 | 15,580 |
-| Test UI / browser fixture | 11 | 1,002 | 909 |
-| Scripts tự viết | 3 | 518 | 478 |
-| **Tổng FE (JS + CSS/HTML)** | **35** | **23,016** | **21,570** |
-| **Tổng code ứng dụng BE + FE** | **150** | **64,609** | **57,885** |
-| **Tổng test / simulator / fixture** | **100** | **19,372** | **16,489** |
-| **Tổng code ứng dụng + test + scripts** | **253** | **84,499** | **74,852** |
+| Test BE / simulator / fixture | 109 | 21,042 | 17,893 |
+| Test UI / browser fixture | 14 | 1,090 | 982 |
+| Scripts tự viết | 4 | 598 | 546 |
+| **Tổng FE (JS + CSS/HTML)** | **37** | **23,145** | **21,697** |
+| **Tổng code ứng dụng BE + FE** | **155** | **65,632** | **58,840** |
+| **Tổng test / simulator / fixture** | **123** | **22,132** | **18,875** |
+| **Tổng code ứng dụng + test + scripts** | **282** | **88,362** | **78,261** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

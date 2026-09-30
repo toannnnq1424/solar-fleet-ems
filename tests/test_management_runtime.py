@@ -8,6 +8,7 @@ from xml.etree import ElementTree
 
 import httpx
 import pytest
+from cloud_fixture import cloud_latest
 from test_workspaces import local as local
 from test_workspaces import login
 
@@ -168,7 +169,7 @@ def test_monitor_hold_restarts_after_observation_gap_and_never_dispatches(local)
         source_timestamp=now,
         binding_id="SIM",
     )
-    ctl.store.put("latest", "sim-device", {"samples": [sample.model_dump(mode="json")]})
+    cloud_latest(ctl.store, "sim-device", {"samples": [sample.model_dump(mode="json")]})
     for delta in [0, 15, 90, 105]:
         runtime.monitors(now + timedelta(seconds=delta))
     assert not ctl.store.list("rule_run")
@@ -373,10 +374,10 @@ def test_energy_never_accepts_wrong_unit_or_two_physical_meters(local):
         source_timestamp=now,
         binding_id="SIM",
     )
-    ctl.store.put("latest", "sim-device", {"samples": [sample.model_dump(mode="json")]})
+    cloud_latest(ctl.store, "sim-device", {"samples": [sample.model_dump(mode="json")]})
     assert c.get("/api/sites/sim-site/energy").json()["metrics"]["pv_w"]["value"] is None
     sample.unit = "W"
-    ctl.store.put("latest", "sim-device", {"samples": [sample.model_dump(mode="json")]})
+    cloud_latest(ctl.store, "sim-device", {"samples": [sample.model_dump(mode="json")]})
     assert c.get("/api/sites/sim-site/energy").json()["metrics"]["pv_w"]["value"] == 220
 
 

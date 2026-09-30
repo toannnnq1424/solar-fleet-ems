@@ -5,6 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from cloud_fixture import cloud_latest
 from cryptography.fernet import Fernet
 from starlette.websockets import WebSocketDisconnect
 from test_workspaces import ORIGIN, login
@@ -134,8 +135,8 @@ def binding(local):
     c, ctl = local
     ctl.store.put(
         "binding",
-        "SIM-BIND",
-        {"id": "SIM-BIND", "device_id": "sim-device", "site_id": "sim-site", "telemetry_enabled": True},
+        "69967848e4a53e16df385645",
+        {"id": "69967848e4a53e16df385645", "device_id": "sim-device", "site_id": "sim-site", "telemetry_enabled": True},
     )
     sample = Sample(
         device_id="sim-device",
@@ -145,10 +146,9 @@ def binding(local):
         source=Source.CLOUD,
         source_timestamp=utcnow(),
         quality="UNVERIFIED",
-        binding_id="SIM-BIND",
+        binding_id="69967848e4a53e16df385645",
     )
-    ctl.store.put(
-        "latest", "sim-device", {"device_id": "sim-device", "samples": [sample.model_dump(mode="json")]}
+    cloud_latest(ctl.store, "sim-device", {"device_id": "sim-device", "samples": [sample.model_dump(mode="json")]}
     )
     return c, ctl
 
@@ -157,7 +157,7 @@ def draft():
     return {
         "device_id": "sim-device",
         "name": "Lab mapping",
-        "binding_id": "SIM-BIND",
+        "binding_id": "69967848e4a53e16df385645",
         "mappings": [
             {"source_key": "lab.power", "source_unit": "kW", "metric": "pv_w", "direction": "nonnegative"}
         ],
@@ -217,7 +217,7 @@ def test_mapping_scope_identity_and_binding_revocation(local):
     ctl.store.put("device", d["id"], d)
     assert c.post(path + "/simulate", json={}, headers=h).json()["error"] == "mapping_identity_changed"
     ctl.store.put(
-        "binding", "SIM-BIND", {"device_id": "sim-device", "site_id": "sim-site", "telemetry_enabled": False}
+        "binding", "69967848e4a53e16df385645", {"device_id": "sim-device", "site_id": "sim-site", "telemetry_enabled": False}
     )
     assert c.post("/api/mappings", json=draft(), headers=h).status_code == 409
 
@@ -341,13 +341,22 @@ def test_websocket_auth_origin_scope_and_no_command_channel(local):
     assert ctl.store.commands() == []
 
 
-def test_websocket_revokes_existing_stream_after_session_deleted(local):
+@pytest.mark.parametrize("change", ["delete", "scope_aba", "permission_aba", "session_aba"])
+def test_websocket_revokes_existing_stream_after_session_deleted(local, change):
+    from test_security_revision_fences import security_aba
+
     c, ctl = local
     login(local, "viewer")
     with c.websocket_connect("ws://127.0.0.1:8765/api/stream", headers={"Origin": ORIGIN}) as ws:
         ws.receive_json()
         ws.receive_json()
-        ctl.store.db.execute("DELETE FROM sessions")
+        def revoke():
+            if change == "delete":
+                ctl.store.db.execute("DELETE FROM sessions")
+            else:
+                security_aba(ctl.store, "viewer", change)
+
+        c.portal.call(revoke)
         ws.send_text("ping")
         with pytest.raises(WebSocketDisconnect) as exc:
             ws.receive_json()

@@ -11,7 +11,7 @@ def create_mapping(page, origin):
     page.get_by_role("button", name="Create mapping", exact=True).click()
     dialog = page.get_by_role("dialog")
     dialog.get_by_label("Mapping name", exact=True).fill("SIMULATOR grid mapping")
-    expect(dialog.get_by_label("Data connection", exact=True)).to_have_value("SIM-MAPPING-BIND")
+    expect(dialog.get_by_label("Data connection", exact=True)).to_have_value("3bf742c08373c13aa1d04d8c")
     expect(dialog).to_contain_text("SIMULATOR AC flow")
     dialog.get_by_role("button", name="Add mapping row", exact=True).click()
     dialog.get_by_label("Source field", exact=True).select_option("deye.lab_power\nkW")
