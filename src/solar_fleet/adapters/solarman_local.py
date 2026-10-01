@@ -21,7 +21,7 @@ import time
 
 from .interfaces import TelemetrySnapshot
 from .modbus_local import _plan_read_blocks
-from .modbus_profiles import decode_registers, get_register_map
+from .modbus_profiles import decode_registers, get_exact_profile, get_register_map
 from .solarman_v5 import SolarmanV5Frame
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,7 @@ class SolarmanV5Poller:
         model_series: str = "",
         timeout: float = 5.0,
         request_delay: float = 0.1,
+        exact_profile: bool = True,
     ):
         self.device_id = device_id
         self.address = address
@@ -71,6 +72,7 @@ class SolarmanV5Poller:
         self.model_series = model_series
         self.timeout = timeout
         self.request_delay = request_delay
+        self.exact_profile = exact_profile
 
     def _blocking_request(self, register_address: int, count: int) -> list[int] | None:
         """Send a V5-encapsulated Modbus read and return raw register values."""
@@ -140,7 +142,11 @@ class SolarmanV5Poller:
 
     async def read_telemetry(self) -> TelemetrySnapshot:
         """Read all configured register blocks and return normalised snapshot."""
-        register_map = get_register_map(self.vendor, self.model_series)
+        if self.exact_profile:
+            register_map, decoder = get_exact_profile(self.vendor, self.model_series)
+        else:
+            register_map = get_register_map(self.vendor, self.model_series, exact=False)
+            decoder = None
         raw: dict[str, int] = {}
         loop = asyncio.get_event_loop()
 
@@ -153,7 +159,10 @@ class SolarmanV5Poller:
                 for i, val in enumerate(values):
                     raw[str(block_start + i)] = val
 
-        points = decode_registers(raw, self.vendor, self.model_series)
+        if self.exact_profile and decoder is not None:
+            points = decoder(raw, self.model_series)
+        else:
+            points = decode_registers(raw, self.vendor, self.model_series, exact=self.exact_profile)
         online = bool(raw)
         return TelemetrySnapshot(
             device_sn=self.device_id,

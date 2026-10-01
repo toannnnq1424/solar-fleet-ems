@@ -18,7 +18,7 @@ import time
 from typing import Any
 
 from .interfaces import TelemetrySnapshot
-from .modbus_profiles import decode_registers, get_function_code, get_register_map
+from .modbus_profiles import decode_registers, get_exact_profile, get_function_code, get_register_map
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ class ModbusTcpPoller:
         timeout: float = 5.0,
         request_delay: float = 0.1,
         function_code: int | None = None,
+        exact_profile: bool = True,
     ):
         self.device_id = device_id
         self.address = address
@@ -62,6 +63,7 @@ class ModbusTcpPoller:
         self.model_series = model_series
         self.timeout = timeout
         self.request_delay = request_delay
+        self.exact_profile = exact_profile
         self.function_code = (
             function_code if function_code is not None else get_function_code(vendor, model_series)
         )
@@ -121,7 +123,11 @@ class ModbusTcpPoller:
 
     async def read_telemetry(self) -> TelemetrySnapshot:
         """Read all configured register blocks and return normalised snapshot."""
-        register_map = get_register_map(self.vendor, self.model_series)
+        if self.exact_profile:
+            register_map, decoder = get_exact_profile(self.vendor, self.model_series)
+        else:
+            register_map = get_register_map(self.vendor, self.model_series, exact=False)
+            decoder = None
         raw: dict[str, int] = {}
 
         for block_start, block_count in _plan_read_blocks(register_map):
@@ -131,7 +137,10 @@ class ModbusTcpPoller:
                 for i, val in enumerate(values):
                     raw[str(block_start + i)] = val
 
-        points = decode_registers(raw, self.vendor, self.model_series)
+        if self.exact_profile and decoder is not None:
+            points = decoder(raw, self.model_series)
+        else:
+            points = decode_registers(raw, self.vendor, self.model_series, exact=self.exact_profile)
         online = bool(raw)
         return TelemetrySnapshot(
             device_sn=self.device_id,

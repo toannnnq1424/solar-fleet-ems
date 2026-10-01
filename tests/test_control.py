@@ -432,3 +432,95 @@ def test_nearby_deye_controls_are_never_substituted(device, intent):
 
     with pytest.raises(SafetyError, match="intent_mapping_unknown"):
         compile_deye(device, intent, {"value": 20})
+
+
+def test_verify_semantic_readback_deye_fields():
+    from solar_fleet.control import verify_semantic_readback
+
+    # Deye camelCase maxSellPower (within tolerance 50W / 2%)
+    assert verify_semantic_readback(
+        readback={"maxSellPower": 5020},
+        expected={"maxSellPower": 5000},
+        intent="SET_EXPORT_LIMIT",
+    )
+    # Beyond tolerance
+    assert not verify_semantic_readback(
+        readback={"maxSellPower": 5200},
+        expected={"maxSellPower": 5000},
+        intent="SET_EXPORT_LIMIT",
+    )
+
+    # Deye maxChargeCurrent (tolerance 1.0A)
+    assert verify_semantic_readback(
+        readback={"maxChargeCurrent": 30.5},
+        expected={"maxChargeCurrent": 30.0},
+        intent="SET_CHARGE_CURRENT",
+    )
+    assert not verify_semantic_readback(
+        readback={"maxChargeCurrent": 32.0},
+        expected={"maxChargeCurrent": 30.0},
+        intent="SET_CHARGE_CURRENT",
+    )
+
+    # Boolean gridChargeAction
+    assert verify_semantic_readback(
+        readback={"gridChargeAction": "1"},
+        expected={"gridChargeAction": True},
+        intent="SET_GRID_CHARGE",
+    )
+    assert not verify_semantic_readback(
+        readback={"gridChargeAction": "0"},
+        expected={"gridChargeAction": True},
+        intent="SET_GRID_CHARGE",
+    )
+
+
+def test_verify_semantic_readback_tou_slots():
+    from solar_fleet.control import verify_semantic_readback
+
+    slots_expected = [
+        {"time": "01:00", "target_soc": 80.0, "power_w": 3000, "grid_charge": True},
+        {"time": "05:00", "target_soc": 20.0, "power_w": 5000, "grid_charge": False},
+    ]
+    # Match within tolerances (soc ±1%, power ±50W, normalized boolean)
+    slots_readback_ok = [
+        {"time": "01:00", "target_soc": 80.5, "power_w": 3040, "grid_charge": 1},
+        {"time": "05:00", "target_soc": 19.5, "power_w": 4980, "grid_charge": "0"},
+    ]
+    assert verify_semantic_readback(
+        readback={"timeUseSettingItems": slots_readback_ok},
+        expected={"timeUseSettingItems": slots_expected},
+        intent="SET_TOU",
+    )
+
+    # SOC mismatch > 1%
+    slots_bad_soc = [
+        {"time": "01:00", "target_soc": 83.0, "power_w": 3000, "grid_charge": True},
+        {"time": "05:00", "target_soc": 20.0, "power_w": 5000, "grid_charge": False},
+    ]
+    assert not verify_semantic_readback(
+        readback={"timeUseSettingItems": slots_bad_soc},
+        expected={"timeUseSettingItems": slots_expected},
+        intent="SET_TOU",
+    )
+
+    # Time mismatch
+    slots_bad_time = [
+        {"time": "01:30", "target_soc": 80.0, "power_w": 3000, "grid_charge": True},
+        {"time": "05:00", "target_soc": 20.0, "power_w": 5000, "grid_charge": False},
+    ]
+    assert not verify_semantic_readback(
+        readback={"timeUseSettingItems": slots_bad_time},
+        expected={"timeUseSettingItems": slots_expected},
+        intent="SET_TOU",
+    )
+
+
+def test_verify_semantic_readback_intent_mismatch():
+    from solar_fleet.control import verify_semantic_readback
+
+    assert not verify_semantic_readback(
+        readback={"someOtherField": 10},
+        expected={"someOtherField": 10},
+        intent="SET_CHARGE_CURRENT",
+    )

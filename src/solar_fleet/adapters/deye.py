@@ -304,7 +304,7 @@ class Deye:
             result.extend(rows)
         return result
 
-    async def dynamic_control_read(self, serial: str) -> dict:
+    async def dynamic_control_read(self, serial: str, *, poll_interval: float = 0.05) -> dict:
         """Trigger an on-demand hardware configuration read via Deye Cloud."""
         read_path = "/v1.0/strategy/dynamicControl/read"
         result_path = "/v1.0/strategy/dynamicControl/readResult"
@@ -312,11 +312,16 @@ class Deye:
             raise VendorError("dynamic_control_read_not_in_contract")
         payload = await self.read(read_path, {"deviceSn": serial})
         order_id = payload.get("orderId")
-        if not order_id:
+        if order_id is None:
             raise VendorError("dynamic_read_missing_order_id")
-        for _ in range(15):  # poll up to 30 seconds
-            await asyncio.sleep(2.0)
-            res = await self.read(result_path, {"orderId": order_id})
+        try:
+            order_param = int(order_id)
+        except (ValueError, TypeError):
+            order_param = order_id
+        for _ in range(15):  # poll up to 15 attempts
+            if poll_interval > 0:
+                await asyncio.sleep(poll_interval)
+            res = await self.read(result_path, {"orderId": order_param})
             status = str(res.get("status", ""))
             if status == "666" or res.get("success"):
                 return res
@@ -339,15 +344,19 @@ class Deye:
                 {k: v for k, v in payload.items() if k not in ("code", "msg", "requestId", "success")}
             )
 
-        if dynamic_read and latest_ts is None and "/v1.0/strategy/dynamicControl/read" in CONTRACTS:
+        if dynamic_read and "/v1.0/strategy/dynamicControl/read" in CONTRACTS:
             try:
                 dyn = await self.dynamic_control_read(device.vendor_id)
                 if isinstance(dyn, dict):
-                    for ts_key in ("collectionTime", "updateTime", "timestamp"):
+                    for ts_key in ("collectionTime", "updateTime", "timestamp", "readTime", "time", "lastUpdateTime"):
                         if ts_key in dyn:
                             parsed = source_time(dyn[ts_key])
                             if parsed is not None:
                                 latest_ts = parsed
+                    # If hardware query succeeded without explicit timestamp in payload,
+                    # the readback completion time is the authoritative fresh hardware timestamp.
+                    if latest_ts is None:
+                        latest_ts = datetime.now(UTC)
                     if "touList" in dyn:
                         values["touList"] = dyn["touList"]
                     for k, v in dyn.items():

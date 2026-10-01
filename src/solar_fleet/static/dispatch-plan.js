@@ -106,11 +106,13 @@ export function dispatchPlanCard(ui) {
         ])
       );
 
+      const lowVal = res.scenarios.low_solar_savings_vnd ?? res.scenarios.p10_gloomy_savings_vnd;
+      const highVal = res.scenarios.high_solar_savings_vnd ?? res.scenarios.p90_sunny_savings_vnd;
       const scenarioBar = res.scenarios ? div("row gap-md wrap align-center card",
-        e("b", l("Dự báo đa kịch bản (P10 / Nominal / P90):", "Scenario Projections:"), "muted"),
-        badge(`${l("P10 Âm u:", "P10 Gloomy:")} ${number(res.scenarios.p10_gloomy_savings_vnd)} đ`, "warn"),
-        badge(`${l("Chuẩn:", "Nominal:")} ${number(res.scenarios.nominal_savings_vnd)} đ`, "blue"),
-        badge(`${l("P90 Nắng:", "P90 Sunny:")} ${number(res.scenarios.p90_sunny_savings_vnd)} đ`, "good"),
+        e("b", l("Phân tích độ nhạy quang năng (Độ nhạy thời tiết):", "Solar Generation Sensitivity Scenarios:"), "muted"),
+        badge(`${l("Kịch bản nắng yếu (-55%):", "Low Solar (-55%):")} ${number(lowVal)} đ`, "warn"),
+        badge(`${l("Kịch bản chuẩn:", "Nominal:")} ${number(res.scenarios.nominal_savings_vnd)} đ`, "blue"),
+        badge(`${l("Kịch bản nắng mạnh (+35%):", "High Solar (+35%):")} ${number(highVal)} đ`, "good"),
         badge(`${l("Sau hao mòn pin:", "Net after wear:")} ${number(res.net_profit_after_wear_vnd || res.net_savings_vnd)} đ`, "blue-soft"),
       ) : div();
 
@@ -118,9 +120,9 @@ export function dispatchPlanCard(ui) {
         kpis,
         scenarioBar,
         card(l("Kế hoạch điều độ 24 giờ", "24-Hour Dispatch Plan"), tableSlots),
-        card(l("Chương trình 6 Slot TOU tương thích phần cứng biến tần (Deye/Sunsynk/Solis/Growatt)", "Inverter Hardware 6-Slot TOU Programme"),
-          p(l("Lịch nạp/xả này có thể truyền trực tiếp vào các thanh ghi Modbus của biến tần thông qua Unified Adapter.",
-            "This schedule can be compiled and written directly into inverter Modbus holding registers via the Unified Adapter.")),
+        card(l("Kế hoạch điều độ năng lượng 6 khung giờ (Universal Energy Plan)", "6-Slot Universal Energy Plan"),
+          p(l("Lịch nạp/xả phổ quát này được chuyển dịch qua compiler của từng hãng biến tần để nạp vào thanh ghi phần cứng khi điều độ.",
+            "This universal energy plan is translated by vendor-specific compilers to enforce exact hardware registers when dispatched.")),
           touProgTable
         )
       );

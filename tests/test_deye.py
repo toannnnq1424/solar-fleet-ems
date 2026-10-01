@@ -124,6 +124,28 @@ async def test_config_never_claims_freshness_from_cloud_cache(device):
 
 
 @pytest.mark.asyncio
+async def test_config_with_dynamic_read_fetches_fresh_hardware_timestamp(device):
+    def handler(request):
+        if result := auth(request):
+            return result
+        path = request.url.path
+        if "/dynamicControl/readResult" in path:
+            return ok(status="666", maxChargeCurrent=35, lastUpdateTime=1727784000)
+        if "/dynamicControl/read" in path:
+            return ok(orderId=999)
+        if "/config/" in path:
+            return ok(maxChargeCurrent=20)
+        return ok()
+
+    client = make(handler)
+    config = await client.configuration(device, dynamic_read=True)
+    assert config.values["maxChargeCurrent"] == 35
+    assert config.freshness_verified is True
+    assert config.device_timestamp is not None
+    await client.close()
+
+
+@pytest.mark.asyncio
 async def test_acceptance_does_not_imply_success_and_order_codes_are_mapped():
     codes = iter([0, 100, 300, 400, 500, 666, 999])
     calls = []

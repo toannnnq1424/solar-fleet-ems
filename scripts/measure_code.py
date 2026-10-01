@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 START = "<!-- actual-code-inventory:start -->"
@@ -18,6 +20,25 @@ GROUPS = (
     ("browser_tests", "Test UI / browser fixture", "ui_tests", {".py"}),
     ("scripts", "Scripts tự viết", "scripts", {".py", ".js", ".cjs", ".mjs", ".ps1"}),
 )
+
+
+def get_git_state() -> dict[str, Any]:
+    try:
+        commit_res = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+        commit = commit_res.stdout.strip()
+        status_res = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+        dirty = bool(status_res.stdout.strip())
+        return {
+            "commit": commit,
+            "dirty": dirty,
+            "release_evidence_status": "VALID_RELEASE_EVIDENCE" if not dirty else "WORKING_TREE_UNCOMMITTED_EVIDENCE_UNVERIFIED",
+        }
+    except Exception:
+        return {"commit": None, "dirty": True, "release_evidence_status": "UNKNOWN"}
 
 
 def inventory():
@@ -45,9 +66,11 @@ def inventory():
                 "entries": entries,
             }
         )
+    git_state = get_git_state()
     return {
         "measured_at_utc": datetime.now(UTC).isoformat(),
-        "scope": "working_tree_including_uncommitted",
+        "git": git_state,
+        "scope": "clean_commit" if not git_state["dirty"] else "working_tree_including_uncommitted",
         "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
         "groups": groups,
     }

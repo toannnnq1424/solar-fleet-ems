@@ -6,9 +6,10 @@ import argparse
 import hashlib
 import hmac
 import json
+import logging
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -16,9 +17,11 @@ import httpx
 from fastapi import Depends, HTTPException, Request
 from pydantic import Field, field_validator
 
-from .adapters.local_daemon import LocalAgentDaemon, LocalDeviceConfig, PollResult
+from .adapters.local_daemon import LocalAgentDaemon, LocalDeviceConfig, PollFailure, PollResult
 from .domain import Model, Sample, Source, utcnow
 from .storage import encoded
+
+logger = logging.getLogger(__name__)
 
 
 class AgentPoint(Model):
@@ -253,9 +256,10 @@ def install_agent(app, controller, user=None, admin=None):
 
     for row in store.list("local_device"):
         if row.get("enabled", True):
+            dev_id = row.get("device_id", "unknown")
             try:
                 daemon.add_device(LocalDeviceConfig(
-                    device_id=row["device_id"],
+                    device_id=dev_id,
                     transport=row["transport"],
                     address=row["address"],
                     port=row["port"],
@@ -265,8 +269,24 @@ def install_agent(app, controller, user=None, admin=None):
                     logger_serial=row.get("logger_serial"),
                     poll_interval_s=row.get("poll_interval_s", 30.0),
                 ))
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("Failed to register local device %s on startup: %s", dev_id, exc)
+                daemon._failure_log.append(PollFailure(
+                    device_id=dev_id,
+                    error=f"CONFIG_ERROR: {exc}",
+                    failed_at=datetime.now(UTC),
+                    consecutive_count=1,
+                ))
+                store.audit(
+                    "agent",
+                    {
+                        "event": "local_device_startup_config_error",
+                        "device_id": dev_id,
+                        "reason_code": "INVALID_STARTUP_CONFIGURATION",
+                        "error": str(exc),
+                    },
+                    row.get("site_id", "default"),
+                )
 
     @app.get("/api/agent/devices")
     async def list_local_devices(who=Depends(user) if user else None):
@@ -301,8 +321,8 @@ def install_agent(app, controller, user=None, admin=None):
         store.put("local_device", body.device_id, stored_dict)
 
         existing_dev = store.get("device", body.device_id)
+        from .domain import Device, DeviceIdentity
         if not existing_dev:
-            from .domain import Device, DeviceIdentity
             d = Device(
                 id=body.device_id,
                 site_id=body.site_id,
@@ -313,6 +333,24 @@ def install_agent(app, controller, user=None, admin=None):
                 name=f"{body.vendor.capitalize()} {body.model_series}".strip(),
             )
             store.put("device", body.device_id, d.model_dump(mode="json"))
+        else:
+            # Reconcile existing canonical Device with local_device configuration:
+            # Keep site_id, vendor_id, model, and identity synchronized
+            dev_obj = Device.model_validate(existing_dev)
+            updated_identity = DeviceIdentity(
+                vendor=body.vendor,
+                model=body.model_series or dev_obj.identity.model or "Local Inverter",
+                firmware=dev_obj.identity.firmware,
+            )
+            reconciled = dev_obj.model_copy(
+                update={
+                    "site_id": body.site_id,
+                    "vendor_id": body.vendor,
+                    "identity": updated_identity,
+                    "integration_id": "LOCAL",
+                }
+            )
+            store.put("device", body.device_id, reconciled.model_dump(mode="json"))
 
         if body.device_id not in daemon._pollers:
             daemon.add_device(config)

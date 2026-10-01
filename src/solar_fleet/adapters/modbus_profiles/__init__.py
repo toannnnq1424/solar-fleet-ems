@@ -67,7 +67,10 @@ from .solax_registers import (
 )
 from .sungrow_commercial import (
     SUNGROW_COMMERCIAL_REGISTERS,
+    SUNGROW_SG125HX_REGISTERS,
     SungrowCommercialProfile,
+    SungrowSG110CXProfile,
+    SungrowSG125HXProfile,
 )
 from .sungrow_commercial import (
     decode_commercial_raw_registers as _sungrow_commercial_decode,
@@ -168,11 +171,10 @@ _REGISTRY: dict[tuple[str, str], tuple[list, Any]] = {
     ("sungrow", "shx"):            (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     ("sungrow", "sh"):             (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     ("sungrow", "sg"):             (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
-    ("sungrow", "sg110cx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
-    ("sungrow", "sg125hx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
-    ("sungrow", "sg250hx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
-    ("sungrow", "sg_commercial"):  (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
-    ("sungrow", "commercial"):     (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", "sg110cx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
+    ("sungrow", "sg125hx"):        (SUNGROW_SG125HX_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg125hx")),
+    ("sungrow", "sg_commercial"):  (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
+    ("sungrow", "commercial"):     (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
     ("sungrow", ""):               (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     # Huawei
     ("huawei", "sun2000"):  (HUAWEI_SUN2000_REGISTERS, lambda r, s: _huawei_decode(r, HUAWEI_SUN2000_REGISTERS)),
@@ -261,22 +263,21 @@ def decode_registers(
     raw: dict[str, int],
     vendor: str,
     model_series: str = "",
+    *,
+    exact: bool = False,
 ) -> dict[str, tuple[float | None, str]]:
     """Decode raw register dict to canonical {metric: (value, unit)}.
 
-    Case-insensitive. Falls back to vendor default.
-
-    Args:
-        raw: {str(register_address): int_value}
-        vendor: vendor name
-        model_series: model series (optional)
-
-    Returns:
-        {canonical_metric: (value, unit)}
+    If exact=True, requires exact match for (vendor, model_series) and no fallback.
     """
     key = (vendor.lower(), model_series.lower())
-    if key in _REGISTRY:
+    if key in _REGISTRY and (not exact or model_series.strip() != ""):
         return _REGISTRY[key][1](raw, model_series)
+    if exact:
+        raise KeyError(
+            f"UNKNOWN_PROFILE: Exact profile required for decoding "
+            f"(vendor={vendor!r}, series={model_series!r})"
+        )
     default_key = (vendor.lower(), "")
     if default_key in _REGISTRY:
         return _REGISTRY[default_key][1](raw, model_series)
@@ -299,10 +300,13 @@ __all__ = [
     "GrowattField",
     "HuaweiField",
     "SUNGROW_COMMERCIAL_REGISTERS",
+    "SUNGROW_SG125HX_REGISTERS",
     "SofarField",
     "SolaxField",
     "SolisField",
     "SungrowCommercialProfile",
+    "SungrowSG110CXProfile",
+    "SungrowSG125HXProfile",
     "SungrowField",
     "decode_registers",
     "get_exact_profile",

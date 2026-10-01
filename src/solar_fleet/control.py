@@ -42,11 +42,14 @@ DEFAULT_READBACK_RULES: dict[str, ReadbackRule] = {
     "power_limit": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
     "max_charge_power": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
     "max_discharge_power": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    "maxSellPower": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
     # Currents: +/- 1.0 A
     "max_charge_current": ReadbackRule(abs_tolerance=1.0),
     "max_discharge_current": ReadbackRule(abs_tolerance=1.0),
     "charge_current_limit": ReadbackRule(abs_tolerance=1.0),
     "discharge_current_limit": ReadbackRule(abs_tolerance=1.0),
+    "maxChargeCurrent": ReadbackRule(abs_tolerance=1.0),
+    "maxDischargeCurrent": ReadbackRule(abs_tolerance=1.0),
     # SOC: +/- 1.0 %
     "target_soc": ReadbackRule(abs_tolerance=1.0),
     "min_soc": ReadbackRule(abs_tolerance=1.0),
@@ -56,9 +59,17 @@ DEFAULT_READBACK_RULES: dict[str, ReadbackRule] = {
     "grid_charge_enabled": ReadbackRule(is_boolean=True),
     "zero_export_enabled": ReadbackRule(is_boolean=True),
     "tou_enabled": ReadbackRule(is_boolean=True),
+    "gridChargeAction": ReadbackRule(is_boolean=True),
+    "touAction": ReadbackRule(is_boolean=True),
+    # System settings
+    "systemWorkMode": ReadbackRule(),
+    "touDays": ReadbackRule(),
     # TOU schedules
     "tou_schedule": ReadbackRule(is_tou=True),
     "touList": ReadbackRule(is_tou=True),
+    "timeUseSettingItems": ReadbackRule(is_tou=True),
+    "timeUseSchedule": ReadbackRule(is_tou=True),
+    "timeUseItems": ReadbackRule(is_tou=True),
 }
 
 
@@ -79,12 +90,78 @@ def _normalize_bool(val: Any) -> bool | None:
     return None
 
 
+def _compare_tou_slots(exp_slots: Any, rb_slots: Any) -> bool:
+    """Semantically compares two lists of TOU schedule slots."""
+    if not isinstance(exp_slots, list) or not isinstance(rb_slots, list):
+        return False
+    if len(exp_slots) != len(rb_slots):
+        return False
+    for exp_s, rb_s in zip(exp_slots, rb_slots):
+        exp_d = exp_s if isinstance(exp_s, dict) else getattr(exp_s, "__dict__", {})
+        rb_d = rb_s if isinstance(rb_s, dict) else getattr(rb_s, "__dict__", {})
+        if not exp_d or not rb_d:
+            if exp_s != rb_s:
+                return False
+            continue
+
+        # Time matching
+        exp_time = exp_d.get("time") or exp_d.get("timePoint") or exp_d.get("start_hm")
+        rb_time = rb_d.get("time") or rb_d.get("timePoint") or rb_d.get("start_hm")
+        if exp_time and rb_time and str(exp_time).strip() != str(rb_time).strip():
+            return False
+
+        # Target SOC matching (tolerance ±1.0%)
+        exp_soc = exp_d.get("target_soc") if "target_soc" in exp_d else (exp_d.get("soc") if "soc" in exp_d else exp_d.get("capValue"))
+        rb_soc = rb_d.get("target_soc") if "target_soc" in rb_d else (rb_d.get("soc") if "soc" in rb_d else rb_d.get("capValue"))
+        if exp_soc is not None and rb_soc is not None:
+            try:
+                if abs(float(exp_soc) - float(rb_soc)) > 1.0:
+                    return False
+            except (ValueError, TypeError):
+                if exp_soc != rb_soc:
+                    return False
+
+        # Power matching (tolerance ±50W)
+        exp_p = exp_d.get("power_w") if "power_w" in exp_d else (exp_d.get("power") if "power" in exp_d else exp_d.get("chargePower"))
+        rb_p = rb_d.get("power_w") if "power_w" in rb_d else (rb_d.get("power") if "power" in rb_d else rb_d.get("chargePower"))
+        if exp_p is not None and rb_p is not None:
+            try:
+                if abs(float(exp_p) - float(rb_p)) > 50.0:
+                    return False
+            except (ValueError, TypeError):
+                if exp_p != rb_p:
+                    return False
+
+        # Grid charge boolean matching
+        exp_gc = exp_d.get("grid_charge") if "grid_charge" in exp_d else exp_d.get("gridCharge")
+        rb_gc = rb_d.get("grid_charge") if "grid_charge" in rb_d else rb_d.get("gridCharge")
+        if exp_gc is not None and rb_gc is not None:
+            norm_exp = _normalize_bool(exp_gc)
+            norm_rb = _normalize_bool(rb_gc)
+            if norm_exp is not None and norm_rb is not None and norm_exp != norm_rb:
+                return False
+    return True
+
+
 def verify_semantic_readback(
     readback: dict[str, Any],
     expected: dict[str, Any],
     intent: str,
 ) -> bool:
     """Semantic and tolerant readback comparison per intent and field."""
+    # Verify intent congruence if specified
+    if intent:
+        norm_intent = intent.upper()
+        if "CHARGE_CURRENT" in norm_intent:
+            if not any(k in expected for k in ("max_charge_current", "max_discharge_current", "maxChargeCurrent", "maxDischargeCurrent", "charge_current_limit", "discharge_current_limit")):
+                return False
+        elif "EXPORT" in norm_intent:
+            if not any(k in expected for k in ("export_limit", "maxSellPower")):
+                return False
+        elif norm_intent == "SET_TOU":
+            if not any(k in expected for k in ("tou_schedule", "touList", "timeUseSettingItems", "timeUseItems")):
+                return False
+
     for field, exp_val in expected.items():
         if field not in readback:
             return False
@@ -93,6 +170,11 @@ def verify_semantic_readback(
             continue
 
         rule = DEFAULT_READBACK_RULES.get(field, ReadbackRule())
+        if rule.is_tou:
+            if _compare_tou_slots(exp_val, rb_val):
+                continue
+            return False
+
         if rule.is_boolean:
             rb_b = _normalize_bool(rb_val)
             exp_b = _normalize_bool(exp_val)
@@ -166,6 +248,14 @@ class CommandEngine:
         self.locks = defaultdict(asyncio.Lock)
         self.tasks = set()
 
+    async def _read_config(
+        self, guard: Callable[[], None], adapter: ControlAdapter, device: Device, *, dynamic_read: bool = True
+    ) -> Configuration:
+        try:
+            return await guarded_read(guard, adapter.configuration, device, dynamic_read=dynamic_read)
+        except TypeError:
+            return await guarded_read(guard, adapter.configuration, device)
+
     def validate(self, user: Principal, device: Device, capability: Capability, parameters: dict):
         authorize_control(user, device.site_id, capability)
         try:
@@ -231,7 +321,7 @@ class CommandEngine:
 
         async with self.locks[device.id]:
             check_context()
-            before = await guarded_read(check_context, adapter.configuration, device)
+            before = await self._read_config(check_context, adapter, device, dynamic_read=True)
             check_context()
             fresh(before)
             calls, expected = self.compiler(device, intent, parameters)
@@ -413,7 +503,7 @@ class CommandEngine:
                     if self.adapter(self.device(plan.device_id)) is not adapter:
                         raise SafetyError("control_adapter_changed")
 
-                before = await guarded_read(before_send, adapter.configuration, device)
+                before = await self._read_config(before_send, adapter, device, dynamic_read=True)
                 before_send()
                 fresh(before)
                 if any(before.values.get(k) != v for k, v in plan.previous.items()):
@@ -446,7 +536,7 @@ class CommandEngine:
                             await asyncio.sleep(self.poll_seconds)
                             before_send()
                     self.transition(plan, CommandStatus.VERIFYING, orders=orders)
-                    after = await guarded_read(before_send, adapter.configuration, device)
+                    after = await self._read_config(before_send, adapter, device, dynamic_read=True)
                     before_send()
                     fresh(after, after=sent_at)
                     readback = {k: after.values.get(k) for k in plan.expected}

@@ -121,6 +121,17 @@ class TestEMSAPI:
             Sample(
                 device_id="sim-device",
                 binding_id="bind-01",
+                metric="battery_soc",
+                value=45.0,
+                unit="%",
+                source=Source.CLOUD,
+                source_timestamp=now,
+                received_at=now,
+                quality="GOOD",
+            ),
+            Sample(
+                device_id="sim-device",
+                binding_id="bind-01",
                 metric="pv_power",
                 value=4500.0,
                 unit="W",
@@ -152,9 +163,69 @@ class TestEMSAPI:
         assert len(data["slots_24h"]) == 24
         assert len(data["tou_programme"]["slots"]) == 6
 
+    def test_ems_optimization_fails_without_battery_soc(self, local):
+        client, ctl = local
+        headers = _auth_headers(client, "admin")
+
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+
+        from solar_fleet.domain import Sample, Source
+
+        now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+        samples = [
+            Sample(
+                device_id="sim-device",
+                binding_id="bind-01",
+                metric="pv_power",
+                value=4500.0,
+                unit="W",
+                source=Source.CLOUD,
+                source_timestamp=now - timedelta(hours=2),
+                received_at=now - timedelta(hours=2),
+                quality="GOOD",
+            ),
+        ]
+        ctl.store.add_samples(samples)
+
+        resp = client.get("/api/sites/sim-site/ems-optimization?category=MANUFACTURING", headers=headers)
+        assert resp.status_code == 422
+        assert "verified battery_soc observation required" in resp.json()["detail"]
+
     def test_fleet_balance_route(self, local):
         client, ctl = local
         headers = _auth_headers(client, "admin")
+
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        from solar_fleet.domain import Sample, Source
+
+        now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+
+        # Explicitly configure device with real physical ratings
+        dev = ctl.store.get("device", "sim-device")
+        dev.setdefault("metadata", {})
+        dev["metadata"]["rated_power_w"] = 5000
+        dev["metadata"]["battery_capacity_wh"] = 10000
+        dev["metadata"]["max_charge_kw"] = 5.0
+        dev["metadata"]["max_discharge_kw"] = 5.0
+        dev["online"] = True
+        ctl.store.put("device", "sim-device", dev)
+
+        ctl.store.add_samples([
+            Sample(
+                device_id="sim-device",
+                binding_id="bind-01",
+                metric="battery_soc",
+                value=45.0,
+                unit="%",
+                source=Source.CLOUD,
+                source_timestamp=now,
+                received_at=now,
+                quality="GOOD",
+            )
+        ])
 
         payload = {
             "target_total_kw": 12.0,
@@ -167,3 +238,17 @@ class TestEMSAPI:
         assert data["target_total_kw"] == 5.0  # Clamped by single device max_charge_kw = 5.0
         assert data["mode"] == "charge"
         assert len(data["allocations"]) > 0
+
+    def test_fleet_balance_fails_when_members_lack_configuration(self, local):
+        client, ctl = local
+        headers = _auth_headers(client, "admin")
+
+        # sim-device without rated_power_w / battery_capacity_wh
+        payload = {
+            "target_total_kw": 12.0,
+            "mode": "charge",
+            "duration_hours": 1.0,
+        }
+        resp = client.post("/api/sites/sim-site/fleet-balance", json=payload, headers=headers)
+        assert resp.status_code == 422
+        assert "insufficient_device_configuration" in resp.json()["detail"]

@@ -238,6 +238,11 @@ class EVNTOUOptimizer:
         soc = max(self.min_soc_pct, min(100.0, float(initial_soc_pct)))
         energy_kwh = (soc / 100.0) * self.battery_capacity_kwh
 
+        if len(solar_kw_24h) != 24 or len(load_kw_24h) != 24:
+            raise ValueError(
+                f"Full 24-hour solar and load profiles required (got solar={len(solar_kw_24h)}, load={len(load_kw_24h)})"
+            )
+
         baseline_cost_vnd = 0.0
         optimized_cost_vnd = 0.0
 
@@ -252,8 +257,8 @@ class EVNTOUOptimizer:
             rate = self.get_rate_for_dt(slot_dt)
             tier = TariffTierSchedule.classify_hour(slot_dt)
 
-            p_solar = solar_kw_24h[h] if h < len(solar_kw_24h) else 0.0
-            base_load = load_kw_24h[h] if h < len(load_kw_24h) else 2.0
+            p_solar = solar_kw_24h[h]
+            base_load = load_kw_24h[h]
             is_weekend = slot_dt.weekday() in (5, 6)
             p_load = base_load * (self.weekend_load_factor if is_weekend else 1.0)
 
@@ -328,7 +333,9 @@ class EVNTOUOptimizer:
         net_savings_vnd = max(0.0, baseline_cost_vnd - optimized_cost_vnd)
         savings_pct = (net_savings_vnd / baseline_cost_vnd * 100.0) if baseline_cost_vnd > 0 else 0.0
 
-        # Construct hardware-ready TOU programme (exactly 6 standard slots for Deye/Sunsynk/Solis)
+        # Construct universal energy plan (TOU programme with 6 configurable time slots).
+        # Note: Individual vendor compilers (Deye, Sunsynk, Solis) translate these slots
+        # to vendor-specific registers and enforce exact protocol semantics.
         charge_windows = [
             {"start": "00:00", "end": "04:00", "grid_charge": True, "target_soc": int(self.max_soc_pct)},
         ]
@@ -364,17 +371,23 @@ class EVNTOUOptimizer:
         start_hour: int = 0,
         initial_soc_pct: float = 50.0,
     ) -> dict[str, Any]:
-        """Compute multi-scenario projections (P10 / Nominal / P90) adapted from batpred/plan.py."""
+        """Compute multi-scenario projections (Low Solar -55% / Nominal / High Solar +35%).
+
+        These are deterministic sensitivity scenarios (Low / Nominal / High solar generation),
+        not empirical probabilistic quantiles.
+        """
         nominal = self.optimize_24h(site_id, solar_kw_24h, load_kw_24h, start_hour, initial_soc_pct)
-        solar_p10 = [max(0.0, s * 0.45) for s in solar_kw_24h]
-        p10 = self.optimize_24h(site_id, solar_p10, load_kw_24h, start_hour, initial_soc_pct)
-        solar_p90 = [s * 1.35 for s in solar_kw_24h]
-        p90 = self.optimize_24h(site_id, solar_p90, load_kw_24h, start_hour, initial_soc_pct)
+        solar_low = [max(0.0, s * 0.45) for s in solar_kw_24h]
+        low_scenario = self.optimize_24h(site_id, solar_low, load_kw_24h, start_hour, initial_soc_pct)
+        solar_high = [s * 1.35 for s in solar_kw_24h]
+        high_scenario = self.optimize_24h(site_id, solar_high, load_kw_24h, start_hour, initial_soc_pct)
         return {
             "nominal": nominal,
-            "p10_gloomy": p10,
-            "p90_sunny": p90,
-            "robust_savings_vnd": min(nominal.net_savings_vnd, p10.net_savings_vnd),
+            "low_solar_scenario": low_scenario,
+            "high_solar_scenario": high_scenario,
+            "p10_gloomy": low_scenario,
+            "p90_sunny": high_scenario,
+            "robust_savings_vnd": min(nominal.net_savings_vnd, low_scenario.net_savings_vnd),
         }
 
 
@@ -418,31 +431,55 @@ def install_ems_optimizer(app, controller, user):
         dev_obj = Device.model_validate(primary_dev)
         latest = controller.latest(dev_obj) or {}
         samples = {p["metric"]: p["value"] for p in latest.get("samples", []) if p.get("value") is not None}
-        current_soc = float(samples.get("battery_soc", 50.0))
+        current_soc = samples.get("battery_soc")
+        if current_soc is None:
+            for dev in devices:
+                for s in controller.store.history(dev["id"], limit=50):
+                    if s.get("metric") == "battery_soc" and s.get("value") is not None:
+                        current_soc = float(s["value"])
+                        break
+                if current_soc is not None:
+                    break
+        if current_soc is None:
+            raise HTTPException(
+                422,
+                "insufficient_measured_telemetry_for_site: verified battery_soc observation required"
+            )
 
-        # Build 24h curves from real observations or require inputs
-        solar_kw = [0.0] * 24
-
-        load_kw = [0.0] * 24
+        # Build 24h representative curves from real observations (hourly averages)
+        solar_hourly: dict[int, list[float]] = {h: [] for h in range(24)}
+        load_hourly: dict[int, list[float]] = {h: [] for h in range(24)}
         
         # Aggregate hourly samples from store
         for dev in devices:
             hist = controller.store.history(dev["id"])
             for s in hist:
                 try:
-                    ts_str = s.get("source_timestamp") or s.get("received_at")
-                    if not ts_str:
+                    ts_val = s.get("source_timestamp") or s.get("received_at")
+                    if not ts_val:
                         continue
-                    dt = datetime.fromisoformat(ts_str)
+                    if isinstance(ts_val, datetime):
+                        dt = ts_val
+                    else:
+                        dt = datetime.fromisoformat(str(ts_val))
                     h = dt.hour
                     metric = s.get("metric")
                     val = float(s.get("value") or 0.0) / 1000.0  # W to kW
                     if metric in ("pv_power", "pv_w", "ppv"):
-                        solar_kw[h] = max(solar_kw[h], val)
+                        solar_hourly[h].append(val)
                     elif metric in ("load_power", "pload"):
-                        load_kw[h] = max(load_kw[h], val)
+                        load_hourly[h].append(val)
                 except (ValueError, TypeError):
                     continue
+
+        solar_kw = [
+            round(sum(solar_hourly[h]) / len(solar_hourly[h]), 2) if solar_hourly[h] else 0.0
+            for h in range(24)
+        ]
+        load_kw = [
+            round(sum(load_hourly[h]) / len(load_hourly[h]), 2) if load_hourly[h] else 0.0
+            for h in range(24)
+        ]
 
         # If zero historical data is available across all 24 hours, reject rather than inventing fake curves
         if sum(solar_kw) == 0.0 and sum(load_kw) == 0.0:
@@ -479,6 +516,8 @@ def install_ems_optimizer(app, controller, user):
             "net_profit_after_wear_vnd": plan.net_profit_vnd,
             "scenarios": {
                 "nominal_savings_vnd": scenarios["nominal"].net_savings_vnd,
+                "low_solar_savings_vnd": scenarios["low_solar_scenario"].net_savings_vnd,
+                "high_solar_savings_vnd": scenarios["high_solar_scenario"].net_savings_vnd,
                 "p10_gloomy_savings_vnd": scenarios["p10_gloomy"].net_savings_vnd,
                 "p90_sunny_savings_vnd": scenarios["p90_sunny"].net_savings_vnd,
                 "robust_guaranteed_savings_vnd": scenarios["robust_savings_vnd"],
@@ -517,24 +556,43 @@ def install_ems_optimizer(app, controller, user):
 
         members = []
         for d in devices:
-            dev_obj = Device.model_validate(d)
+            dev_dict = dict(d)
+            meta = dev_dict.get("metadata") if isinstance(dev_dict.get("metadata"), dict) else {}
+            rated_w = meta.get("rated_power_w") or dev_dict.get("rated_power_w")
+            bat_wh = meta.get("battery_capacity_wh") or dev_dict.get("battery_capacity_wh")
+            if rated_w is None or bat_wh is None:
+                continue
+            max_chg = meta.get("max_charge_kw") or dev_dict.get("max_charge_kw", float(rated_w) / 1000.0)
+            max_dis = meta.get("max_discharge_kw") or dev_dict.get("max_discharge_kw", float(rated_w) / 1000.0)
+            clean_d = {k: v for k, v in dev_dict.items() if k in Device.model_fields}
+            dev_obj = Device.model_validate(clean_d)
             latest = controller.latest(dev_obj) or {}
-            metrics = {p["metric"]: p["value"] for p in latest.get("samples", [])}
-            soc = metrics.get("battery_soc", 50.0)
+            metrics = {p["metric"]: p["value"] for p in latest.get("samples", []) if p.get("value") is not None}
+            soc = metrics.get("battery_soc")
+            if soc is None:
+                for s in controller.store.history(d["id"], limit=50):
+                    if s.get("metric") == "battery_soc" and s.get("value") is not None:
+                        soc = float(s["value"])
+                        break
+            if soc is None:
+                continue
             members.append(
                 InverterFleetMember(
                     device_id=d["id"],
-                    rated_power_kw=float(d.get("rated_power_w", 5000)) / 1000.0,
-                    battery_capacity_kwh=float(d.get("battery_capacity_wh", 10000)) / 1000.0,
-                    current_soc_pct=soc,
-                    max_charge_kw=5.0,
-                    max_discharge_kw=5.0,
-                    online=d.get("online", True),
+                    rated_power_kw=float(rated_w) / 1000.0,
+                    battery_capacity_kwh=float(bat_wh) / 1000.0,
+                    current_soc_pct=float(soc),
+                    max_charge_kw=float(max_chg),
+                    max_discharge_kw=float(max_dis),
+                    online=bool(d.get("online", False)),
                 )
             )
 
         if not members:
-            raise HTTPException(422, "no_active_inverters_found_for_site")
+            raise HTTPException(
+                422,
+                "insufficient_device_configuration: active fleet members require verified rated_power_w, battery_capacity_wh, and battery_soc"
+            )
 
         res = FleetInverterBalancer.balance_fleet(
             members=members,

@@ -12,12 +12,12 @@ def check_transport_guard() -> None:
         guard()
 
 
-async def guarded_read(guard: Callable[[], None], read: Callable[..., Awaitable[T]], *args) -> T:
+async def guarded_read(guard: Callable[[], None], read: Callable[..., Awaitable[T]], *args, **kwargs) -> T:
     """Compose nested authority and always restore context, including cancellation."""
     token = _guards.set((*_guards.get(), guard))
     try:
         check_transport_guard()
-        result = await read(*args)
+        result = await read(*args, **kwargs)
         check_transport_guard()
         return result
     finally:

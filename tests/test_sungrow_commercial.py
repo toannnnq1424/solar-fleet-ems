@@ -49,16 +49,26 @@ def test_sungrow_commercial_telemetry_decode():
 
 
 def test_sungrow_commercial_control_validation():
-    profile = SungrowCommercialProfile()
+    profile_110 = SungrowCommercialProfile(model="SG110CX", rated_power_kw=110.0, mppt_count=9)
     # Valid active power limit (0..110 kW)
-    cmd = profile.build_active_power_command(power_kw=88.0)
+    cmd = profile_110.build_active_power_command(power_kw=88.0)
     assert cmd["register"] == 6001
     assert cmd["wire_register"] == 6000
     assert cmd["value"] == 880  # 0.1 kW scale
+    assert cmd["rated_power_kw"] == 110.0
 
-    # Out of range command rejected
-    with pytest.raises(ValueError):
-        profile.build_active_power_command(power_kw=150.0)
+    # 120 kW rejected on 110 kW inverter
+    with pytest.raises(ValueError, match="110.0 kW"):
+        profile_110.build_active_power_command(power_kw=120.0)
+
+    # 120 kW accepted on SG125HX (125 kW rated)
+    from solar_fleet.adapters.modbus_profiles.sungrow_commercial import SungrowSG125HXProfile
+    profile_125 = SungrowSG125HXProfile()
+    assert profile_125.mppt_count == 6
+    assert profile_125.rated_power_kw == 125.0
+    cmd_125 = profile_125.build_active_power_command(power_kw=120.0)
+    assert cmd_125["value"] == 1200
+    assert cmd_125["rated_power_kw"] == 125.0
 
 
 def test_sungrow_commercial_registry_lookup():
@@ -66,19 +76,27 @@ def test_sungrow_commercial_registry_lookup():
     fields_110 = get_register_map("sungrow", "sg110cx")
     fields_125 = get_register_map("sungrow", "sg125hx")
     fields_comm = get_register_map("sungrow", "commercial")
-    assert len(fields_110) > 0
-    assert len(fields_125) == len(fields_110)
-    assert len(fields_comm) == len(fields_110)
+    assert len(fields_110) == 25  # 5 status + 18 mppt + 2 holding
+    assert len(fields_125) == 19  # 5 status + 12 mppt + 2 holding
+    assert len(fields_comm) == 25
+
+    # SG250HX must NOT be registered (unverified without official evidence)
+    with pytest.raises(KeyError):
+        get_register_map("sungrow", "sg250hx", exact=True)
 
 
 def test_sungrow_commercial_exact_profile():
     from solar_fleet.adapters.modbus_profiles import get_exact_profile
     fields, decoder = get_exact_profile("sungrow", "sg110cx")
-    assert len(fields) > 0
+    assert len(fields) == 25
     assert callable(decoder)
 
-    fields_125, _ = get_exact_profile("sungrow", "sg125hx")
-    assert len(fields_125) > 0
+    fields_125, decoder_125 = get_exact_profile("sungrow", "sg125hx")
+    assert len(fields_125) == 19
+    assert callable(decoder_125)
+
+    with pytest.raises(KeyError, match="UNKNOWN_PROFILE"):
+        get_exact_profile("sungrow", "sg250hx")
 
 
 def test_sungrow_commercial_decode_registers_wire_addresses():

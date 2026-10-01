@@ -120,7 +120,9 @@ class LocalDevicePoller:
         self.last_good_measurement: datetime | None = None
         self.last_error_code: str | None = None
         self.backoff_until: datetime | None = None
+        self.poll_cycle_ms: float | None = None
         self.poll_duration_ms: float | None = None
+        self.network_rtt_ms: float | None = None
         self.round_trip_ms: float | None = None
         self.profile_id: str = f"{config.vendor}:{config.model_series or 'default'}"
         self.firmware_seen: str | None = None
@@ -215,7 +217,9 @@ class LocalDevicePoller:
                     raise RuntimeError("Empty offline snapshot — transport likely unreachable")
                 duration_ms = (time.monotonic() - start_mono) * 1000.0
                 self.poll_duration_ms = round(duration_ms, 2)
-                self.round_trip_ms = round(duration_ms, 2)
+                self.poll_cycle_ms = round(duration_ms, 2)
+                self.network_rtt_ms = None  # Full poll cycle encompasses multi-block reads, not single packet RTT
+                self.round_trip_ms = None
                 self.last_poll_success = datetime.now(UTC)
                 self.last_good_measurement = datetime.now(UTC)
                 self.last_error_code = None
@@ -231,6 +235,7 @@ class LocalDevicePoller:
             except asyncio.TimeoutError:
                 duration_ms = (time.monotonic() - start_mono) * 1000.0
                 self.poll_duration_ms = round(duration_ms, 2)
+                self.poll_cycle_ms = round(duration_ms, 2)
                 self._handle_failure("timeout")
                 # Reset adapter after timeout — socket may be wedged
                 await self._reset_adapter()
@@ -238,6 +243,7 @@ class LocalDevicePoller:
             except Exception as exc:
                 duration_ms = (time.monotonic() - start_mono) * 1000.0
                 self.poll_duration_ms = round(duration_ms, 2)
+                self.poll_cycle_ms = round(duration_ms, 2)
                 self._handle_failure(str(exc))
                 await self._reset_adapter()
                 return None
@@ -483,7 +489,9 @@ class LocalAgentDaemon:
                     "last_good_measurement": poller.last_good_measurement.isoformat() if poller and poller.last_good_measurement else None,
                     "last_error_code": poller.last_error_code if poller else None,
                     "backoff_until": poller.backoff_until.isoformat() if poller and poller.backoff_until else None,
+                    "poll_cycle_ms": poller.poll_cycle_ms if poller else None,
                     "poll_duration_ms": poller.poll_duration_ms if poller else None,
+                    "network_rtt_ms": poller.network_rtt_ms if poller else None,
                     "round_trip_ms": poller.round_trip_ms if poller else None,
                     "firmware_seen": poller.firmware_seen if poller else None,
                     "recent_failures": [
