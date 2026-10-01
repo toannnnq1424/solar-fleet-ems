@@ -14,31 +14,34 @@ from __future__ import annotations
 
 import pytest
 
-from solar_fleet.adapters.modbus_profiles.sungrow_registers import (
-    SUNGROW_SHX_INPUT_REGISTERS,
-    decode_raw_registers as sungrow_decode,
-)
-from solar_fleet.adapters.modbus_profiles.huawei_registers import (
-    HUAWEI_SUN2000_REGISTERS,
-    decode_raw_registers as huawei_decode,
-)
-from solar_fleet.adapters.modbus_profiles import (
-    get_register_map,
-    decode_registers,
-    list_supported_profiles,
-)
 from solar_fleet.adapters.eybond_local import (
     EYBOND_PROTOCOL_FAMILIES,
     _modbus_crc16,
     _parse_registers,
 )
 from solar_fleet.adapters.goodwe_local import GOODWE_SENSOR_TO_METRIC
+from solar_fleet.adapters.interfaces import TouSlot
+from solar_fleet.adapters.modbus_profiles import (
+    decode_registers,
+    get_register_map,
+    list_supported_profiles,
+)
 from solar_fleet.adapters.modbus_profiles.deye_sunsynk_registers import (
-    DEYE_SUNSYNK_REGISTERS,
     decode_raw_registers as deye_decode,
 )
+from solar_fleet.adapters.modbus_profiles.huawei_registers import (
+    HUAWEI_SUN2000_REGISTERS,
+)
+from solar_fleet.adapters.modbus_profiles.huawei_registers import (
+    decode_raw_registers as huawei_decode,
+)
+from solar_fleet.adapters.modbus_profiles.sungrow_registers import (
+    SUNGROW_SHX_INPUT_REGISTERS,
+)
+from solar_fleet.adapters.modbus_profiles.sungrow_registers import (
+    decode_raw_registers as sungrow_decode,
+)
 from solar_fleet.adapters.sunsynk_local import SunsynkLocalAdapter
-from solar_fleet.adapters.interfaces import TouSlot
 from solar_fleet.domain import Device
 
 
@@ -459,8 +462,8 @@ class TestSunsynkLocalAdapter:
 class TestUnifiedInverterAdapter:
     def test_create_unified_local_adapter(self):
         from solar_fleet.adapters.interfaces import (
-            create_unified_adapter,
             UnifiedLocalAdapter,
+            create_unified_adapter,
         )
         poller = SunsynkLocalAdapter("192.168.1.100", 502)
         unified = create_unified_adapter(
@@ -496,8 +499,8 @@ class TestUnifiedInverterAdapter:
     @pytest.mark.asyncio
     async def test_create_unified_cloud_adapter(self):
         from solar_fleet.adapters.interfaces import (
-            create_unified_adapter,
             UnifiedCloudAdapter,
+            create_unified_adapter,
         )
 
         class MockCloudClient:
@@ -527,6 +530,8 @@ class TestSofarDecode:
     def test_sofar_telemetry_decode(self):
         from solar_fleet.adapters.modbus_profiles.sofar_registers import (
             SOFAR_HYD_REGISTERS,
+        )
+        from solar_fleet.adapters.modbus_profiles.sofar_registers import (
             decode_raw_registers as sofar_decode,
         )
         raw = {
@@ -562,6 +567,8 @@ class TestSolaxDecode:
     def test_solax_telemetry_decode(self):
         from solar_fleet.adapters.modbus_profiles.solax_registers import (
             SOLAX_HYBRID_REGISTERS,
+        )
+        from solar_fleet.adapters.modbus_profiles.solax_registers import (
             decode_raw_registers as solax_decode,
         )
         raw = {
@@ -593,6 +600,8 @@ class TestFoxessDecode:
     def test_foxess_telemetry_decode(self):
         from solar_fleet.adapters.modbus_profiles.foxess_registers import (
             FOXESS_H_REGISTERS,
+        )
+        from solar_fleet.adapters.modbus_profiles.foxess_registers import (
             decode_raw_registers as foxess_decode,
         )
         raw = {

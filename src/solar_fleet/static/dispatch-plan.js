@@ -106,8 +106,17 @@ export function dispatchPlanCard(ui) {
         ])
       );
 
+      const scenarioBar = res.scenarios ? div("row gap-md wrap align-center card",
+        e("b", l("Dự báo đa kịch bản (P10 / Nominal / P90):", "Scenario Projections:"), "muted"),
+        badge(`${l("P10 Âm u:", "P10 Gloomy:")} ${number(res.scenarios.p10_gloomy_savings_vnd)} đ`, "warn"),
+        badge(`${l("Chuẩn:", "Nominal:")} ${number(res.scenarios.nominal_savings_vnd)} đ`, "blue"),
+        badge(`${l("P90 Nắng:", "P90 Sunny:")} ${number(res.scenarios.p90_sunny_savings_vnd)} đ`, "good"),
+        badge(`${l("Sau hao mòn pin:", "Net after wear:")} ${number(res.net_profit_after_wear_vnd || res.net_savings_vnd)} đ`, "blue-soft"),
+      ) : div();
+
       evnContainer.replaceChildren(
         kpis,
+        scenarioBar,
         card(l("Kế hoạch điều độ 24 giờ", "24-Hour Dispatch Plan"), tableSlots),
         card(l("Chương trình 6 Slot TOU tương thích phần cứng biến tần (Deye/Sunsynk/Solis/Growatt)", "Inverter Hardware 6-Slot TOU Programme"),
           p(l("Lịch nạp/xả này có thể truyền trực tiếp vào các thanh ghi Modbus của biến tần thông qua Unified Adapter.",

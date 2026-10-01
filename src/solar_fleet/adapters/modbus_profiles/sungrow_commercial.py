@@ -16,6 +16,8 @@ import enum
 from dataclasses import dataclass
 from typing import Any
 
+from .sungrow_registers import SungrowField
+
 
 class RegisterType(str, enum.Enum):
     U16 = "U16"
@@ -134,3 +136,108 @@ class SungrowCommercialProfile:
                     val = (raw_words[idx] << 16) | raw_words[idx + 1]
                     result[reg.name] = round(val * reg.scale, 3)
         return result
+
+
+# ---------------------------------------------------------------------------
+# Canonical Sungrow Commercial Register Field Definitions (0-based wire address)
+# ---------------------------------------------------------------------------
+SUNGROW_COMMERCIAL_REGISTERS: list[SungrowField] = [
+    # Status & Power (Protocol 5000-5006 -> Wire 4999-5005)
+    SungrowField("input", 4999, "uint16", 1.0,   "",     "inverter_status", "Running state: 0=Stop, 1=Standby, 2=Run, 3=Fault"),
+    SungrowField("input", 5000, "uint16", 10.0,  "W",    "active_power",    "Total Active Power"),
+    SungrowField("input", 5002, "int16",  10.0,  "var",  "reactive_power",  "Reactive Power"),
+    SungrowField("input", 5004, "int16",  0.001, "",     "power_factor",    "Cos Phi Power factor"),
+    SungrowField("input", 5005, "uint16", 0.01,  "Hz",   "grid_frequency",  "Grid Frequency"),
+    # 9 MPPT string inputs (Protocol 5010-5027 -> Wire 5009-5026)
+    SungrowField("input", 5009, "uint16", 0.1,   "V",    "pv1_voltage",     "MPPT1 Voltage"),
+    SungrowField("input", 5010, "uint16", 0.1,   "A",    "pv1_current",     "MPPT1 Current"),
+    SungrowField("input", 5011, "uint16", 0.1,   "V",    "pv2_voltage",     "MPPT2 Voltage"),
+    SungrowField("input", 5012, "uint16", 0.1,   "A",    "pv2_current",     "MPPT2 Current"),
+    SungrowField("input", 5013, "uint16", 0.1,   "V",    "pv3_voltage",     "MPPT3 Voltage"),
+    SungrowField("input", 5014, "uint16", 0.1,   "A",    "pv3_current",     "MPPT3 Current"),
+    SungrowField("input", 5015, "uint16", 0.1,   "V",    "pv4_voltage",     "MPPT4 Voltage"),
+    SungrowField("input", 5016, "uint16", 0.1,   "A",    "pv4_current",     "MPPT4 Current"),
+    SungrowField("input", 5017, "uint16", 0.1,   "V",    "pv5_voltage",     "MPPT5 Voltage"),
+    SungrowField("input", 5018, "uint16", 0.1,   "A",    "pv5_current",     "MPPT5 Current"),
+    SungrowField("input", 5019, "uint16", 0.1,   "V",    "pv6_voltage",     "MPPT6 Voltage"),
+    SungrowField("input", 5020, "uint16", 0.1,   "A",    "pv6_current",     "MPPT6 Current"),
+    SungrowField("input", 5021, "uint16", 0.1,   "V",    "pv7_voltage",     "MPPT7 Voltage"),
+    SungrowField("input", 5022, "uint16", 0.1,   "A",    "pv7_current",     "MPPT7 Current"),
+    SungrowField("input", 5023, "uint16", 0.1,   "V",    "pv8_voltage",     "MPPT8 Voltage"),
+    SungrowField("input", 5024, "uint16", 0.1,   "A",    "pv8_current",     "MPPT8 Current"),
+    SungrowField("input", 5025, "uint16", 0.1,   "V",    "pv9_voltage",     "MPPT9 Voltage"),
+    SungrowField("input", 5026, "uint16", 0.1,   "A",    "pv9_current",     "MPPT9 Current"),
+    # Holding registers for control
+    SungrowField("holding", 6000, "uint16", 0.1, "kW",   "active_power_derating_kw", "Active power derating setpoint"),
+    SungrowField("holding", 6001, "uint16", 1.0, "",     "reactive_power_mode",      "Reactive power mode"),
+]
+
+
+def decode_commercial_raw_registers(
+    raw: dict[str, int],
+    series: str = "",
+) -> dict[str, tuple[float | None, str]]:
+    """Decode raw registers for Sungrow Commercial inverters (SG110CX/SG125HX/SG250HX).
+
+    Transparently supports both 0-based wire address keys and 1-based protocol address keys.
+    """
+    result: dict[str, tuple[float | None, str]] = {}
+    pv_power_total = 0.0
+    has_pv_power = False
+
+    is_protocol_indexed = ("4999" not in raw and 4999 not in raw and ("5001" in raw or 5001 in raw))
+
+    for f in SUNGROW_COMMERCIAL_REGISTERS:
+        target_addr = (f.address + 1) if is_protocol_indexed else f.address
+        addr_str = str(target_addr)
+        raw_val = raw.get(addr_str)
+        if raw_val is None:
+            raw_val = raw.get(target_addr)
+        if raw_val is None:
+            continue
+
+        if f.data_type == "uint16":
+            value = float(raw_val & 0xFFFF) * f.scale
+        elif f.data_type == "int16":
+            signed = raw_val if raw_val < 0x8000 else raw_val - 0x10000
+            value = float(signed) * f.scale
+        elif f.data_type == "uint32":
+            low_addr = target_addr + 1
+            low_val = raw.get(str(low_addr))
+            if low_val is None:
+                low_val = raw.get(low_addr)
+            if low_val is None:
+                continue
+            combined = (raw_val << 16) | (low_val & 0xFFFF)
+            value = float(combined) * f.scale
+        elif f.data_type == "int32":
+            low_addr = target_addr + 1
+            low_val = raw.get(str(low_addr))
+            if low_val is None:
+                low_val = raw.get(low_addr)
+            if low_val is None:
+                continue
+            combined = (raw_val << 16) | (low_val & 0xFFFF)
+            if combined >= 0x80000000:
+                combined -= 0x100000000
+            value = float(combined) * f.scale
+        else:
+            continue
+
+        result[f.metric] = (round(value, 3), f.unit)
+
+    # Calculate MPPT aggregate DC power if MPPT voltages and currents are present
+    for m in range(1, 10):
+        v_key = f"pv{m}_voltage"
+        i_key = f"pv{m}_current"
+        if v_key in result and i_key in result:
+            v_val = result[v_key][0]
+            i_val = result[i_key][0]
+            if v_val is not None and i_val is not None:
+                pv_power_total += v_val * i_val
+                has_pv_power = True
+
+    if has_pv_power and "pv_power" not in result:
+        result["pv_power"] = (round(pv_power_total, 1), "W")
+
+    return result

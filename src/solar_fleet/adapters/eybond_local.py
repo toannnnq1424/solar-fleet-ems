@@ -23,15 +23,13 @@ adapter calls the registers it needs from known-good field addresses.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import socket
 import struct
 import time
-from pathlib import Path
 from typing import Any
 
-from .interfaces import TelemetrySnapshot, normalize_points
+from .interfaces import TelemetrySnapshot
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +124,6 @@ def _parse_registers(response: bytes, expected_count: int) -> list[int] | None:
     if len(response) < 9:
         return None
     # MBAP: 6 bytes, then unit(1) + func(1) + byte_count(1) + data
-    unit_id = response[6]
     func_code = response[7]
     if func_code & 0x80:  # Error response
         return None
@@ -236,9 +233,9 @@ class EybondLocalAdapter:
             self._model_info = await self._identify_model()
 
         points: dict[str, tuple[float | str | None, str | None]] = {}
-        raw_values: dict[int, int] = {}
 
         for addr, count, dtype, scale, unit, metric in EYBOND_CORE_TELEMETRY:
+
             await asyncio.sleep(self.request_delay)
             regs = await self._read_registers(addr, count)
             if not regs:

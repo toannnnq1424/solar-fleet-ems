@@ -1,7 +1,6 @@
 """Tests for Onboarding Barcode/QR Scanner Engine."""
 
-import pytest
-from solar_fleet.onboarding_scanner import OnboardingScanner, ScannedDeviceMetadata
+from solar_fleet.onboarding_scanner import OnboardingScanner
 
 
 def test_scan_deye_rating_plate():

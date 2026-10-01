@@ -38,7 +38,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Callable
 
 from .eybond_local import EybondLocalAdapter
@@ -114,6 +114,16 @@ class LocalDevicePoller:
         self._quarantined_until: float = 0.0
         self._lock = asyncio.Lock()
         self._running = False
+        # Operational diagnostics
+        self.last_poll_attempt: datetime | None = None
+        self.last_poll_success: datetime | None = None
+        self.last_good_measurement: datetime | None = None
+        self.last_error_code: str | None = None
+        self.backoff_until: datetime | None = None
+        self.poll_duration_ms: float | None = None
+        self.round_trip_ms: float | None = None
+        self.profile_id: str = f"{config.vendor}:{config.model_series or 'default'}"
+        self.firmware_seen: str | None = None
 
     def _build_adapter(self) -> Any:
         """Instantiate the correct transport adapter for this device."""
@@ -183,10 +193,15 @@ class LocalDevicePoller:
                 )
                 return None
 
+            start_mono = time.monotonic()
+            self.last_poll_attempt = datetime.now(UTC)
+
             if self._adapter is None:
                 try:
                     self._adapter = self._build_adapter()
                 except Exception as exc:
+                    duration_ms = (time.monotonic() - start_mono) * 1000.0
+                    self.poll_duration_ms = round(duration_ms, 2)
                     logger.error("Device %s: adapter build failed: %s", self.config.device_id, exc)
                     self._handle_failure(str(exc))
                     return None
@@ -198,6 +213,12 @@ class LocalDevicePoller:
                 )
                 if not snapshot.online and not snapshot.points:
                     raise RuntimeError("Empty offline snapshot — transport likely unreachable")
+                duration_ms = (time.monotonic() - start_mono) * 1000.0
+                self.poll_duration_ms = round(duration_ms, 2)
+                self.round_trip_ms = round(duration_ms, 2)
+                self.last_poll_success = datetime.now(UTC)
+                self.last_good_measurement = datetime.now(UTC)
+                self.last_error_code = None
                 self._consecutive_failures = 0
                 result = PollResult(
                     device_id=self.config.device_id,
@@ -208,11 +229,15 @@ class LocalDevicePoller:
                 return result
 
             except asyncio.TimeoutError:
+                duration_ms = (time.monotonic() - start_mono) * 1000.0
+                self.poll_duration_ms = round(duration_ms, 2)
                 self._handle_failure("timeout")
                 # Reset adapter after timeout — socket may be wedged
                 await self._reset_adapter()
                 return None
             except Exception as exc:
+                duration_ms = (time.monotonic() - start_mono) * 1000.0
+                self.poll_duration_ms = round(duration_ms, 2)
                 self._handle_failure(str(exc))
                 await self._reset_adapter()
                 return None
@@ -220,6 +245,7 @@ class LocalDevicePoller:
     def _handle_failure(self, error: str) -> None:
         """Record a failure and update back-off state."""
         self._consecutive_failures += 1
+        self.last_error_code = error
         failure = PollFailure(
             device_id=self.config.device_id,
             error=error,
@@ -235,6 +261,7 @@ class LocalDevicePoller:
                 MAX_BACKOFF_S,
             )
             self._quarantined_until = time.monotonic() + backoff
+            self.backoff_until = datetime.now(UTC) + timedelta(seconds=backoff)
             logger.warning(
                 "Device %s: %d consecutive failures, quarantined for %.0fs",
                 self.config.device_id,
@@ -310,7 +337,7 @@ class LocalAgentDaemon:
         on_snapshot: Callable[[PollResult], None] | None = None,
         configs: list[LocalDeviceConfig] | None = None,
     ):
-        self.outbox = outbox or asyncio.Queue()
+        self.outbox = outbox
         self.on_snapshot = on_snapshot
         self._configs: list[LocalDeviceConfig] = []
         self._pollers: dict[str, LocalDevicePoller] = {}
@@ -443,12 +470,22 @@ class LocalAgentDaemon:
                     "address": config.address,
                     "port": config.port,
                     "vendor": config.vendor,
+                    "model_series": config.model_series,
+                    "profile_id": poller.profile_id if poller else f"{config.vendor}:{config.model_series or 'default'}",
                     "running": bool(poller and poller._running),
                     "consecutive_failures": poller._consecutive_failures if poller else 0,
                     "quarantined": (
                         poller._quarantined_until > time.monotonic() if poller else False
                     ),
                     "task_done": task.done() if task else True,
+                    "last_poll_attempt": poller.last_poll_attempt.isoformat() if poller and poller.last_poll_attempt else None,
+                    "last_poll_success": poller.last_poll_success.isoformat() if poller and poller.last_poll_success else None,
+                    "last_good_measurement": poller.last_good_measurement.isoformat() if poller and poller.last_good_measurement else None,
+                    "last_error_code": poller.last_error_code if poller else None,
+                    "backoff_until": poller.backoff_until.isoformat() if poller and poller.backoff_until else None,
+                    "poll_duration_ms": poller.poll_duration_ms if poller else None,
+                    "round_trip_ms": poller.round_trip_ms if poller else None,
+                    "firmware_seen": poller.firmware_seen if poller else None,
                     "recent_failures": [
                         {"error": f.error, "count": f.consecutive_count}
                         for f in recent_failures

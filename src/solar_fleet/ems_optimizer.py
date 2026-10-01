@@ -12,15 +12,14 @@ Independently implemented for Solar Fleet EMS.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from dataclasses import dataclass
+from datetime import datetime, time
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from .adapters.interfaces import TouSlot
 from .adapters.tou_builder import TouSlotProgramme, build_tou_programme
 from .tariff_engine import EVN_TARIFF_TABLES, TariffTierSchedule
 
@@ -98,7 +97,6 @@ class FleetInverterBalancer:
                 )
 
             # Proportional distribution with clamping
-            remaining_kw = target_total_kw
             for m in active:
                 raw_kw = (weights[m.device_id] / total_weight) * target_total_kw
                 clamped_kw = min(raw_kw, m.max_charge_kw, m.rated_power_kw)
@@ -191,6 +189,9 @@ class EVNTOUOptimizer:
         roundtrip_efficiency: float = 0.92,  # Typical LFP round-trip efficiency
         max_c_rate: float = 0.5,  # Safe continuous C-rate (0.5C)
         weekend_load_factor: float = 0.85,  # Weekend factory consumption factor
+        min_soc_pct: float = 10.0,
+        max_soc_pct: float = 95.0,
+        reserve_soc_pct: float = 20.0,
     ):
         self.tariff_category = tariff_category
         self.voltage_level = voltage_level
@@ -201,6 +202,9 @@ class EVNTOUOptimizer:
         self.roundtrip_efficiency = roundtrip_efficiency
         self.max_c_rate = max_c_rate
         self.weekend_load_factor = weekend_load_factor
+        self.min_soc_pct = min_soc_pct
+        self.max_soc_pct = max_soc_pct
+        self.reserve_soc_pct = reserve_soc_pct
 
         # Lookup rates
         cat_table = EVN_TARIFF_TABLES.get(tariff_category, EVN_TARIFF_TABLES["MANUFACTURING"])
@@ -231,7 +235,7 @@ class EVNTOUOptimizer:
         now_date = datetime.now(tz).date()
 
         slots: list[dict[str, Any]] = []
-        soc = initial_soc_pct
+        soc = max(self.min_soc_pct, min(100.0, float(initial_soc_pct)))
         energy_kwh = (soc / 100.0) * self.battery_capacity_kwh
 
         baseline_cost_vnd = 0.0
@@ -262,50 +266,46 @@ class EVNTOUOptimizer:
             p_chg = 0.0
             p_dis = 0.0
             p_import = 0.0
-            p_export = 0.0
 
-            if tier == "OFF_PEAK" and soc < 95.0:
+            if tier == "OFF_PEAK" and soc < self.max_soc_pct:
                 # Force charge during cheap off-peak hours
                 dispatch_action = "GRID_CHARGE"
-                needed_kwh = (95.0 - soc) / 100.0 * self.battery_capacity_kwh
+                needed_kwh = (self.max_soc_pct - soc) / 100.0 * self.battery_capacity_kwh
                 p_chg = min(safe_chg_kw, needed_kwh)
                 p_import = max(0.0, p_load + p_chg - p_solar)
-                p_export = max(0.0, p_solar - p_load - p_chg)
                 energy_kwh += p_chg * eff_chg
-                soc = min(100.0, (energy_kwh / self.battery_capacity_kwh) * 100.0)
+                soc = min(self.max_soc_pct, (energy_kwh / self.battery_capacity_kwh) * 100.0)
 
-            elif tier == "PEAK" and soc > 20.0:
+            elif tier == "PEAK" and soc > self.reserve_soc_pct:
                 # Peak shaving discharge during high-cost peak hours
                 dispatch_action = "PEAK_DISCHARGE"
-                avail_kwh = max(0.0, (soc - 20.0) / 100.0 * self.battery_capacity_kwh)
+                avail_kwh = max(0.0, (soc - self.reserve_soc_pct) / 100.0 * self.battery_capacity_kwh)
                 deficit = max(0.0, p_load - p_solar)
                 p_dis = min(safe_dis_kw, deficit, avail_kwh)
                 total_supply = p_solar + p_dis
                 if total_supply >= p_load:
-                    p_export = total_supply - p_load
                     p_import = 0.0
                 else:
                     p_import = p_load - total_supply
-                    p_export = 0.0
                 energy_kwh -= p_dis / eff_dis
-                soc = max(10.0, (energy_kwh / self.battery_capacity_kwh) * 100.0)
+                soc = max(self.min_soc_pct, (energy_kwh / self.battery_capacity_kwh) * 100.0)
 
             else:
                 # Self-consumption mode during normal hours
                 net = p_solar - p_load
                 if net > 0:
-                    charge_space = max(0.0, (95.0 - soc) / 100.0 * self.battery_capacity_kwh)
+                    charge_space = max(0.0, (self.max_soc_pct - soc) / 100.0 * self.battery_capacity_kwh)
                     p_chg = min(safe_chg_kw, net, charge_space)
-                    p_export = net - p_chg
                     energy_kwh += p_chg * eff_chg
-                    soc = min(100.0, (energy_kwh / self.battery_capacity_kwh) * 100.0)
+                    soc = min(self.max_soc_pct, (energy_kwh / self.battery_capacity_kwh) * 100.0)
                 else:
                     deficit = -net
-                    avail_kwh = max(0.0, (soc - 30.0) / 100.0 * self.battery_capacity_kwh)
+                    floor_soc = max(self.reserve_soc_pct, self.min_soc_pct)
+                    avail_kwh = max(0.0, (soc - floor_soc) / 100.0 * self.battery_capacity_kwh)
                     p_dis = min(safe_dis_kw, deficit, avail_kwh)
                     p_import = deficit - p_dis
                     energy_kwh -= p_dis / eff_dis
-                    soc = max(10.0, (energy_kwh / self.battery_capacity_kwh) * 100.0)
+                    soc = max(self.min_soc_pct, (energy_kwh / self.battery_capacity_kwh) * 100.0)
 
             # Hour cost
             slot_cost = p_import * rate
@@ -329,15 +329,14 @@ class EVNTOUOptimizer:
         savings_pct = (net_savings_vnd / baseline_cost_vnd * 100.0) if baseline_cost_vnd > 0 else 0.0
 
         # Construct hardware-ready TOU programme (exactly 6 standard slots for Deye/Sunsynk/Solis)
-        # Boundaries: 00:00 (slot 1), 04:00 (slot 2), 09:30 (slot 3), 11:30 (slot 4), 17:00 (slot 5), 20:00 (slot 6)
         charge_windows = [
-            {"start": "00:00", "end": "04:00", "grid_charge": True, "target_soc": 95},
+            {"start": "00:00", "end": "04:00", "grid_charge": True, "target_soc": int(self.max_soc_pct)},
         ]
         export_windows = [
-            {"start": "09:30", "end": "11:30", "force_discharge": True, "target_soc": 20},
-            {"start": "17:00", "end": "20:00", "force_discharge": True, "target_soc": 20},
+            {"start": "09:30", "end": "11:30", "force_discharge": True, "target_soc": int(self.reserve_soc_pct)},
+            {"start": "17:00", "end": "20:00", "force_discharge": True, "target_soc": int(self.reserve_soc_pct)},
         ]
-        tou_programme = build_tou_programme(charge_windows, export_windows, num_slots=6, reserve_soc=20)
+        tou_programme = build_tou_programme(charge_windows, export_windows, num_slots=6, reserve_soc=int(self.reserve_soc_pct))
 
         total_discharged_kwh = sum(s["discharge_kw"] for s in slots)
         degradation_cost_vnd = round(total_discharged_kwh * self.battery_deg_cost_vnd, 0)
@@ -421,12 +420,9 @@ def install_ems_optimizer(app, controller, user):
         samples = {p["metric"]: p["value"] for p in latest.get("samples", []) if p.get("value") is not None}
         current_soc = float(samples.get("battery_soc", 50.0))
 
-        # Retrieve observed power or hourly load/solar from store history
-        now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        
         # Build 24h curves from real observations or require inputs
         solar_kw = [0.0] * 24
+
         load_kw = [0.0] * 24
         
         # Aggregate hourly samples from store

@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
-
 from solar_fleet.ems_optimizer import (
     EVNTOUOptimizer,
     FleetInverterBalancer,
     InverterFleetMember,
 )
+
 ORIGIN = "http://127.0.0.1:8765"
 PASSWORD = "SIMULATOR-workspace-password-only"
 
@@ -92,6 +91,20 @@ class TestEVNTOUOptimizer:
         assert "p90_sunny" in scenarios
         assert scenarios["robust_savings_vnd"] <= scenarios["nominal"].net_savings_vnd
 
+    def test_optimizer_configurable_soc_bounds(self):
+        optimizer = EVNTOUOptimizer(
+            tariff_category="MANUFACTURING",
+            min_soc_pct=15.0,
+            max_soc_pct=90.0,
+            reserve_soc_pct=25.0,
+        )
+        solar = [0.0]*6 + [5.0]*6 + [0.0]*12
+        load = [3.0]*24
+        res = optimizer.optimize_24h("site-01", solar, load, initial_soc_pct=5.0)  # clamped to min_soc_pct 15.0
+        for slot in res.slots_24h:
+            assert slot["battery_soc_pct"] >= 15.0
+            assert slot["battery_soc_pct"] <= 90.0
+
 
 class TestEMSAPI:
     def test_ems_optimization_route(self, local):
@@ -100,6 +113,7 @@ class TestEMSAPI:
 
         from datetime import datetime, timedelta
         from zoneinfo import ZoneInfo
+
         from solar_fleet.domain import Sample, Source
 
         now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))

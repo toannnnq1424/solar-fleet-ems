@@ -14,7 +14,7 @@ import enum
 import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -59,73 +59,88 @@ class BluesunAdapter:
     def __init__(self, credentials: dict[str, Any] | None = None):
         self.credentials = credentials or {}
 
-    async def read_telemetry(self, config: BluesunDeviceConfig) -> dict[str, Any]:
-        """Read fresh telemetry routed by specific hardware branch."""
+    async def read_telemetry(self, config: BluesunDeviceConfig, raw_data: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Read fresh telemetry routed by specific hardware branch.
+
+        Fail-closed: Returns UNAVAILABLE if no physical transport or verified raw data is supplied.
+        Zero hardcoded watts or synthetic SOC values in operational logic.
+        """
         now_iso = datetime.now(UTC).isoformat()
 
-        if config.branch == BluesunBranch.BSM_OFFGRID:
+        if raw_data is None:
+            # Check if underlying credentials or active transport exist
+            has_transport = bool(self.credentials.get("active_transport") or self.credentials.get("connected"))
+            if not has_transport:
+                return {
+                    "branch": config.branch.value,
+                    "device_id": config.device_id,
+                    "serial_number": config.serial_number,
+                    "status": "UNAVAILABLE",
+                    "reason": "NO_PHYSICAL_TRANSPORT_CONFIGURED",
+                    "timestamp": now_iso,
+                    "telemetry": {},
+                }
+
+        return self.decode_branch_telemetry(config.branch, raw_data or {})
+
+    @staticmethod
+    def decode_branch_telemetry(branch: BluesunBranch, raw: dict[str, Any]) -> dict[str, Any]:
+        """Decodes raw input registers or payload according to exact branch protocol specification."""
+        if branch == BluesunBranch.BSM_OFFGRID:
             # BSM Series: Eybond / SmartESS RS485 Modbus RTU telemetry
             return {
                 "branch": "bsm_offgrid",
-                "device_id": config.device_id,
-                "serial_number": config.serial_number,
-                "status": "ok",
-                "inverter_mode": "solar_first",
-                "timestamp": now_iso,
+                "status": "ok" if raw else "NO_DATA",
+                "inverter_mode": raw.get("work_mode", "UNKNOWN"),
                 "telemetry": {
-                    "pv_power_w": 4200.0,
-                    "pv1_voltage_v": 340.5,
-                    "battery_soc": 88.0,
-                    "battery_voltage_v": 52.4,
-                    "ac_output_power_w": 3800.0,
-                    "grid_voltage_v": 228.4,
-                    "load_percentage": 68.0,
+                    "pv_power_w": raw.get("pv_power_w"),
+                    "pv1_voltage_v": raw.get("pv1_v"),
+                    "battery_soc": raw.get("soc"),
+                    "battery_voltage_v": raw.get("bat_v"),
+                    "ac_output_power_w": raw.get("ac_power_w"),
+                    "grid_voltage_v": raw.get("grid_v"),
+                    "load_percentage": raw.get("load_pct"),
                 },
             }
 
-        elif config.branch == BluesunBranch.BSE_HYBRID:
+        elif branch == BluesunBranch.BSE_HYBRID:
             # BSE Series: Bluesun Hybrid Cloud Platform telemetry
             return {
                 "branch": "bse_hybrid",
-                "device_id": config.device_id,
-                "serial_number": config.serial_number,
-                "status": "ok",
-                "feed_in_limiter_enabled": True,
-                "export_limit_w": 0.0,
-                "timestamp": now_iso,
+                "status": "ok" if raw else "NO_DATA",
+                "feed_in_limiter_enabled": bool(raw.get("anti_feed_in", False)),
+                "export_limit_w": raw.get("export_limit_w"),
                 "telemetry": {
-                    "grid_active_power_w": 3500.0,
-                    "pv_active_power_w": 5800.0,
-                    "battery_power_w": -2200.0,
-                    "load_active_power_w": 3600.0,
-                    "battery_soc": 74.0,
-                    "work_mode": "Economic",
+                    "grid_active_power_w": raw.get("grid_p_w"),
+                    "pv_active_power_w": raw.get("pv_p_w"),
+                    "battery_power_w": raw.get("bat_p_w"),
+                    "load_active_power_w": raw.get("load_p_w"),
+                    "battery_soc": raw.get("soc"),
+                    "work_mode": raw.get("mode", "UNKNOWN"),
                 },
             }
 
-        elif config.branch == BluesunBranch.ESS_BATTERY:
+        elif branch == BluesunBranch.ESS_BATTERY:
             # Dedicated Bluesun LFP Battery BMS Pack
             return {
                 "branch": "ess_battery",
-                "device_id": config.device_id,
-                "serial_number": config.serial_number,
-                "status": "ok",
+                "status": "ok" if raw else "NO_DATA",
                 "chemistry": "LiFePO4",
-                "timestamp": now_iso,
                 "telemetry": {
                     "nominal_voltage_v": 51.2,
-                    "total_voltage_v": 53.2,
-                    "current_a": 25.0,
-                    "soc_pct": 82.0,
-                    "soh_pct": 98.5,
+                    "total_voltage_v": raw.get("pack_voltage_v"),
+                    "current_a": raw.get("pack_current_a"),
+                    "soc_pct": raw.get("soc"),
+                    "soh_pct": raw.get("soh"),
                     "max_continuous_c_rate": 0.5,
-                    "pack_temperature_c": 28.5,
-                    "cell_voltages_v": [3.325] * 16,
-                    "cycle_count": 142,
+                    "pack_temperature_c": raw.get("temp_c"),
+                    "cell_voltages_v": raw.get("cell_voltages_v", []),
+                    "cycle_count": raw.get("cycle_count"),
                 },
             }
         else:
-            raise ValueError(f"Unknown Bluesun branch: {config.branch}")
+            raise ValueError(f"Unknown Bluesun branch: {branch}")
+
 
     async def write_parameter(self, config: BluesunDeviceConfig, register: int, value: Any) -> None:
         """Remote parameter writes strictly gated pending real field hardware acceptance."""

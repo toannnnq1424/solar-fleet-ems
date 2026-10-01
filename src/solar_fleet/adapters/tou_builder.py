@@ -17,7 +17,7 @@ each adapter; the programme logic lives here.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 # Minutes between consecutive padding slots.  Five minutes is below Predbat's
@@ -110,7 +110,6 @@ def build_tou_programme(
     sorted_boundaries = sorted(boundaries)
 
     # Check fits within available slots (each boundary except 00:00 costs a slot)
-    extra_slots_needed = len(sorted_boundaries) - 1  # 00:00 is always slot 1
     available_padding = num_slots - len(sorted_boundaries)
     if available_padding < 0:
         raise ValueError(

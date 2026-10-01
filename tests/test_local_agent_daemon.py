@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
 
 import pytest
-from starlette.testclient import TestClient
 
 from solar_fleet.adapters.interfaces import TelemetrySnapshot
 from solar_fleet.adapters.local_daemon import (
@@ -16,9 +13,7 @@ from solar_fleet.adapters.local_daemon import (
     PollResult,
 )
 from solar_fleet.agent import _persist_local_snapshot
-from solar_fleet.app import create_app
 from solar_fleet.controller import Controller
-from solar_fleet.domain import Source
 from solar_fleet.storage import Store
 
 
@@ -154,6 +149,7 @@ class TestLocalDeviceAPI:
 
     def test_agent_cli_daemon_execution(self, tmp_path, monkeypatch):
         import json
+
         from solar_fleet.agent import main
 
         cfg_file = tmp_path / "devices.json"

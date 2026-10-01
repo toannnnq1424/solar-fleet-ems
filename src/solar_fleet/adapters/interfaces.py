@@ -22,7 +22,6 @@ from typing import Any, Protocol, runtime_checkable
 
 from ..domain import Ack, Configuration, Device, OrderResult, Sample, VendorCall
 
-
 # ---------------------------------------------------------------------------
 # Canonical metric names used across every vendor
 # ---------------------------------------------------------------------------

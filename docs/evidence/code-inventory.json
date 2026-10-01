@@ -1,5 +1,5 @@
 {
-  "measured_at_utc": "2026-10-01T04:20:19.912302+00:00",
+  "measured_at_utc": "2026-10-01T08:01:19.034132+00:00",
   "scope": "working_tree_including_uncommitted",
   "method": "physical_lines_and_nonblank_lines_not_semantic_sloc",
   "groups": [
@@ -7,8 +7,8 @@
       "key": "backend",
       "label": "Backend Python",
       "files": 138,
-      "lines": 48317,
-      "nonblank": 42221,
+      "lines": 48699,
+      "nonblank": 42564,
       "entries": [
         {
           "path": "src/solar_fleet/__init__.py",
@@ -22,8 +22,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/__init__.py",
-          "lines": 137,
-          "nonblank": 125
+          "lines": 162,
+          "nonblank": 150
         },
         {
           "path": "src/solar_fleet/adapters/base.py",
@@ -37,8 +37,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/bluesun_adapter.py",
-          "lines": 175,
-          "nonblank": 156
+          "lines": 190,
+          "nonblank": 167
         },
         {
           "path": "src/solar_fleet/adapters/cloud.py",
@@ -52,8 +52,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/deye.py",
-          "lines": 448,
-          "nonblank": 405
+          "lines": 493,
+          "nonblank": 447
         },
         {
           "path": "src/solar_fleet/adapters/deye_control.py",
@@ -67,8 +67,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/eybond_local.py",
-          "lines": 292,
-          "nonblank": 255
+          "lines": 289,
+          "nonblank": 251
         },
         {
           "path": "src/solar_fleet/adapters/goodwe.py",
@@ -82,8 +82,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/goodwe_local.py",
-          "lines": 277,
-          "nonblank": 244
+          "lines": 275,
+          "nonblank": 242
         },
         {
           "path": "src/solar_fleet/adapters/growatt.py",
@@ -107,23 +107,23 @@
         },
         {
           "path": "src/solar_fleet/adapters/interfaces.py",
-          "lines": 863,
+          "lines": 862,
           "nonblank": 726
         },
         {
           "path": "src/solar_fleet/adapters/local_daemon.py",
-          "lines": 458,
-          "nonblank": 413
+          "lines": 495,
+          "nonblank": 449
         },
         {
           "path": "src/solar_fleet/adapters/modbus_local.py",
-          "lines": 168,
-          "nonblank": 143
+          "lines": 175,
+          "nonblank": 149
         },
         {
           "path": "src/solar_fleet/adapters/modbus_profiles/__init__.py",
-          "lines": 235,
-          "nonblank": 209
+          "lines": 312,
+          "nonblank": 280
         },
         {
           "path": "src/solar_fleet/adapters/modbus_profiles/deye_sunsynk_registers.py",
@@ -157,8 +157,8 @@
         },
         {
           "path": "src/solar_fleet/adapters/modbus_profiles/sungrow_commercial.py",
-          "lines": 136,
-          "nonblank": 115
+          "lines": 243,
+          "nonblank": 209
         },
         {
           "path": "src/solar_fleet/adapters/modbus_profiles/sungrow_registers.py",
@@ -212,13 +212,13 @@
         },
         {
           "path": "src/solar_fleet/adapters/sunsynk_local.py",
-          "lines": 331,
-          "nonblank": 287
+          "lines": 324,
+          "nonblank": 280
         },
         {
           "path": "src/solar_fleet/adapters/tou_builder.py",
-          "lines": 277,
-          "nonblank": 235
+          "lines": 276,
+          "nonblank": 234
         },
         {
           "path": "src/solar_fleet/admin_api.py",
@@ -302,8 +302,8 @@
         },
         {
           "path": "src/solar_fleet/control.py",
-          "lines": 397,
-          "nonblank": 371
+          "lines": 484,
+          "nonblank": 447
         },
         {
           "path": "src/solar_fleet/controller.py",
@@ -337,8 +337,8 @@
         },
         {
           "path": "src/solar_fleet/ems_optimizer.py",
-          "lines": 558,
-          "nonblank": 483
+          "lines": 554,
+          "nonblank": 479
         },
         {
           "path": "src/solar_fleet/energy_optimizer.py",
@@ -706,8 +706,8 @@
       "key": "frontend_js",
       "label": "Frontend JavaScript",
       "files": 35,
-      "lines": 18111,
-      "nonblank": 17066,
+      "lines": 18119,
+      "nonblank": 17073,
       "entries": [
         {
           "path": "src/solar_fleet/static/accounts.js",
@@ -746,8 +746,8 @@
         },
         {
           "path": "src/solar_fleet/static/dispatch-plan.js",
-          "lines": 195,
-          "nonblank": 179
+          "lines": 204,
+          "nonblank": 187
         },
         {
           "path": "src/solar_fleet/static/ems-workspace.js",
@@ -866,8 +866,8 @@
         },
         {
           "path": "src/solar_fleet/static/site-overview-workspace.js",
-          "lines": 368,
-          "nonblank": 328
+          "lines": 367,
+          "nonblank": 327
         },
         {
           "path": "src/solar_fleet/static/topology-view.js",
@@ -909,8 +909,8 @@
       "key": "backend_tests",
       "label": "Test BE / simulator / fixture",
       "files": 115,
-      "lines": 22192,
-      "nonblank": 18878,
+      "lines": 22320,
+      "nonblank": 18990,
       "entries": [
         {
           "path": "tests/cloud_fixture.py",
@@ -944,8 +944,8 @@
         },
         {
           "path": "tests/test_bluesun_adapter.py",
-          "lines": 71,
-          "nonblank": 62
+          "lines": 118,
+          "nonblank": 106
         },
         {
           "path": "tests/test_brand_registry.py",
@@ -1039,8 +1039,8 @@
         },
         {
           "path": "tests/test_ems_optimizer.py",
-          "lines": 155,
-          "nonblank": 132
+          "lines": 169,
+          "nonblank": 144
         },
         {
           "path": "tests/test_ems_workspace.py",
@@ -1189,8 +1189,8 @@
         },
         {
           "path": "tests/test_local_agent_daemon.py",
-          "lines": 186,
-          "nonblank": 155
+          "lines": 182,
+          "nonblank": 150
         },
         {
           "path": "tests/test_maintenance_execution.py",
@@ -1224,8 +1224,8 @@
         },
         {
           "path": "tests/test_modbus_profile_decoders.py",
-          "lines": 622,
-          "nonblank": 542
+          "lines": 631,
+          "nonblank": 551
         },
         {
           "path": "tests/test_model_library.py",
@@ -1254,8 +1254,8 @@
         },
         {
           "path": "tests/test_onboarding_scanner.py",
-          "lines": 56,
-          "nonblank": 45
+          "lines": 55,
+          "nonblank": 44
         },
         {
           "path": "tests/test_overview_and_conflicts.py",
@@ -1414,8 +1414,8 @@
         },
         {
           "path": "tests/test_sungrow_commercial.py",
-          "lines": 60,
-          "nonblank": 49
+          "lines": 123,
+          "nonblank": 102
         },
         {
           "path": "tests/test_sungrow_shx_client.py",

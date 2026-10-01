@@ -18,13 +18,15 @@ import time
 from typing import Any
 
 from .interfaces import TelemetrySnapshot
-from .modbus_profiles import get_register_map, decode_registers
+from .modbus_profiles import decode_registers, get_function_code, get_register_map
 
 logger = logging.getLogger(__name__)
 
 
 class ModbusTcpPoller:
     """Polls an inverter via raw Modbus TCP and normalises the result.
+
+    Supports both FC03 (Read Holding Registers) and FC04 (Read Input Registers).
 
     Args:
         device_id: Fleet EMS device identifier
@@ -35,6 +37,7 @@ class ModbusTcpPoller:
         model_series: Model series for profile selection ("SPH", "SHx", "SUN2000")
         timeout: Per-request socket timeout in seconds
         request_delay: Pause between consecutive register block reads
+        function_code: Explicit Modbus function code (0x03 or 0x04; auto-detected if None)
     """
 
     transport = "modbus_tcp"
@@ -49,6 +52,7 @@ class ModbusTcpPoller:
         model_series: str = "SPH",
         timeout: float = 5.0,
         request_delay: float = 0.1,
+        function_code: int | None = None,
     ):
         self.device_id = device_id
         self.address = address
@@ -58,10 +62,13 @@ class ModbusTcpPoller:
         self.model_series = model_series
         self.timeout = timeout
         self.request_delay = request_delay
+        self.function_code = (
+            function_code if function_code is not None else get_function_code(vendor, model_series)
+        )
 
     def _build_read_request(self, address: int, count: int) -> bytes:
-        """Build Modbus TCP FC03 frame."""
-        pdu = struct.pack(">BBHH", self.unit_id, 0x03, address, count)
+        """Build Modbus TCP frame using configured function code (FC03 or FC04)."""
+        pdu = struct.pack(">BBHH", self.unit_id, self.function_code, address, count)
         header = struct.pack(">HHH", 1, 0, len(pdu))
         return header + pdu
 
@@ -73,7 +80,7 @@ class ModbusTcpPoller:
         if func_code & 0x80:
             logger.warning("Modbus exception from %s: fc=%02x", self.address, response[8])
             return None
-        if func_code != 0x03:
+        if func_code != self.function_code:
             return None
         byte_count = response[8]
         if len(response) < 9 + byte_count:

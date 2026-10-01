@@ -19,10 +19,10 @@ import socket
 import struct
 import time
 
-from .solarman_v5 import SolarmanV5Frame, calculate_v5_checksum
 from .interfaces import TelemetrySnapshot
-from .modbus_profiles import get_register_map, decode_registers
 from .modbus_local import _plan_read_blocks
+from .modbus_profiles import decode_registers, get_register_map
+from .solarman_v5 import SolarmanV5Frame
 
 logger = logging.getLogger(__name__)
 

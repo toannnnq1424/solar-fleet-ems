@@ -66,8 +66,7 @@ function renderHeroKpiDeck(ctx, ef, ps, to) {
 
   const deck = div("hero-kpi-grid");
   for (const k of kpis) {
-    const cardEl = div(`kpi-stat-card ${k.colorClass}`);
-    cardEl.style.cursor = "pointer";
+    const cardEl = div(`kpi-stat-card clickable ${k.colorClass}`);
     cardEl.onclick = () => to(k.tab);
 
     const head = div("row", e("span", k.title, "kpi-title"), badge(k.badgeText, k.badgeClass));

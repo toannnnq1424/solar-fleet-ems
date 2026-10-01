@@ -18,7 +18,6 @@ from ..transport_guard import check_transport_guard
 from .tou_builder import (
     TouSlotProgramme,
     encode_deye_tou,
-    build_tou_programme,
 )
 
 CONTRACTS = {row["path"]: row for row in data("deye-contract.json")}
@@ -305,14 +304,60 @@ class Deye:
             result.extend(rows)
         return result
 
-    async def configuration(self, device: Device) -> Configuration:
+    async def dynamic_control_read(self, serial: str) -> dict:
+        """Trigger an on-demand hardware configuration read via Deye Cloud."""
+        read_path = "/v1.0/strategy/dynamicControl/read"
+        result_path = "/v1.0/strategy/dynamicControl/readResult"
+        if read_path not in CONTRACTS or result_path not in CONTRACTS:
+            raise VendorError("dynamic_control_read_not_in_contract")
+        payload = await self.read(read_path, {"deviceSn": serial})
+        order_id = payload.get("orderId")
+        if not order_id:
+            raise VendorError("dynamic_read_missing_order_id")
+        for _ in range(15):  # poll up to 30 seconds
+            await asyncio.sleep(2.0)
+            res = await self.read(result_path, {"orderId": order_id})
+            status = str(res.get("status", ""))
+            if status == "666" or res.get("success"):
+                return res
+            if status in ("400", "500"):
+                raise VendorError("dynamic_read_failed")
+        raise VendorError("dynamic_read_timeout")
+
+    async def configuration(self, device: Device, *, dynamic_read: bool = False) -> Configuration:
         values = {}
+        latest_ts = None
         for name in ("system", "battery", "tou"):
             payload = await self.read("/v1.0/config/" + name, {"deviceSn": device.vendor_id})
+            for ts_key in ("collectionTime", "updateTime", "deviceTime", "timestamp", "time", "lastUpdateTime"):
+                if ts_key in payload:
+                    parsed = source_time(payload[ts_key])
+                    if parsed is not None:
+                        if latest_ts is None or parsed > latest_ts:
+                            latest_ts = parsed
             values.update(
                 {k: v for k, v in payload.items() if k not in ("code", "msg", "requestId", "success")}
             )
-        # These config responses have no verified device timestamp: cached cloud config is NOT safe readback.
+
+        if dynamic_read and latest_ts is None and "/v1.0/strategy/dynamicControl/read" in CONTRACTS:
+            try:
+                dyn = await self.dynamic_control_read(device.vendor_id)
+                if isinstance(dyn, dict):
+                    for ts_key in ("collectionTime", "updateTime", "timestamp"):
+                        if ts_key in dyn:
+                            parsed = source_time(dyn[ts_key])
+                            if parsed is not None:
+                                latest_ts = parsed
+                    if "touList" in dyn:
+                        values["touList"] = dyn["touList"]
+                    for k, v in dyn.items():
+                        if k not in ("code", "msg", "requestId", "success", "orderId", "status"):
+                            values[k] = v
+            except Exception:
+                pass
+
+        if latest_ts is not None:
+            return Configuration(values=values, device_timestamp=latest_ts, freshness_verified=True)
         return Configuration(values=values, freshness_verified=False)
 
     async def history(self, serial: str, start: int, end: int, points: list[str]) -> dict:

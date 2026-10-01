@@ -11,51 +11,74 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple
-
-from .growatt_registers import (
-    GrowattField,
-    GROWATT_SPH_INPUT_REGISTERS,
-    GROWATT_MIN_INPUT_REGISTERS,
-    decode_raw_registers as _growatt_decode,
-    registers_for_series as _growatt_series,
-)
-from .sungrow_registers import (
-    SungrowField,
-    SUNGROW_SHX_INPUT_REGISTERS,
-    decode_raw_registers as _sungrow_decode,
-)
-from .huawei_registers import (
-    HuaweiField,
-    HUAWEI_SUN2000_REGISTERS,
-    decode_raw_registers as _huawei_decode,
-)
-from .deye_sunsynk_registers import (
-    DeyeField,
-    DEYE_SUNSYNK_REGISTERS,
-    decode_raw_registers as _deye_decode,
-)
-from .sofar_registers import (
-    SofarField,
-    SOFAR_HYD_REGISTERS,
-    decode_raw_registers as _sofar_decode,
-)
-from .solax_registers import (
-    SolaxField,
-    SOLAX_HYBRID_REGISTERS,
-    decode_raw_registers as _solax_decode,
-)
-from .foxess_registers import (
-    FoxessField,
-    FOXESS_H_REGISTERS,
-    decode_raw_registers as _foxess_decode,
-)
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Solis Modbus registers (condensed — Solis primarily uses cloud API)
 # From solis-modbus-auto (MIT) and SolisCloud Modbus documentation
 # ---------------------------------------------------------------------------
 from typing import NamedTuple as _NT
+
+from .deye_sunsynk_registers import (
+    DEYE_SUNSYNK_REGISTERS,
+    DeyeField,
+)
+from .deye_sunsynk_registers import (
+    decode_raw_registers as _deye_decode,
+)
+from .foxess_registers import (
+    FOXESS_H_REGISTERS,
+    FoxessField,
+)
+from .foxess_registers import (
+    decode_raw_registers as _foxess_decode,
+)
+from .growatt_registers import (
+    GROWATT_MIN_INPUT_REGISTERS,
+    GROWATT_SPH_INPUT_REGISTERS,
+    GrowattField,
+)
+from .growatt_registers import (
+    decode_raw_registers as _growatt_decode,
+)
+from .growatt_registers import (
+    registers_for_series as _growatt_series,
+)
+from .huawei_registers import (
+    HUAWEI_SUN2000_REGISTERS,
+    HuaweiField,
+)
+from .huawei_registers import (
+    decode_raw_registers as _huawei_decode,
+)
+from .sofar_registers import (
+    SOFAR_HYD_REGISTERS,
+    SofarField,
+)
+from .sofar_registers import (
+    decode_raw_registers as _sofar_decode,
+)
+from .solax_registers import (
+    SOLAX_HYBRID_REGISTERS,
+    SolaxField,
+)
+from .solax_registers import (
+    decode_raw_registers as _solax_decode,
+)
+from .sungrow_commercial import (
+    SUNGROW_COMMERCIAL_REGISTERS,
+    SungrowCommercialProfile,
+)
+from .sungrow_commercial import (
+    decode_commercial_raw_registers as _sungrow_commercial_decode,
+)
+from .sungrow_registers import (
+    SUNGROW_SHX_INPUT_REGISTERS,
+    SungrowField,
+)
+from .sungrow_registers import (
+    decode_raw_registers as _sungrow_decode,
+)
 
 
 class SolisField(_NT):
@@ -142,10 +165,15 @@ _REGISTRY: dict[tuple[str, str], tuple[list, Any]] = {
     ("growatt", "max"):   (GROWATT_MIN_INPUT_REGISTERS, lambda r, s: _growatt_decode(r, _growatt_series("MAX"))),
     ("growatt", ""):      (GROWATT_SPH_INPUT_REGISTERS, lambda r, s: _growatt_decode(r, GROWATT_SPH_INPUT_REGISTERS)),
     # Sungrow
-    ("sungrow", "shx"):   (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
-    ("sungrow", "sh"):    (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
-    ("sungrow", "sg"):    (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
-    ("sungrow", ""):      (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
+    ("sungrow", "shx"):            (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
+    ("sungrow", "sh"):             (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
+    ("sungrow", "sg"):             (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
+    ("sungrow", "sg110cx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", "sg125hx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", "sg250hx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", "sg_commercial"):  (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", "commercial"):     (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, s)),
+    ("sungrow", ""):               (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     # Huawei
     ("huawei", "sun2000"):  (HUAWEI_SUN2000_REGISTERS, lambda r, s: _huawei_decode(r, HUAWEI_SUN2000_REGISTERS)),
     ("huawei", "sun2000-map10ku"):  (HUAWEI_SUN2000_REGISTERS, lambda r, s: _huawei_decode(r, HUAWEI_SUN2000_REGISTERS)),
@@ -177,18 +205,25 @@ _REGISTRY: dict[tuple[str, str], tuple[list, Any]] = {
 }
 
 
-def get_register_map(vendor: str, model_series: str = "") -> list:
+def get_register_map(vendor: str, model_series: str = "", *, exact: bool = False) -> list:
     """Return the register field list for a (vendor, model_series) pair.
 
-    Case-insensitive. Falls back to vendor default (empty series) if the
-    specific model_series is not registered.
+    Case-insensitive.
+    If exact=True, requires an exact match for both vendor and model_series without
+    fallback (mandatory for operational/control safety gating).
+    If exact=False, diagnostic fallback to vendor default is allowed.
 
     Raises:
-        KeyError: if vendor is completely unknown
+        KeyError: if profile not registered (or UNKNOWN_PROFILE if exact=True and no exact match)
     """
     key = (vendor.lower(), model_series.lower())
-    if key in _REGISTRY:
+    if key in _REGISTRY and (not exact or model_series.strip() != ""):
         return _REGISTRY[key][0]
+    if exact:
+        raise KeyError(
+            f"UNKNOWN_PROFILE: Exact profile required for operational/control resolution "
+            f"(vendor={vendor!r}, series={model_series!r})"
+        )
     # Try vendor default
     default_key = (vendor.lower(), "")
     if default_key in _REGISTRY:
@@ -197,6 +232,29 @@ def get_register_map(vendor: str, model_series: str = "") -> list:
         f"No Modbus register profile for vendor={vendor!r} series={model_series!r}. "
         f"Known vendors: {sorted({k[0] for k in _REGISTRY})}"
     )
+
+
+def get_exact_profile(vendor: str, model_series: str) -> tuple[list, Any]:
+    """Retrieve operational/control profile with strict exact matching and no fallback."""
+    if not model_series:
+        raise KeyError(f"UNKNOWN_PROFILE: model_series required for exact profile (vendor={vendor!r})")
+    key = (vendor.lower(), model_series.lower())
+    if key in _REGISTRY:
+        return _REGISTRY[key]
+    raise KeyError(
+        f"UNKNOWN_PROFILE: No exact profile registered for vendor={vendor!r} series={model_series!r}"
+    )
+
+
+def get_function_code(vendor: str, model_series: str = "") -> int:
+    """Return expected Modbus function code (0x03 Holding or 0x04 Input Registers)."""
+    v = vendor.lower()
+    s = model_series.lower()
+    if v == "sungrow":
+        return 0x04
+    if v == "growatt" and any(x in s for x in ("sph", "min", "mix", "spa", "mid", "max", "")):
+        return 0x04
+    return 0x03
 
 
 def decode_registers(
@@ -233,3 +291,22 @@ def list_supported_profiles() -> list[dict]:
         {"vendor": v, "model_series": s}
         for v, s in sorted(_REGISTRY.keys())
     ]
+
+
+__all__ = [
+    "DeyeField",
+    "FoxessField",
+    "GrowattField",
+    "HuaweiField",
+    "SUNGROW_COMMERCIAL_REGISTERS",
+    "SofarField",
+    "SolaxField",
+    "SolisField",
+    "SungrowCommercialProfile",
+    "SungrowField",
+    "decode_registers",
+    "get_exact_profile",
+    "get_function_code",
+    "get_register_map",
+    "list_supported_profiles",
+]

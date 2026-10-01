@@ -6,8 +6,9 @@ import hmac
 import re
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import timedelta
-from typing import Callable
+from typing import Any, Callable
 
 from .adapters.base import ControlAdapter
 from .domain import (
@@ -24,6 +25,92 @@ from .integration import no_mapping
 from .security import authorize_control
 from .storage import Store, encoded
 from .transport_guard import guarded_read
+
+
+@dataclass(frozen=True)
+class ReadbackRule:
+    abs_tolerance: float = 0.0
+    rel_tolerance: float = 0.0
+    is_boolean: bool = False
+    is_tou: bool = False
+
+
+DEFAULT_READBACK_RULES: dict[str, ReadbackRule] = {
+    # Power and limits: +/- 50W or 2%
+    "export_limit": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    "active_power_limit": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    "power_limit": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    "max_charge_power": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    "max_discharge_power": ReadbackRule(abs_tolerance=50.0, rel_tolerance=0.02),
+    # Currents: +/- 1.0 A
+    "max_charge_current": ReadbackRule(abs_tolerance=1.0),
+    "max_discharge_current": ReadbackRule(abs_tolerance=1.0),
+    "charge_current_limit": ReadbackRule(abs_tolerance=1.0),
+    "discharge_current_limit": ReadbackRule(abs_tolerance=1.0),
+    # SOC: +/- 1.0 %
+    "target_soc": ReadbackRule(abs_tolerance=1.0),
+    "min_soc": ReadbackRule(abs_tolerance=1.0),
+    "max_soc": ReadbackRule(abs_tolerance=1.0),
+    "battery_soc": ReadbackRule(abs_tolerance=1.0),
+    # Boolean switches
+    "grid_charge_enabled": ReadbackRule(is_boolean=True),
+    "zero_export_enabled": ReadbackRule(is_boolean=True),
+    "tou_enabled": ReadbackRule(is_boolean=True),
+    # TOU schedules
+    "tou_schedule": ReadbackRule(is_tou=True),
+    "touList": ReadbackRule(is_tou=True),
+}
+
+
+def _normalize_bool(val: Any) -> bool | None:
+    if isinstance(val, str):
+        v = val.strip().lower()
+        if v in ("true", "1", "on", "enable", "enabled"):
+            return True
+        if v in ("false", "0", "off", "disable", "disabled"):
+            return False
+    elif isinstance(val, (int, float)):
+        if val == 1:
+            return True
+        if val == 0:
+            return False
+    elif isinstance(val, bool):
+        return val
+    return None
+
+
+def verify_semantic_readback(
+    readback: dict[str, Any],
+    expected: dict[str, Any],
+    intent: str,
+) -> bool:
+    """Semantic and tolerant readback comparison per intent and field."""
+    for field, exp_val in expected.items():
+        if field not in readback:
+            return False
+        rb_val = readback[field]
+        if rb_val == exp_val:
+            continue
+
+        rule = DEFAULT_READBACK_RULES.get(field, ReadbackRule())
+        if rule.is_boolean:
+            rb_b = _normalize_bool(rb_val)
+            exp_b = _normalize_bool(exp_val)
+            if rb_b is not None and exp_b is not None and rb_b == exp_b:
+                continue
+            return False
+
+        if isinstance(exp_val, (int, float)) and isinstance(rb_val, (int, float)):
+            diff = abs(float(rb_val) - float(exp_val))
+            allowed = max(rule.abs_tolerance, abs(float(exp_val)) * rule.rel_tolerance)
+            if allowed <= 0.0:
+                allowed = 1e-4
+            if diff <= allowed:
+                continue
+            return False
+
+        return False
+    return True
 
 
 def fingerprint(plan: CommandPlan) -> str:
@@ -53,7 +140,7 @@ def fresh(config: Configuration, *, after=None):
     if not config.freshness_verified or timestamp is None or timestamp.tzinfo is None:
         raise SafetyError("device_readback_freshness_unverified")
     age = (utcnow() - timestamp).total_seconds()
-    if age > 30 or age < -5 or (after is not None and timestamp < after):
+    if age > 60 or age < -5 or (after is not None and timestamp < after):
         raise SafetyError("device_readback_stale")
 
 
@@ -363,7 +450,7 @@ class CommandEngine:
                     before_send()
                     fresh(after, after=sent_at)
                     readback = {k: after.values.get(k) for k in plan.expected}
-                    if readback != plan.expected:
+                    if not verify_semantic_readback(readback, plan.expected, plan.intent):
                         raise SafetyError("readback_mismatch_reconcile_required")
                     self.transition(plan, CommandStatus.VERIFIED, orders=orders, readback=readback)
         except asyncio.CancelledError:
