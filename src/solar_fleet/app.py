@@ -60,7 +60,11 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         if poll:
             await controller.start()
             await runtime.start()
+            if hasattr(app.state, "local_daemon") and app.state.local_daemon:
+                await app.state.local_daemon.start()
         yield
+        if hasattr(app.state, "local_daemon") and app.state.local_daemon:
+            await app.state.local_daemon.stop()
         await runtime.close()
         await controller.close()
 
@@ -384,7 +388,7 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     install_schedule_planning(app, controller, user)
     account_services = install_accounts(app, controller, admin)
     install_management(app, controller, user, admin)
-    install_agent(app, controller)
+    install_agent(app, controller, user, admin)
     from .model_api import install_model_library
 
     install_model_library(app, controller, user)
@@ -398,6 +402,8 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
     install_battery_health(app, controller, user)
     from .tariff_engine import install_tariff_engine
     install_tariff_engine(app, controller, user)
+    from .ems_optimizer import install_ems_optimizer
+    install_ems_optimizer(app, controller, user)
     install_analytics(app, controller, user)
     from .reports_api import install_reports
 

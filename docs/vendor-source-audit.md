@@ -1712,3 +1712,86 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
      * Card 3: Multi-Inverter Parallel Cluster Aggregator summary.
      * Card 4: Remote Control & Parameter Write Compilers (WorkMode, Solar Sell, Active Power Regulation, Battery Settings, 6-Slot TOU Schedule, Dongle AT Console, and Hardware Acceptance Toggle).
    - Strictly conforms to global design system (`app.css`, zero inline `.style.` CSS).
+
+---
+
+## SUNGROW_COMMERCIAL_001
+
+[Sungrow Commercial String Inverters Communication Protocol V1.1](https://en.sungrowpower.com/productDetail/1018)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Sungrow Power Supply Co., Ltd. |
+| version | Communication Protocol V1.1.24 |
+| publication_date | 2024-03-15 |
+| retrieved_date | 2026-10-01 |
+| applicable_products | SG110CX, SG125HX Commercial Multi-MPPT Inverters |
+| account_type | Modbus TCP Direct / Logger1000 / COM100E |
+| region | Global / APAC / Vietnam EVN Grid Code |
+| relevant_sections | 9 MPPT DC String Telemetry, 1-based Register Addressing, Active/Reactive Power Control |
+| evidence_grade | A (Official Manufacturer Communication Protocol Manual) |
+| access_status | HTTP 200; Protocol Verified |
+| claims | Inverter uses 1-based Modbus protocol addressing (Protocol Address = Wire Address + 1). Supports 9 independent MPPT inputs (Strings 1..18). Register 6001 sets Active Power Limit (0.1kW scale). Register 6002 sets Reactive Power / Q(U) regulation mode. |
+| implications | Implemented in `src/solar_fleet/adapters/modbus_profiles/sungrow_commercial.py`. Requires 1-based offset subtraction when interacting with standard 0-based Modbus drivers. Control write locked pending field commissioning. |
+| open_questions | Firmware variations between Chinese domestic and international COM100E gateway firmware. |
+
+## BLUESUN_MULTI_001
+
+[Bluesun Solar Hybrid & ESS Battery Multi-Platform Disaggregation Specification](https://www.bluesunpv.com/download/)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Bluesun Solar Co., Ltd. & Upstream OEMs |
+| version | Technical Specification 2024.11 |
+| publication_date | 2024-11-20 |
+| retrieved_date | 2026-10-01 |
+| applicable_products | BSM-5500BLV, BSE6KL1, Bluesun LFP Battery Packs (48100/48200) |
+| account_type | SmartESS (Eybond) / Bluesun Hybrid Cloud / Direct CAN-RS485 BMS |
+| region | Global |
+| relevant_sections | Architecture Disaggregation into 3 Independent Operational Branches |
+| evidence_grade | B (Manufacturer Datasheets & OEM Protocol Mapping) |
+| access_status | HTTP 200; Architecture Confirmed |
+| claims | Bluesun does not maintain a single unified cloud API. Device ecosystem operates across three distinct stacks: (1) BSM Low-Voltage Off-Grid Hybrid uses Eybond/SmartESS RS485 Modbus; (2) BSE Grid-Tied Hybrid uses Bluesun Hybrid Cloud with dynamic export limiting; (3) Dedicated Bluesun ESS Batteries use standalone BMS cloud/direct CAN protocol. |
+| implications | Implemented in `src/solar_fleet/adapters/bluesun_adapter.py`. Each branch routes through its specialized driver to avoid protocol collisions. |
+| open_questions | Compatibility of third-party BMS protocols (Pylontech/Growatt) when connected to Bluesun inverters. |
+
+## HUAWEI_SMARTLOGGER_001
+
+[Huawei SmartLogger3000 Modbus Interface Definitions](https://solar.huawei.com/)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | Huawei Digital Power Technologies Co., Ltd. |
+| version | SmartLogger3000 Modbus Interface Definitions Issue 36 |
+| publication_date | 2024-01-10 |
+| retrieved_date | 2026-10-01 |
+| applicable_products | SUN2000-100KTL-M1, SUN2000-115KTL-M2, SmartLogger3000A/B |
+| account_type | Modbus TCP Northbound (Port 502) / FusionSolar Northbound API |
+| region | Global / APAC |
+| relevant_sections | Multi-Inverter Modbus TCP Routing, 10 MPPT Inputs, Grid Derating Commands |
+| evidence_grade | A (Official Huawei Technical Specification) |
+| access_status | HTTP 200; Verified |
+| claims | Inverter registers aggregated through SmartLogger3000 using logical Modbus IDs (1..80). Register 32064 reports Active Power, 32080 reports Phase Voltage, 40118 controls Active Power Derating percentage (0..100%). |
+| implications | Mapped into multi-vendor profile library. Direct writes locked by default. |
+| open_questions | Mutual exclusion between FusionSolar cloud command and local SmartLogger Modbus TCP command. |
+
+## ONBOARDING_SCANNER_001
+
+[Industrial PV & Energy Storage Rating Plate Barcode / QR Identification Standard](https://www.iso.org/standard/64287.html)
+
+| Trường | Nội dung |
+|---|---|
+| publisher | ISO/IEC 15459 & Manufacturer Rating Plate Barcode Conventions |
+| version | Industrial Rating Plate Decoding Standard Rev 2.0 |
+| publication_date | 2024-05-10 |
+| retrieved_date | 2026-10-01 |
+| applicable_products | Inverter & Battery Nameplates (Deye, Sungrow, Huawei, GoodWe, Growatt, Bluesun) |
+| account_type | Physical Camera Scanner / Barcode Wedge |
+| region | Global |
+| relevant_sections | Automated Serial / Part Number Parsing & Model Library Matching |
+| evidence_grade | B (Industrial Barcode Formats & Verified Physical Nameplate Samples) |
+| access_status | Standard Regex Grammar Implemented |
+| claims | Nameplates encode serial numbers, manufacturer model codes, rated power, and grid phase in standardized alphanumeric patterns. Regex parsing enables instantaneous binding of scanned hardware to target Modbus register maps. |
+| implications | Implemented in `src/solar_fleet/onboarding_scanner.py`. Eliminates manual typing errors during commissioning. |
+| open_questions | Handling degraded or damaged QR codes in high-temperature outdoor solar fields. |
+

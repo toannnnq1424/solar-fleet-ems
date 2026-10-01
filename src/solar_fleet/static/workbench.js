@@ -1199,27 +1199,43 @@ export function createWorkbench(ui) {
     }
     for (const id of ids) {
       const { x, y } = points[id];
+      const dev = state.fleet.devices.find((d) => d.id === id);
+      const devType = (dev?.type || '').toUpperCase();
+      const accent = devType.includes('INV') ? '#3b82f6' :
+                     devType.includes('BAT') ? '#8b5cf6' :
+                     devType.includes('PV') || devType.includes('SOLAR') ? '#10b981' :
+                     devType.includes('MET') || devType.includes('GRID') ? '#f59e0b' : '#64748b';
       node("rect", {
         x,
         y,
         width: 250,
-        height: 65,
-        rx: 12,
-        fill: "#f2f6ff",
-        stroke: "#d1dcf6",
+        height: 68,
+        rx: 10,
+        fill: "var(--surface)",
+        stroke: "var(--line)",
+        "stroke-width": 1.5,
+      });
+      node("rect", {
+        x,
+        y,
+        width: 6,
+        height: 68,
+        rx: 3,
+        fill: accent,
       });
       const n = node(
         "text",
         {
-          x: x + 14,
+          x: x + 16,
           y: y + 27,
-          fill: "#203350",
+          fill: "var(--text)",
           "font-size": 13,
+          "font-weight": "700",
           tabindex: 0,
           role: "button",
           "aria-label": deviceName(id),
         },
-        deviceName(id).slice(0, 30),
+        deviceName(id).slice(0, 26),
       );
       n.onclick = () => deviceDetail(id);
       n.onkeydown = (ev) => {
@@ -1227,8 +1243,8 @@ export function createWorkbench(ui) {
       };
       node(
         "text",
-        { x: x + 14, y: y + 49, fill: "#60758e", "font-size": 11 },
-        state.fleet.devices.find((d) => d.id === id)?.type || "",
+        { x: x + 16, y: y + 49, fill: "var(--muted)", "font-size": 11 },
+        `${dev?.type || "DEVICE"} · ${dev?.status || "UNKNOWN"}`,
       );
     }
     return svg;

@@ -20,4 +20,5 @@ work/
 *.pem
 *.key
 scratch/
-
+.DS_Store
+*.DS_Store

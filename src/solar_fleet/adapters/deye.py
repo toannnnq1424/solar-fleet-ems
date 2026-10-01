@@ -15,8 +15,45 @@ from ..budgets import Budgets
 from ..catalog import data
 from ..domain import Ack, Configuration, Device, OrderResult, VendorCall, VendorError
 from ..transport_guard import check_transport_guard
+from .tou_builder import (
+    TouSlotProgramme,
+    encode_deye_tou,
+    build_tou_programme,
+)
 
 CONTRACTS = {row["path"]: row for row in data("deye-contract.json")}
+
+# ---------------------------------------------------------------------------
+# TTL constants (from batpred/deye_const.py)
+# ComponentBase ticks run() every 60s, so DEYE_TTL_LIVE of 1 = "every tick".
+# Clocks seeded from storage.age() at startup so cadence survives restart.
+# ---------------------------------------------------------------------------
+DEYE_TTL_STATIC = 8 * 60 * 60    # station/device discovery — 8 hours
+DEYE_TTL_CONFIG = 15 * 60         # config/battery — 15 minutes
+DEYE_TTL_LIVE = 60                 # telemetry/energy counters — 1 minute
+
+# DEYE executes one control order at a time per device. A second command sent
+# while one is still running is rejected with code "2104004" — means "retry
+# shortly", not "rejected", so it is logged as back-pressure rather than failure.
+# (Source: batpred/deye_const.py DEYE_BUSY_CODES)
+DEYE_BUSY_CODES: frozenset[str] = frozenset({"2104004"})
+DEYE_BUSY_MARKERS: tuple[str, ...] = (
+    "command concurrent running",
+    "concurrent running",
+    "order is running",
+)
+
+# DEYE does NOT answer an expired/invalid bearer token with HTTP 401 — it
+# returns HTTP 200 carrying a body-level failure.  Status-code-only handling
+# therefore never triggers a refresh, so the transport also checks the body.
+# (Source: batpred/deye_const.py DEYE_AUTH_ERROR_MARKERS)
+DEYE_AUTH_ERROR_MARKERS: tuple[str, ...] = (
+    "auth invalid token",
+    "invalid token",
+    "token expired",
+    "authentication failed",
+    "unauthorized",
+)
 
 HOSTS = {
     "eu": "https://eu1-developer.deyecloud.com",
@@ -94,6 +131,17 @@ class Deye:
         self.auth_lock = asyncio.Lock()
         self.cooldown_until = 0.0
 
+        # TTL-based 3-tier cache
+        # Each tier tracks the last successful fetch time so callers can skip
+        # repeated API requests within the TTL window.
+        self._cache_times: dict[str, float] = {
+            "static": 0.0,    # station/device list
+            "config": 0.0,    # battery/system/tou config
+            "live": 0.0,      # telemetry (latest)
+        }
+        self._cache: dict[str, Any] = {}
+        self._busy_until: float = 0.0  # back-off after BUSY_CODE
+
     async def close(self):
         await self.client.aclose()
 
@@ -141,9 +189,27 @@ class Deye:
             payload = response.json()
         except ValueError:
             raise VendorError("vendor_invalid_json") from None
-        if not isinstance(payload, dict) or payload.get("success") is not True:
+        if not isinstance(payload, dict):
             raise VendorError("vendor_request_rejected")
-        if str(payload.get("code", "1000000")) != "1000000":
+
+        # DEYE returns HTTP 200 even for auth failures — must inspect body.
+        # (Source: batpred/deye_const.py DEYE_AUTH_ERROR_MARKERS)
+        msg_lower = str(payload.get("msg", "")).lower()
+        code_str = str(payload.get("code", ""))
+        if any(marker in msg_lower for marker in DEYE_AUTH_ERROR_MARKERS):
+            self.access_token = None
+            self.expires_at = 0.0
+            raise VendorError("vendor_auth_or_permission_denied")
+
+        # BUSY code: "command concurrent running" — back-pressure, not failure.
+        # (Source: batpred/deye_const.py DEYE_BUSY_CODES, DEYE_BUSY_MARKERS)
+        if code_str in DEYE_BUSY_CODES or any(m in msg_lower for m in DEYE_BUSY_MARKERS):
+            self._busy_until = time.monotonic() + 30  # 30s back-pressure
+            raise VendorError("deye_command_busy_retry")
+
+        if payload.get("success") is not True:
+            raise VendorError("vendor_request_rejected")
+        if code_str not in ("", "1000000"):
             raise VendorError("vendor_request_rejected")
         return payload
 
@@ -272,6 +338,9 @@ class Deye:
             raise VendorError("control_endpoint_not_allowed")
         if call.path == "/v1.0/order/customControl":
             raise VendorError("raw_control_locked")
+        # BUSY back-pressure gate
+        if time.monotonic() < self._busy_until:
+            raise VendorError("deye_command_busy_retry")
         self.validate(call.path, call.body)
         # Exactly one request; retrying after a timeout could dispatch a second physical action.
         payload = await self._http(
@@ -300,3 +369,80 @@ class Deye:
             else "PENDING"
         )
         return OrderResult(state=state, vendor_status=status)
+
+    # ------------------------------------------------------------------
+    # TTL cache helpers
+    # ------------------------------------------------------------------
+    def _cache_fresh(self, tier: str) -> bool:
+        """Return True if the cache for the given tier is still within TTL."""
+        ttls = {"static": DEYE_TTL_STATIC, "config": DEYE_TTL_CONFIG, "live": DEYE_TTL_LIVE}
+        return time.monotonic() - self._cache_times.get(tier, 0.0) < ttls.get(tier, 0)
+
+    def _cache_set(self, tier: str, key: str, value: Any) -> None:
+        self._cache[key] = value
+        self._cache_times[tier] = time.monotonic()
+
+    def _cache_get(self, key: str) -> Any:
+        return self._cache.get(key)
+
+    async def stations_cached(self) -> list[dict]:
+        """Return station list, using static-tier cache (8h TTL)."""
+        if self._cache_fresh("static") and self._cache_get("stations") is not None:
+            return self._cache_get("stations")
+        result = await self.stations()
+        self._cache_set("static", "stations", result)
+        return result
+
+    async def configuration_cached(self, device: Device) -> Configuration:
+        """Return device configuration, using config-tier cache (15min TTL)."""
+        cache_key = f"config_{device.vendor_id}"
+        if self._cache_fresh("config") and self._cache_get(cache_key) is not None:
+            return self._cache_get(cache_key)
+        result = await self.configuration(device)
+        self._cache_set("config", cache_key, result)
+        return result
+
+    async def latest_cached(self, serials: list[str]) -> list[dict]:
+        """Return latest telemetry, using live-tier cache (1min TTL)."""
+        cache_key = "latest_" + "_".join(sorted(serials))
+        if self._cache_fresh("live") and self._cache_get(cache_key) is not None:
+            return self._cache_get(cache_key)
+        result = await self.latest(serials)
+        self._cache_set("live", cache_key, result)
+        return result
+
+    # ------------------------------------------------------------------
+    # TOU write — requires /v1.0/strategy/dynamicControl to be in CONTRACTS
+    # and the account to have the strategy write scope.
+    # Source: batpred/deye.py strategy_dynamic_control + tou_schedule.py
+    # ------------------------------------------------------------------
+    async def set_tou_schedule(
+        self,
+        device_sn: str,
+        slots: list[TouSlotProgramme],
+        *,
+        before_send=None,
+    ) -> Ack:
+        """Write a 6-slot TOU programme to the device via Deye Cloud API.
+
+        Validates that slots are chronological and start at 00:00 before
+        dispatching (see tou_builder.py _validate_programme).
+
+        Args:
+            device_sn: device serial number
+            slots: list of TouSlotProgramme (must have <= 6 slots for Deye)
+            before_send: optional callback called immediately before network send
+
+        Raises:
+            VendorError("tou_write_not_in_contract") if the control endpoint is
+            not in CONTRACTS (e.g. account scope not granted).
+        """
+        TOU_WRITE_PATH = "/v1.0/strategy/dynamicControl"
+        if TOU_WRITE_PATH not in CONTRACTS:
+            raise VendorError("tou_write_not_in_contract")
+        if CONTRACTS[TOU_WRITE_PATH].get("mode") != "CONTROL":
+            raise VendorError("control_endpoint_not_allowed")
+        encoded = encode_deye_tou(slots[:6])  # Deye firmware has 6 slots
+        body = {"deviceSn": device_sn, "touList": encoded}
+        call = VendorCall(path=TOU_WRITE_PATH, body=body)
+        return await self.send(call, before_send=before_send)

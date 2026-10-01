@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import threading
 import uuid
@@ -13,6 +14,9 @@ from typing import Any
 
 from .domain import CommandPlan, CommandStatus, Sample, utcnow
 from .streams import initialize_events, invalidation
+
+DEFAULT_RETENTION_DAYS = int(os.environ.get("TELEMETRY_RETENTION_DAYS", "30"))
+DEFAULT_MAX_POINTS = int(os.environ.get("MAX_TELEMETRY_POINTS", "1000000"))
 
 
 def encoded(value: Any) -> str:
@@ -106,6 +110,7 @@ class Store:
                 received_at TEXT NOT NULL,body TEXT NOT NULL,
                 PRIMARY KEY(device_id,metric,binding_id,source_ts));
             CREATE INDEX IF NOT EXISTS samples_time ON samples(received_at);
+            CREATE INDEX IF NOT EXISTS samples_lookup ON samples(device_id,metric,received_at DESC);
             PRAGMA user_version=1;
         """)
 
@@ -297,7 +302,14 @@ class Store:
             previous = r["hash"]
         return True
 
-    def add_samples(self, samples: list[Sample], retention_days: int = 7, max_points: int = 200_000):
+    def add_samples(
+        self,
+        samples: list[Sample],
+        retention_days: int | None = None,
+        max_points: int | None = None,
+    ):
+        r_days = retention_days if retention_days is not None else DEFAULT_RETENTION_DAYS
+        m_points = max_points if max_points is not None else DEFAULT_MAX_POINTS
         with self.transaction() as db:
             for s in samples:
                 # Without a source timestamp retain only latest unknown measurement per binding/metric.
@@ -314,12 +326,12 @@ class Store:
                         s.model_dump_json(),
                     ),
                 )
-            cutoff = (utcnow() - timedelta(days=retention_days)).isoformat()
+            cutoff = (utcnow() - timedelta(days=r_days)).isoformat()
             db.execute("DELETE FROM samples WHERE received_at < ?", (cutoff,))
             db.execute(
                 "DELETE FROM samples WHERE rowid IN (SELECT rowid FROM samples ORDER BY received_at DESC "
                 "LIMIT -1 OFFSET ?)",
-                (max_points,),
+                (m_points,),
             )
 
     def history(self, device_id: str, limit: int = 1000) -> list[dict]:

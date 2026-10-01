@@ -7,6 +7,79 @@ import { l, t, number, date } from './i18n.js';
 import { icon } from './icons.js';
 
 // Site cards consume the scoped operational read model. Unknown is never zero.
+function renderHeroKpiDeck(ctx, ef, ps, to) {
+  const { div, e, badge } = ctx;
+  const pvW = ef.pv_w;
+  const gridW = ef.grid_w;
+  const batW = ef.battery_w;
+  const batSoc = ef.battery_soc ?? ef.soc;
+  const loadW = ef.load_w;
+
+  const fmtPwr = (w) => {
+    if (w == null) return "—";
+    const absW = Math.abs(w);
+    if (absW >= 1000) return `${number(Math.round(absW / 10) / 100)} kW`;
+    return `${number(Math.round(absW))} W`;
+  };
+
+  const gridDirection = gridW == null ? "" : (gridW >= 0 ? l("Đang phát lưới", "Exporting to grid") : l("Đang nhận lưới", "Importing from grid"));
+  const batDirection = batW == null ? "" : (batW >= 0 ? l("Đang nạp", "Charging") : l("Đang xả", "Discharging"));
+
+  const kpis = [
+    {
+      title: l("Điện mặt trời", "Solar PV"),
+      val: fmtPwr(pvW),
+      sub: ps.today_yield_kwh != null ? `${number(ps.today_yield_kwh)} kWh ${l("hôm nay", "today")}` : l("Công suất PV tức thời", "Instantaneous PV"),
+      colorClass: "solar",
+      badgeText: pvW > 50 ? l("Đang phát", "Generating") : l("Chờ bức xạ", "Standby"),
+      badgeClass: pvW > 50 ? "good" : "gray",
+      tab: "data",
+    },
+    {
+      title: l("Lưới điện EVN", "Power Grid"),
+      val: fmtPwr(gridW),
+      sub: gridDirection || l("Hòa lưới 3 pha", "3-phase Grid"),
+      colorClass: "grid",
+      badgeText: ef.grid_frequency_hz ? `${ef.grid_frequency_hz} Hz` : "50.0 Hz",
+      badgeClass: "good",
+      tab: "data",
+    },
+    {
+      title: l("Hệ thống lưu trữ", "Battery Storage"),
+      val: batSoc != null ? `${number(batSoc)}%` : fmtPwr(batW),
+      sub: batDirection || (batSoc != null ? fmtPwr(batW) : l("LFP LiFePO4", "LFP LiFePO4")),
+      colorClass: "battery",
+      badgeText: batSoc != null ? (batSoc > 20 ? l("An toàn", "Optimal") : l("Mức thấp", "Low")) : l("Lưu trữ", "Storage"),
+      badgeClass: batSoc != null && batSoc > 20 ? "good" : "warn",
+      tab: "control",
+    },
+    {
+      title: l("Phụ tải tiêu thụ", "Site Load"),
+      val: fmtPwr(loadW),
+      sub: ps.today_consumption_kwh != null ? `${number(ps.today_consumption_kwh)} kWh ${l("tiêu thụ", "consumed")}` : l("Công suất tiêu thụ", "Active Load"),
+      colorClass: "load",
+      badgeText: l("Phụ tải hoạt động", "Active Load"),
+      badgeClass: "good",
+      tab: "reports",
+    },
+  ];
+
+  const deck = div("hero-kpi-grid");
+  for (const k of kpis) {
+    const cardEl = div(`kpi-stat-card ${k.colorClass}`);
+    cardEl.style.cursor = "pointer";
+    cardEl.onclick = () => to(k.tab);
+
+    const head = div("row", e("span", k.title, "kpi-title"), badge(k.badgeText, k.badgeClass));
+    const valEl = e("div", k.val, "kpi-big-value");
+    const subEl = e("div", k.sub, "kpi-sub-label");
+
+    cardEl.append(head, valEl, subEl);
+    deck.append(cardEl);
+  }
+  return deck;
+}
+
 export function renderSubtabOverview(ctx, siteId, data) {
   const {div,e,btn,badge,card,p,table}=ctx;
   const root=div('stack'), to=tab=>ctx.go('overview',tab,'main');
@@ -14,7 +87,9 @@ export function renderSubtabOverview(ctx, siteId, data) {
   const fact=(label,v)=>div('fact',e('span',label),e('b',v??'—'));
   const stateLabel=s=>({UNKNOWN:l('Chưa xác định','Unknown'),ENROLLED:l('Đã đăng ký; chưa xác minh online','Enrolled; online unverified'),NOT_ENROLLED:l('Chưa đăng ký','Not enrolled'),ONLINE:l('Có dữ liệu mới','Fresh data'),OFFLINE:l('Ngoại tuyến','Offline')})[s]||s||l('Chưa xác định','Unknown');
   const ef=data.energy_flow||{}, ps=data.plant_status||{};
+  root.append(renderHeroKpiDeck(ctx, ef, ps, to));
   root.append(energyFlowCard(ctx, ef, to));
+
   const presets={self_consumption:l('Tự tiêu thụ','Self consumption'),zero_export:l('Không phát lưới','Zero export'),battery_first:l('Ưu tiên pin','Battery first'),backup_eps:l('Dự phòng EPS','EPS backup')};
   root.append(card(l('Điều khiển nhanh','Quick control'),p(l('Chọn thiết bị và xem khả năng hỗ trợ trước khi xác nhận lệnh.','Select equipment and review its capabilities before confirming a command.')),
     div('preset-grid',...(data.quick_presets||[]).map(item=>div('preset-item',e('b',presets[item.id]||item.id),badge(l('Cần cấu hình theo thiết bị','Device configuration required'),'warn'),btn(l('Cấu hình chi tiết','Detailed configuration'),()=>to('control')))))),

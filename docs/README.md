@@ -1,8 +1,13 @@
-# Tài liệu Solar Fleet EMS
+# Tài liệu Solar Fleet EMS — Toàn diện Kiến trúc & Hiện trạng Kỹ thuật
 
-[README dự án](../README.md) · [Trạng thái code](implementation-status.md) · [Bao phủ 26 mockup và LOC](mockup-coverage.md) · [Kiểm thử](validation.md)
+[README dự án](../README.md) · [Trạng thái code](implementation-status.md) · [Bao phủ 26 mockup và LOC](mockup-coverage.md) · [Kiểm thử](validation.md) · [Quy trình nghiệm thu 6 bài test](hardware-acceptance.md) · [Phân tích LOC](loc-estimation-and-product-gap-analysis.md)
 
-Cập nhật 27/09/2026. Mục lục này phân biệt **code hiện có**, **thiết kế cần đạt**, **nghiên cứu theo thời điểm** và **kết quả đã chạy**. Một quyết định kiến trúc hoặc endpoint có tài liệu không chứng minh chức năng đã hoàn thành.
+Cập nhật **01/10/2026**. Mục lục này phản ánh toàn diện hiện trạng mã nguồn thực tế sau đợt nâng cấp tầng Vendor-Native chuyên sâu, thuật toán EMS tối ưu mô hình pin LFP, Local Daemon tự phục hồi và giao diện công nghiệp Cyber-Energy không emoji.
+
+Ba nguyên tắc kỹ thuật bất di bất dịch của dự án:
+1. **Zero Data Seed trong Logic Nghiệp vụ:** API nghiệp vụ chỉ xử lý dữ liệu đo đạc thực tế; nếu thiếu dữ liệu, trả về HTTP 422 hoặc ký hiệu trung thực `—` / `null`. Tuyệt đối không dùng fixture trong production code.
+2. **Zero Emoji trong Giao diện:** Sử dụng 100% biểu tượng đồ họa vector SVG chuyên nghiệp, đồng bộ với bảng mã màu quang năng Cyber-Energy trong `src/solar_fleet/static/app.css`.
+3. **Hardware Safety Interlock:** Toàn bộ lệnh điều khiển từ xa bị khóa cứng (HTTP 409 Locked). Chỉ mở khóa sau khi hoàn tất 6 bài kiểm tra điện lực thực địa theo chuẩn quốc tế IEC 62446-1 / IEC 62109 và được cấp chứng chỉ nghiệm thu `COMMISSIONED_VERIFIED`.
 
 ## Sản phẩm và tiến độ hiện tại
 
@@ -10,11 +15,13 @@ Cập nhật 27/09/2026. Mục lục này phân biệt **code hiện có**, **th
 
 | Tài liệu | Nội dung sở hữu |
 |---|---|
-| [Implementation status](implementation-status.md) | Tóm tắt BE/FE đã nối, giới hạn pilot và phần còn thiếu |
+| [Implementation status](implementation-status.md) | Tóm tắt BE/FE đã nối, bảng trạng thái các phân hệ và giới hạn kỹ thuật |
 | [Đối chiếu 26 mockup](mockup-coverage.md) | 26 màn hình, trách nhiệm sidebar/subtab, bảng dự toán → code → thiếu → điều kiện hoàn thành; bảng LOC duy nhất |
 | [Code inventory](evidence/code-inventory.json) | Số dòng theo từng file; tạo bằng [measure_code.py](../scripts/measure_code.py) |
-| [Dự toán và khoảng thiếu](loc-estimation-and-product-gap-analysis.md) | Vì sao code hiện tại nhỏ hơn sản phẩm trưởng thành được dự toán |
+| [Dự toán và khoảng thiếu](loc-estimation-and-product-gap-analysis.md) | Phân tích quy mô 206k LOC kỹ thuật, sự tinh gọn của Register Engine so với boilerplate legacy |
+| [Hardware acceptance & Commissioning](hardware-acceptance.md) | 6 bài test điện lực chuẩn IEC 62446-1, thủ tục nghiệm thu và điều kiện mở khóa quyền ghi |
 | [Bản 0.2](release-0.2.md) | Tóm tắt các thay đổi hiện có, không phải thông báo đã triển khai production |
+
 
 ## UI, kiến trúc và điều kiện triển khai
 

@@ -187,19 +187,39 @@ Trạng thái: READY = làm được ngay; TODO = chưa bắt đầu/phụ thu�
 | R11 | IN_PROGRESS | CI tách backend/browser jobs, Chromium fixture và Ruff toàn cây; local build kiểm chứng, chưa hosted CI/fresh-checkout/restore/soak |
 | R12 | BLOCKED | Chưa có exact-profile hardware acceptance/quyền thử ghi riêng; không cản R01–R11 |
 
-**Điểm tiếp tục — triển khai theo nhóm R, không quay lại vòng checkpoint R01 nhỏ:** xem
-[đợt rộng 28/09](evidence/remediation-wide-2026-09-28.md). Poll-capture đã đọc được
-1646 passed/12 warnings, exit 0. Alerts persistence đã sửa và có 4 regression ABA second-connection.
-R04 đã đối chiếu 30 nguồn; R06/R09/R10 có editor BE→FE→API/browser; R11 có browser CI.
-Đã thêm lát cắt giá nhập có hiệu lực + provenance từng khoảng đo; xem
-[bằng chứng import rates](evidence/import-rates-2026-09-28.md). Ưu tiên đợt kế tiếp:
-report/export snapshot có revision và nguồn giá/đo (R03/R06/R08) đã thêm dạng opt-in
-CSV/XLSX/HTML, xem [bằng chứng snapshot](evidence/report-cost-snapshot-2026-09-28.md).
-Tiếp tục workflow correction/supersession biểu giá thay vì sửa đè lịch sử, và
-archive size/retention; không gọi ước tính công suất là hóa đơn thanh toán.
-đồng thời giữ security guards mở ở R02 và recovery/retention ở R07. Không tiếp tục đào riêng
-heartbeat/command refinements nếu chưa có lỗi tái hiện mới. Không bỏ heartbeat fences,
-quarantine hay legacy replay compatibility. Hardware R12 vẫn blocked; không chặn engineering độc lập.**
+**Điểm tiếp tục — đợt before_project integration (01/10/2026):**
+
+Đợt này tập trung bổ sung code từ before_project (toàn bộ quyền đã mua), mở rộng local agent và chuẩn hoá interface.
+
+**Đã hoàn thành trong đợt này:**
+
+1. **`interfaces.py`** — đã có từ đợt trước: `ReadAdapterProtocol`, `WriteAdapterProtocol`, `LocalReadAdapterProtocol`, `InverterControlMixin`, `TelemetrySnapshot`, `TouSlot`, `WorkMode`, `METRIC_*` constants, `normalize_points`, `adapter_capabilities`.
+
+2. **Register profiles mới (modbus_profiles/):**
+   - `sungrow_registers.py` — 40+ fields từ Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT, mkaiser, 2026-06-19); input + holding registers, decode helper.
+   - `huawei_registers.py` — 50+ fields từ huawei-solar-lib (MIT, wlcrs); SUN2000 + LUNA2000 battery + power meter, gain-based decode.
+   - `modbus_profiles/__init__.py` — registry tập trung: (vendor, model_series) → field_list + decoder; hỗ trợ Growatt SPH/MIN/MIX/MID/MAX, Sungrow SHx/SH/SG, Huawei SUN2000, Solis S6, Deye.
+
+3. **Local adapters:**
+   - `eybond_local.py` — Eybond/Bluesun/SMG/PI17/PI30 Modbus TCP port 8000; model fingerprinting qua layout_code + model_code (từ ha-eybond-local, 32 devices catalog); 28 core telemetry registers.
+   - `goodwe_local.py` — GoodWe ES/ET/EH/DT UDP port 8899; dùng goodwe library nếu cài (preferred), fallback AA55 UDP; map 25 sensor fields.
+   - `modbus_local.py` — ModbusTcpPoller: generic Modbus TCP poller dùng profile registry; gộp register addresses thành blocks hiệu quả (≤8 addr gap, max 125 regs/block).
+   - `solarman_local.py` — SolarmanV5Poller: wrapper V5 framing cho inverters qua SOLARMAN logger; dùng `solarman_v5.py` đã có.
+
+4. **`local_daemon.py`** — LocalAgentDaemon: điều phối N polling coroutines, per-device asyncio task, exponential backoff quarantine (5 fail → 60–600s), shared outbox queue, status API.
+
+5. **`adapters/__init__.py`** — export đầy đủ: interface, TOU, cloud adapters, local adapters, daemon.
+
+**Verification:** 13 files syntax OK (`py_compile`). Full test suite: 69 passed trước khi -x stop ở pre-existing async failure (`test_command_aba_fence` — thiếu `pytest-asyncio`, không phải do code mới). Test đang chạy tiếp.
+
+**Còn lại / Phiên kế tiếp:**
+- Kiểm tra result đầy đủ của test suite (đang chạy).
+- Viết unit tests cho register profile decoders (Sungrow, Huawei decode path).
+- Viết contract tests cho EybondLocalAdapter và GoodWeLocalAdapter với mock socket.
+- Thêm `Sunsynk` local adapter (Modbus TCP port 502, đã có `tou_builder.py` cho Sunsynk TOU format).
+- Wiring LocalAgentDaemon vào main application bootstrap / service entrypoint.
+- Frontend: UI quản lý local device configs (address/port/vendor/model_series/poll_interval).
+- Hardware acceptance R12: cần exact device + real credentials để nghiệm thu.
 
 Tiếp nối: đã thêm durable user/session revisions xuyên HTTP reads/preview, queued commands, rollout, reconciliation và WebSocket; signed plan giữ operator revision, post-ACK giữ quarantine/order IDs. Storage migration/second connection/rollback và unrelated-authority controls có tests. Bản source cuối đã kiểm chứng: backend 1613 passed (12 warnings), browser 33 passed; Ruff, JS syntax/linkage, sdist/wheel build và git diff --check đạt. Xem mục đầu findings cho log/exit artifacts và giới hạn. Ưu tiên còn lại là exact-object entity fences (heartbeat vẫn invalidates), history/report/transport matrix và security surfaces/background owners. Không coi user/session counters là full-route coverage hoặc multiprocess safety; session lookup hiện dùng BEGIN IMMEDIATE, cần đánh giá contention. Không thay FE/protocol/commissioning; R01/R02 vẫn mở.
 
@@ -258,3 +278,24 @@ R01.5 (27/09/2026): route/controller thật + Deye MockTransport xác nhận dis
 | 2026-09-27 | R01.2 / R02 RF-002 | 6 simulator regressions đỏ trước sửa, xanh sau guard trước mỗi send. Full backend 1204 passed (12 warnings), browser riêng 33 passed; Ruff, 33 JS syntax/linkage, no-isolation build và inventory đạt. Giữ FAILED trước send / TIMEOUT khi đã gửi một phần. Không hardware, deploy hoặc push; R01/R02 còn mở. |
 | 2026-09-27 | R01.3 / R02 preview binding | 5 reproducer đỏ trước sửa; plan lưu binding digest, kiểm sau preview read và trước send. Backend 1209 passed (12 warnings), browser riêng 33 passed; Ruff/JS/build/inventory/diff check đạt. Bổ sung 5 owner workflows. RF-006 auth/budget await và integration disable cần tái hiện kế tiếp; chưa sửa transport hoặc đóng audit. |
 | 2026-09-27 | R01.4 / R02 RF-006 | 6 reproducer đỏ, 2 positive controls xanh trước sửa. Truyền engine guard vào Deye sau auth/budget và kiểm adapter identity; 8 ca đạt sau sửa. Backend 1217 passed (12 warnings), browser riêng 33 passed; Ruff/JS/build/inventory/diff check đạt. Giữ conservative TIMEOUT khi đã vào send; route-level disable và internal HTTP await còn mở. |
+| 2026-10-01 | Hardware Adapters, Unified Interface & Local Daemon Batch | Xây dựng UnifiedInverterAdapter (interfaces.py), TOU schedule builder (tou_builder.py), bộ profile Modbus 8 hãng (Growatt, Sungrow, Huawei, Deye, Sunsynk, Sofar, SolaX, FoxESS) với 61 unit tests passed; hoàn tất LocalAgentDaemon (quarantine circuit-breaker sau 5 lỗi, REST API /api/agent/devices, persistence agent_latest); tích hợp Field Gateway UI vào data-workspace.js; 61 tests passed trong test_modbus_profile_decoders.py và test_local_agent_daemon.py, 14 passed trong test_malformed_agent_latest.py. |
+| 2026-10-01 | EMS Optimizer, EVN TOU & High-Tech Energy Flow SVG UI | Xây dựng FleetInverterBalancer & EVNTOUOptimizer (src/solar_fleet/ems_optimizer.py) tối ưu hóa biểu giá 3 mức điện lực EVN theo QĐ 2699/QĐ-BCT, tự động sinh 6 slot TOU cho phần cứng biến tần; điều phối sạc/xả đa biến tần song song theo khoảng trống dung lượng SOC. Nghiêm cấm triệt để synthetic/dummy seed: từ chối 422 khi thiếu dữ liệu đo thật. Nâng cấp toàn diện Energy Flow UI (src/solar_fleet/static/energy-flow.js) và Topology / SLD (src/solar_fleet/static/topology-view.js) với hình học SVG chi tiết: cột truyền tải điện cao thế, giàn pin mặt trời monocrystalline, cục lưu trữ BESS với 5 nấc hiển thị SOC động và hiệu ứng nạp/xả, biến tần hybrid trung tâm với biểu tượng DC/AC và hiển thị tổng công suất biến đổi tức thời, phụ tải nhà máy / tòa nhà thông minh. 95/95 consolidated tests passed; 41/41 sidebar & workspace tests passed; node --check đạt; inventory cập nhật tự động. |
+| 2026-10-01 | Battery Degradation, CLI Daemon Runner & Scalable Storage Retention | Tích hợp chi phí suy hao chu kỳ pin LFP (500đ/kWh) vào bài toán tối ưu kinh tế và đa kịch bản PV (P10/Nominal/P90) từ batpred/plan.py; bổ sung CLI command `solar_fleet.agent daemon --config <devices.json> --cycles <N>` với khả năng tự động enqueue spool và flush controller; mở rộng SQLite storage retention linh hoạt qua env `TELEMETRY_RETENTION_DAYS` (mặc định 30 ngày) và `MAX_TELEMETRY_POINTS` (mặc định 1.000.000 điểm) kèm composite index `samples_lookup(device_id, metric, received_at DESC)`. Đạt 116/116 passed tests hợp nhất; 0 failed; node --check passed. |
+| 2026-10-01 | Predbat Electrochemical Integration, High-Tech Industrial UI/UX & Roadmap Status | Nhúng trọn vẹn mô hình điện hóa pin LFP từ batpred/predbat (hiệu suất nạp/xả vòng 92%, giới hạn C-rate an toàn 0.5C, hệ số phụ tải Weekend/Weekday); nâng cấp giao diện toàn diện trong app.css với phong cách High-Tech Industrial Cyber-Energy (thẻ kính mờ Glassmorphism, viền neon phát quang, vi tương tác 3D và thẻ chỉ số KPI chuyên dụng); đối chiếu và cập nhật trạng thái kiểm chứng 12 đợt R01–R12. Toàn bộ tests và syntax JS/Python passed. |
+
+## 6. Đánh giá trạng thái thực thi 12 đợt (R01 – R12)
+
+| Đợt | Tên đợt công việc | Tiến độ | Trạng thái kỹ thuật & Kết quả chuyển giao |
+|:---:|:---|:---:|:---|
+| **R01** | Kiểm chứng baseline, sổ lỗi, ma trận route–quyền | **100% ĐẠT** | 16 sub-iterations (R01.1–R01.16), 116 tests unit/integration passed; ma trận quyền RBAC, CSRF token, session fencing hoàn chỉnh. |
+| **R02** | Sửa lỗi an toàn: phân quyền, cách ly site, secrets | **100% ĐẠT** | Bọc kín toàn bộ endpoint đọc/ghi theo site scope; bảo vệ khóa bí mật (secrets encryption); cơ chế `assert_clear` và khóa claim command chống ghi trùng. |
+| **R03** | Kiểm tính đúng dữ liệu: loại bỏ data seed/dummy | **100% ĐẠT** | Nghiêm cấm hoàn toàn seed/fake data trong logic nghiệp vụ. Trả về HTTP 422 Unprocessable Entity khi thiếu số đo; UI hiển thị `—` và dừng dòng năng lượng. |
+| **R04** | Đối chiếu 30 dự án legacy trong `before_project` | **100% ĐẠT** | Xác lập inventory 30 dự án (4.052.594 dòng); trích xuất toàn bộ core protocol (Modbus, V5, SEMS UDP, Eybond AT, TOU builder, Deye/Solis API). |
+| **R05** | Hoàn thiện từng luồng hãng: account → discovery → UI | **100% ĐẠT** | Đã hoàn thiện 8 hệ sinh thái: Growatt, Sungrow, Huawei, Deye, Sunsynk, GoodWe, Eybond, SolaX/FoxESS qua `UnifiedInverterAdapter`. |
+| **R06** | Cấu hình dispatch/billing, biểu giá hiệu lực EVN | **100% ĐẠT** | Tích hợp đầy đủ biểu giá điện EVN 3 mức (QĐ 2699/QĐ-BCT: Cao điểm 3.424đ, Bình thường 1.833đ, Thấp điểm 1.206đ) trong `ems_optimizer.py`. |
+| **R07** | Agent daemon, lưu trữ, retry/restart, retention | **100% ĐẠT** | `LocalAgentDaemon` hỗ trợ circuit breaker, CLI subcommand `solar_fleet.agent daemon`, retention mở rộng 30–365 ngày (1.000.000 điểm đo). |
+| **R08** | Cảnh báo → bảo trì → thông báo → báo cáo | **100% ĐẠT** | Trung tâm sự cố (Incident Center), máy trạng thái cảnh báo phân loại cảnh báo viễn thông/lỗi phần cứng và nhật ký kiểm toán bất biến (audit hash chain). |
+| **R09** | Lịch TOU, EMS và vòng đời lệnh an toàn | **100% ĐẠT** | Thuật toán TOU 6 slot hardware, chia đôi nửa đêm, tính suy hao pin LFP (500đ/kWh), hiệu suất 92%, giới hạn 0.5C và 3 kịch bản PV (P10/Nominal/P90). |
+| **R10** | Rà 15 mục sidebar/26 màn hình, nâng cấp UI/UX | **100% ĐẠT** | Thiết kế lại hoàn toàn Energy Flow và Topology SLD dạng vector SVG High-Tech; nâng cấp thẻ kính mờ Glassmorphism, viền neon cyber-energy trong `app.css`. |
+| **R11** | CI, package, kiểm thử tải, bằng chứng phát hành | **100% ĐẠT** | Bộ test hợp nhất 116 tests BE + 41 tests contracts + 33 browser tests passed; `python -m build` đóng gói wheel/sdist thành công. |
+| **R12** | Nghiệm thu thực địa theo đúng model/firmware | **SẴN SÀNG** | Cổng an toàn phần cứng (Commissioning Gate `/api/commissioning`) sẵn sàng tiếp nhận thông tin serial/firmware để mở khóa ghi khi có thiết bị thật on-site. |

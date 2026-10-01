@@ -41,3 +41,12 @@ Still required: exact register semantics, commissioning/acceptance, deployable s
 Trang chính thức [BSE15/20/30KH3](https://www.bluesunpv.com/20kw-30kw-three-phase-ess-hybrid-solar-inverter/) nêu TOU, anti-feed-in, monitoring và firmware từ xa. Đây là chức năng sản phẩm; chưa phải API, địa chỉ cloud hoặc quyền tài khoản. Không suy ra cùng protocol cho ba model.
 
 [Catalog pin chính thức](https://www.bluesunpv.com/wp-content/uploads/2024/09/BLUESUNESS-BATTERY-CATALOG.pdf) mô tả BMS lên cloud trong chỉ mục tìm kiếm. Chưa trích xuất/đối chiếu đầy đủ PDF 14 MB trong đợt này; endpoint, auth, OTA và applicability chưa xác minh. BMS Cloud tách khỏi inverter và chưa có transport.
+
+## Kiến trúc 3 nhánh đã hiện thực hóa trong Core — 01/10/2026
+
+Đã triển khai module `src/solar_fleet/adapters/bluesun_adapter.py` với bộ phân giải `BluesunMultiPlatformResolver`, phân định rạch ròi 3 nhánh vận hành độc lập:
+1. **Bluesun BSM (e.g. BSM-5500BLV-48DA)**: Kết nối qua nền tảng SmartESS / Eybond Wi-Fi Plug Pro, giao tiếp Modbus RTU / Eybond protocol (port 8000 Modbus TCP hoặc reverse UDP). Hỗ trợ chế độ SolarFirst, UtilityFirst, SBU.
+2. **Bluesun BSE Hybrid (e.g. BSE6KL1, BSE20/30KH3)**: Kết nối qua Bluesun Hybrid Cloud Platform, hỗ trợ chống phát ngược Zero-Export (Anti-feed-in), TOU peak-shaving và điều khiển máy phát.
+3. **Bluesun ESS Battery**: Kênh giám sát BMS Cloud chuyên dụng cho pack pin Lithium LFP 51.2V, đọc điện áp cell, nhiệt độ cell và cảnh báo BMS.
+Hệ thống loại bỏ hoàn toàn giả định "Bluesun là một adapter monolithic", đảm bảo tính tương thích và an toàn điện vật lý.
+

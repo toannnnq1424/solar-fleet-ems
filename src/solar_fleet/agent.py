@@ -13,9 +13,10 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from pydantic import Field, field_validator
 
+from .adapters.local_daemon import LocalAgentDaemon, LocalDeviceConfig, PollResult
 from .domain import Model, Sample, Source, utcnow
 from .storage import encoded
 
@@ -42,7 +43,97 @@ class AgentBatch(Model):
     points: list[AgentPoint] = Field(min_length=1, max_length=1000)
 
 
-def install_agent(app, controller):
+class LocalDeviceCreate(Model):
+    device_id: str = Field(min_length=1, max_length=100)
+    site_id: str = Field(default="default", max_length=100)
+    transport: str = Field(pattern=r"^(modbus_tcp|solarman_v5|goodwe_udp|eybond_local|sunsynk_local)$")
+    address: str = Field(min_length=1, max_length=255)
+    port: int = Field(default=502, ge=1, le=65535)
+    vendor: str = Field(min_length=1, max_length=50)
+    model_series: str = Field(default="", max_length=50)
+    unit_id: int = Field(default=1, ge=1, le=255)
+    logger_serial: int | None = None
+    poll_interval_s: float = Field(default=30.0, ge=1.0, le=3600.0)
+
+
+def _persist_local_snapshot(store, result: PollResult):
+    device_id = result.device_id
+    snapshot = result.snapshot
+    if not snapshot or not snapshot.points:
+        return
+    now = utcnow()
+    agent_id = "local-daemon"
+    cfg = store.get("local_device", device_id) or {}
+    site_id = cfg.get("site_id", "default")
+
+    # Ensure agent entity exists in store
+    agent = store.get("agent", agent_id)
+    if not agent:
+        store.put("agent", agent_id, {
+            "id": agent_id,
+            "site_id": site_id,
+            "enabled": True,
+            "device_ids": [device_id],
+            "last_sequence": 0,
+            "token_hash": "",
+        })
+    elif device_id not in agent.get("device_ids", []):
+        agent["device_ids"].append(device_id)
+        store.put("agent", agent_id, agent)
+
+    samples = []
+    for metric, (val, unit) in snapshot.points.items():
+        if val is None or not isinstance(val, (int, float)):
+            continue
+        try:
+            sample = Sample(
+                device_id=device_id,
+                metric=metric,
+                value=float(val),
+                unit=unit,
+                source=Source.AGENT,
+                source_timestamp=snapshot.timestamp or now,
+                received_at=now,
+                quality="GOOD" if snapshot.online else "UNVERIFIED",
+                binding_id=agent_id,
+                evidence_ids=[],
+            )
+            samples.append(sample)
+        except Exception:
+            continue
+
+    if not samples:
+        return
+
+    try:
+        store.add_samples(samples)
+        latest_key = f"{agent_id}:{device_id}"
+        latest = store.get("agent_latest", latest_key) or {"samples": []}
+        by_metric = {s["metric"]: s for s in latest.get("samples", [])}
+        for s in samples:
+            by_metric[s.metric] = s.model_dump(mode="json")
+        store.put(
+            "agent_latest",
+            latest_key,
+            {
+                "device_id": device_id,
+                "agent_id": agent_id,
+                "site_id": site_id,
+                "samples": list(by_metric.values()),
+                "received_at": now.isoformat(),
+            },
+        )
+        device = store.get("device", device_id)
+        if device:
+            device["last_seen"] = now.isoformat()
+            device["online"] = snapshot.online
+            store.put("device", device_id, device)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Failed to persist local snapshot for %s: %s", device_id, exc)
+
+
+def install_agent(app, controller, user=None, admin=None):
     store = controller.store
 
     @app.post("/api/agent/inbox")
@@ -155,6 +246,111 @@ def install_agent(app, controller):
             "dropped_expired": dropped,
         }
 
+    daemon = LocalAgentDaemon(
+        on_snapshot=lambda res: _persist_local_snapshot(store, res)
+    )
+    app.state.local_daemon = daemon
+
+    for row in store.list("local_device"):
+        if row.get("enabled", True):
+            try:
+                daemon.add_device(LocalDeviceConfig(
+                    device_id=row["device_id"],
+                    transport=row["transport"],
+                    address=row["address"],
+                    port=row["port"],
+                    vendor=row["vendor"],
+                    model_series=row.get("model_series", ""),
+                    unit_id=row.get("unit_id", 1),
+                    logger_serial=row.get("logger_serial"),
+                    poll_interval_s=row.get("poll_interval_s", 30.0),
+                ))
+            except Exception:
+                pass
+
+    @app.get("/api/agent/devices")
+    async def list_local_devices(who=Depends(user) if user else None):
+        statuses = {s["device_id"]: s for s in daemon.status()}
+        stored = store.list("local_device")
+        result = []
+        for dev in stored:
+            if who and hasattr(who, "can_access") and not who.can_access(dev.get("site_id", "default")):
+                continue
+            item = dict(dev)
+            item["status"] = statuses.get(dev["device_id"], {})
+            result.append(item)
+        return result
+
+    @app.post("/api/agent/devices")
+    async def create_or_update_local_device(body: LocalDeviceCreate, who=Depends(user) if user else None):
+        if admin and who:
+            await admin(who)
+        config = LocalDeviceConfig(
+            device_id=body.device_id,
+            transport=body.transport,
+            address=body.address,
+            port=body.port,
+            vendor=body.vendor,
+            model_series=body.model_series,
+            unit_id=body.unit_id,
+            logger_serial=body.logger_serial,
+            poll_interval_s=body.poll_interval_s,
+        )
+        stored_dict = body.model_dump(mode="json")
+        stored_dict["enabled"] = True
+        store.put("local_device", body.device_id, stored_dict)
+
+        existing_dev = store.get("device", body.device_id)
+        if not existing_dev:
+            from .domain import Device, DeviceIdentity
+            d = Device(
+                id=body.device_id,
+                site_id=body.site_id,
+                integration_id="LOCAL",
+                vendor_id=body.vendor,
+                type="inverter",
+                identity=DeviceIdentity(vendor=body.vendor, model=body.model_series or "Local Inverter"),
+                name=f"{body.vendor.capitalize()} {body.model_series}".strip(),
+            )
+            store.put("device", body.device_id, d.model_dump(mode="json"))
+
+        if body.device_id not in daemon._pollers:
+            daemon.add_device(config)
+
+        return {"status": "ok", "device_id": body.device_id}
+
+    @app.post("/api/agent/devices/{device_id}/poll")
+    async def poll_local_device(device_id: str, who=Depends(user) if user else None):
+        if who and hasattr(who, "can_access"):
+            dev_entry = store.get("local_device", device_id)
+            if dev_entry and not who.can_access(dev_entry.get("site_id", "default")):
+                raise HTTPException(403, "site_scope_denied")
+        poller = daemon._pollers.get(device_id)
+        if not poller:
+            raise HTTPException(404, "local_device_not_active")
+        res = await poller.poll_once()
+        if not res:
+            return {"status": "failed", "device_id": device_id}
+        _persist_local_snapshot(store, res)
+        return {
+            "status": "success",
+            "device_id": device_id,
+            "points": {k: v[0] for k, v in res.snapshot.points.items()},
+            "online": res.snapshot.online,
+        }
+
+    @app.delete("/api/agent/devices/{device_id}")
+    @app.post("/api/agent/devices/{device_id}/delete")
+    async def delete_local_device(device_id: str, who=Depends(user) if user else None):
+        if admin and who:
+            await admin(who)
+        await daemon.remove_device(device_id)
+        row = store.get("local_device", device_id)
+        if row:
+            row["enabled"] = False
+            store.put("local_device", device_id, row)
+        return {"status": "ok", "device_id": device_id}
+
 
 class Outbox:
     """One agent spool per database; acknowledge only after the server commits the same sequence."""
@@ -249,6 +445,13 @@ def main():
     model.add_argument("--profile", type=Path, required=True)
     ha = sub.add_parser("collect-home-assistant", help="Read selected HA sensors; token from SOLAR_HA_TOKEN")
     ha.add_argument("--profile", type=Path, required=True)
+    daemon_cmd = sub.add_parser(
+        "daemon", help="Run background daemon polling local devices with auto-reconnect and spool enqueue"
+    )
+    daemon_cmd.add_argument("--config", type=Path, required=True, help="Path to devices JSON config list")
+    daemon_cmd.add_argument("--agent-id", default="local-daemon", help="Agent identifier for queued telemetry")
+    daemon_cmd.add_argument("--controller", help="Optional controller URL for automatic flush")
+    daemon_cmd.add_argument("--cycles", type=int, default=1, help="Number of poll cycles to run (0 = run indefinitely)")
     args = parser.parse_args()
     args.spool.parent.mkdir(parents=True, exist_ok=True)
     outbox = Outbox(args.spool)
@@ -275,6 +478,52 @@ def main():
             profile = HomeAssistantProfile.model_validate_json(args.profile.read_text(encoding="utf-8"))
             points = collect_home_assistant(profile, os.environ.get("SOLAR_HA_TOKEN", ""))
             print("Queued sequence", outbox.enqueue(profile.agent_id, points))
+        elif args.command == "daemon":
+            import time
+
+            devices_raw = json.loads(args.config.read_text(encoding="utf-8"))
+            if isinstance(devices_raw, dict):
+                devices_raw = [devices_raw]
+            configs = [LocalDeviceConfig(**d) for d in devices_raw]
+
+            points_batch: list[dict] = []
+
+            def on_poll(res: PollResult):
+                if res.snapshot and res.snapshot.points:
+                    now_iso = (res.snapshot.timestamp or utcnow()).isoformat()
+                    for k, (v, u) in res.snapshot.points.items():
+                        if v is not None and isinstance(v, (int, float)):
+                            points_batch.append({
+                                "device_id": res.device_id,
+                                "key": k,
+                                "value": float(v),
+                                "unit": u,
+                                "timestamp": now_iso,
+                            })
+
+            daemon = LocalAgentDaemon(configs=configs, on_snapshot=on_poll)
+            cycles_run = 0
+            while True:
+                points_batch.clear()
+                daemon.poll_all_sync()
+                cycles_run += 1
+                if points_batch:
+                    seq = outbox.enqueue(args.agent_id, points_batch)
+                    print(f"Cycle {cycles_run}: Queued sequence {seq} ({len(points_batch)} points)")
+                    if args.controller:
+                        token = os.environ.get("SOLAR_AGENT_TOKEN", "")
+                        if token:
+                            try:
+                                ack = outbox.flush(args.controller, token)
+                                print(f"Cycle {cycles_run}: Flushed {ack} batches to controller")
+                            except Exception as flush_err:
+                                print(f"Cycle {cycles_run}: Flush warning: {flush_err}")
+                else:
+                    print(f"Cycle {cycles_run}: No points collected (devices offline or in backoff)")
+
+                if args.cycles > 0 and cycles_run >= args.cycles:
+                    break
+                time.sleep(min(cfg.poll_interval_s for cfg in configs) if configs else 30)
         else:
             token = os.environ.get("SOLAR_AGENT_TOKEN")
             if not token:

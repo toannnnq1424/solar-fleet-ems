@@ -1021,6 +1021,15 @@ dialog::backdrop {
 .geo-map circle[role="button"],
 .topology-svg [role="button"] {
   cursor: pointer;
+  transition: transform 0.18s ease;
+}
+.topology-svg .topology-node-group:hover .topology-node {
+  stroke: var(--blue);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08));
+}
+.topology-svg .topology-node-group:focus-visible .topology-node {
+  stroke: var(--blue);
+  stroke-width: 2.5;
 }
 .geo-map circle[role="button"]:focus {
   stroke: #233f9a;
@@ -5861,25 +5870,49 @@ solar-energy-flow { display: block; }
 /* --- Node cards ---------------------------------------------------------- */
 .power-node {
   position: relative; z-index: 1; align-self: center; justify-self: center;
-  width: min(100%, 230px); height: 148px;
+  width: min(100%, 230px); height: 154px;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
-  gap: 5px; padding: 10px;
-  border-color: var(--line); background: var(--surface);
-  box-shadow: var(--shadow-card); text-align: center;
+  gap: 3px; padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface);
+  box-shadow: 0 2px 10px rgba(18, 34, 55, 0.05); text-align: center;
   transition: border-color .25s ease, box-shadow .25s ease, transform .18s ease;
 }
 .power-node > * { flex-shrink: 0; }
-.power-node:hover { border-color: currentColor; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.power-node:hover { border-color: currentColor; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.10); }
 .power-node:active { transform: translateY(0); }
-.power-node-heading { display: flex; gap: 8px; align-items: center; font-size: 14px; }
-.power-node .ui-icon { width: 28px; height: 28px; }
-.power-value { font-size: 30px; line-height: 1.2; letter-spacing: -.7px; font-variant-numeric: tabular-nums; font-weight: 600; }
-.power-direction, .power-source { margin: 0; font-size: 12px; }
+.power-node-art {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 2px;
+}
+.energy-art-svg { width: 100%; height: 100%; overflow: visible; }
+.battery-bar-segment { transition: fill 0.3s ease, opacity 0.3s ease; }
+.art-led-active { animation: led-glow-pulse 1.8s ease-in-out infinite; }
+.art-charging-bolt { animation: charging-bolt-flicker 1.2s ease-in-out infinite alternate; }
+@keyframes led-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px #22c55e); opacity: 1; }
+  50% { filter: drop-shadow(0 0 5px #22c55e); opacity: 0.8; }
+}
+@keyframes charging-bolt-flicker {
+  0% { filter: drop-shadow(0 0 1px #f59e0b); }
+  100% { filter: drop-shadow(0 0 4px #f59e0b); }
+}
+.power-node-heading { display: flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; }
+.power-node .ui-icon { width: 24px; height: 24px; }
+.power-value { font-size: 24px; line-height: 1.2; letter-spacing: -.6px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.power-direction, .power-source { margin: 0; font-size: 11px; }
 .power-source { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .power-source:empty { display: none; }
 
 /* Hub node */
-.power-hub { grid-area: 1 / 2; background: var(--primary-soft); color: var(--blue); }
+.power-hub {
+  grid-area: 1 / 2;
+  background: var(--primary-soft);
+  color: var(--blue);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.power-hub .power-node-art { width: 48px; height: 48px; }
 .power-hub > svg { width: 36px; height: 36px; }
 
 /* Branch positions */
@@ -5995,3 +6028,186 @@ solar-energy-flow { display: block; }
   border-radius: var(--radius-small);
   font-family: monospace;
 }
+
+/* ==========================================================================
+   HIGH-TECH INDUSTRIAL CYBER-ENERGY DESIGN SYSTEM EXTENSIONS
+   Modern Glassmorphism, Neon Glow Accents, and 3D Micro-interactions
+   ========================================================================== */
+
+/* Glassmorphism Dashboard Cards */
+.card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(227, 233, 242, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(18, 34, 55, 0.08);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-glass:hover {
+  box-shadow: 0 8px 28px -2px rgba(18, 34, 55, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Dark Mode / High Contrast Dashboard Elements */
+[data-theme="dark"] .card-glass,
+.dark-theme-panel {
+  background: rgba(18, 34, 55, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f0f4f9;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* High-tech KPI Stat Badges */
+.kpi-stat-card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(18, 34, 55, 0.04);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.kpi-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 4px 0 0 4px;
+}
+.kpi-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(18, 34, 55, 0.08);
+}
+.kpi-stat-card.solar::before { background: #f59e0b; }
+.kpi-stat-card.battery::before { background: #10b981; }
+.kpi-stat-card.grid::before { background: #3b82f6; }
+.kpi-stat-card.load::before { background: #8b5cf6; }
+
+.hero-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.kpi-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.kpi-big-value {
+  font-size: 26px;
+  font-weight: 750;
+  color: var(--ink);
+  margin: 6px 0 2px 0;
+  letter-spacing: -0.6px;
+}
+.kpi-sub-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+
+/* Micro-interaction Hover Pulses for Action Buttons */
+button.primary {
+  background: linear-gradient(135deg, #365ff3 0%, #2548cb 100%);
+  border: none;
+  box-shadow: 0 2px 6px rgba(54, 95, 243, 0.3);
+  transition: all 0.2s ease;
+}
+button.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #446ef7 0%, #2d52dc 100%);
+  box-shadow: 0 4px 14px rgba(54, 95, 243, 0.45);
+  transform: translateY(-1px);
+}
+button.primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(54, 95, 243, 0.3);
+}
+
+/* Premium Status Indicator Badges */
+.badge-tech {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.badge-tech.online {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+.badge-tech.online::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+.badge-tech.charging {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+.badge-tech.charging::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 6px #3b82f6;
+  animation: charging-pulse 1s infinite alternate;
+}
+@keyframes charging-pulse {
+  from { opacity: 0.4; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.2); }
+}
+
+/* Industrial Data Table Highlighting */
+table.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+table.data-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+table.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+table.data-table tr:hover td {
+  background: #f8fafc;
+}
+table.data-table tr:last-child td {
+  border-bottom: none;
+}
+

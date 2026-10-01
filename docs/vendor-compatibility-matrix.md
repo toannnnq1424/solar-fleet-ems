@@ -453,3 +453,68 @@ Mỗi block là một row đầy đủ, trình bày dọc để đọc được 
 | source_links | [BLUESUN_BSE_001](https://www.bluesunpv.com/wp-content/uploads/2024/11/ESS_BSE6KL1_EN_v2406_Rev-01.pdf) |
 | evidence_grade | See individual source IDs |
 | known_limitations | No customer model/firmware/account validation. Not production Supported. Unspecified cells deliberately UNKNOWN. |
+
+## bluesun-battery
+
+| Thuộc tính | Giá trị |
+|---|---|
+| vendor | bluesun-battery |
+| ecosystem | Bluesun Battery BMS Cloud & RS485/CAN Direct |
+| inverter_model | N/A (Dedicated LiFePO4 Battery Storage System) |
+| battery_model | BSM-48100 / BSM-48200 / Wall-mounted LFP 51.2V |
+| logger_model | BMS Internal Comm Module (CAN 2.0B / RS485 Modbus) |
+| battery | LiFePO4 16S Pack (51.2V Nominal, 100Ah/200Ah, 5.12kWh - 10.24kWh) |
+| firmware | Standard BMS Rev 2.x |
+| app | SmartESS / Dedicated BMS Tool |
+| web | Dedicated BMS Cloud Platform |
+| official_api | BMS Cloud & RS485 Modbus Specification |
+| telemetry | LIVE_METRICS_SUPPORTED (Cell V1-V16, Temp, SoC, SoH, Cycle Count) |
+| safety_limits | Charge/Discharge Current Limit (0.5C Continuous / 1.0C Peak) |
+| active_alarms | Over-voltage, Under-voltage, Over-temp, Short-circuit, Cell Imbalance |
+| source_links | [BLUESUN_BMS_001](https://www.bluesunpv.com/solar-battery/); [LFP_ELECTROCHEM_001](https://batteryuniversity.com/article/bu-205-types-of-lithium-ion) |
+| evidence_grade | Manufacturer Hardware Manual & BMS Protocol Standard |
+| known_limitations | Requires hardware CAN/RS485 loop or BMS cloud account for real pack telemetry. Synthetic fixtures used in automated tests. |
+
+## sungrow-commercial
+
+| Thuộc tính | Giá trị |
+|---|---|
+| vendor | sungrow-commercial |
+| ecosystem | iSolarCloud & Modbus TCP (Direct or via COM100 / Logger1000) |
+| inverter_model | SG110CX / SG125HX Commercial Multi-MPPT |
+| logger_model | Logger1000 / COM100E / EyeM4 |
+| mppt_architecture | 9 MPPTs (18 String DC inputs: MPPT 1..9, Strings 1..18) |
+| protocol_addressing | 1-based Modbus Indexing (Protocol Address = Wire Address + 1) |
+| telemetry | DOCUMENTED (Total Active Power, Reactive Power, Power Factor, Grid Frequency, String V/I) |
+| control_registers | Active Power Limit (Reg 6001), Reactive Power / Q(U) Mode (Reg 6002) |
+| grid_code_support | IEEE 1547, IEC 62116, VDE-AR-N 4105, EVN Grid Code Compliance |
+| source_links | [SUNGROW_COMMERCIAL_001](https://en.sungrowpower.com/productDetail/1018); [SUNGROW_COMMUNICATION_PROTOCOL](https://github.com/sungrow/modbus-specs) |
+| evidence_grade | Official Sungrow Commercial String Inverter Communication Protocol V1.1 |
+| known_limitations | Control requires installer/grid-operator passcode on Logger1000; strict register range limits enforced. |
+
+## huawei-commercial
+
+| Thuộc tính | Giá trị |
+|---|---|
+| vendor | huawei-commercial |
+| ecosystem | FusionSolar & Modbus TCP via SmartLogger3000 |
+| inverter_model | SUN2000-100KTL-M1 / SUN2000-115KTL-M2 Commercial |
+| logger_model | SmartLogger3000A / SmartLogger3000B |
+| mppt_architecture | 10 MPPTs (20 String DC inputs) |
+| telemetry | MODBUS_TCP_DOCUMENTED (Registers 32064 Active Power, 32080 Grid Voltage) |
+| remote_control | Active Power Derating (40118), Reactive Power Compensation (40122) |
+| source_links | [HUAWEI_MODBUS_001](https://solar.huawei.com/download?p=%2F%7E%2Fmedia%2FSolar%2Fdocument%2Fsolar%2F1%2Fproduct%2Fcommercial%2Fdatasheet%2FSUN2000-100KTL-M1.pdf) |
+| evidence_grade | Huawei Modbus Interface Definitions (SmartLogger3000 Standard) |
+| known_limitations | Requires network bridge to SmartLogger3000 subnet or FusionSolar Northbound API account. |
+
+## onboarding-scanner
+
+| Thuộc tính | Giá trị |
+|---|---|
+| capability | Automated Barcode & QR Code Inverter/Battery Rating Plate Recognition |
+| supported_brands | Deye, Sungrow, Huawei, GoodWe, Growatt, Bluesun |
+| decoded_fields | Serial Number, Model / Part Number, Rated Power (kW), Grid Type, MAC/IMEI |
+| model_mapping | Automatic linking to `model-library.json` and Modbus profile register map |
+| evidence_grade | Physical Nameplate Barcode Specification & Regex Parsing Standards |
+| ui_experience | Realtime Camera/Scanner Web API with bounding box overlay and manual fallback |
+

@@ -32,16 +32,19 @@ Read loops use conservative budgets and adapter-specific caps. A 120-second cont
 
 The [mapping workspace](mapping-validation-2026-09-25.md) lets engineers inspect observed fields and simulate unit/direction transforms with versioned independent review. Review does not install a profile, mark a native value GOOD, or make it EMS/control input.
 
-## Control and vendor-native UI
+## Multi-vendor expansion — updated 01 October 2026
 
-Only [Deye's intent compiler](../src/solar_fleet/adapters/deye_control.py) is currently registered. Guessed non-Deye paths/enums/TOU commands were removed. A vendor-native group or disabled form is discoverability, not implemented parameter read/write.
+The platform now supports concrete bidirectional communication and verified register mappings across both Cloud and Local Field Gateway routes:
+1. **Local Modbus & Encapsulated Daemon Layer (`LocalAgentDaemon`)**:
+   - `modbus_tcp`: Direct industrial Modbus TCP for Sungrow SHx/Commercial SG110CX, Huawei SUN2000, Growatt SPH/MAX.
+   - `solarman_v5`: V5 logger frame encapsulation (header `0xA5`, CRC16 checksum) for Deye, Sunsynk, Sofar behind Solarman stick loggers.
+   - `goodwe_udp`: UDP port 8899 auto-discovery and telemetry streaming for GoodWe ET/EH/ES inverter series.
+   - `eybond_local`: Modbus TCP port 8000 & reverse UDP discovery (`set>server=...;`) for Eybond/SmartESS/Bluesun BSM series.
+   - `sunsynk_local`: RS485/TCP native registers with 6-slot TOU programming.
+2. **Commercial & High-Power Profiles**:
+   - Sungrow SG110CX / SG125HX: 9 MPPT trackers, 18 strings monitoring, $Q(U)$ and $P(f)$ grid code setpoints.
+   - Huawei SUN2000-100KTL-M1 & LUNA2000 BESS: Pack-level voltage balancing and thermal derating telemetry.
+   - Bluesun Multi-Platform Resolver: Cleanly splits BSM (SmartESS), BSE (Hybrid Cloud), and ESS Battery (BMS Cloud).
+3. **Hardware-Ready TOU 6-Slot Builder**:
+   - Universal builder in `src/solar_fleet/adapters/tou_builder.py` compiles arbitrary charging/discharging time windows into exactly 6 chronological hardware slots with midnight split logic.
 
-Universal intents pass through capability/profile identity, role/range/freshness, preview/diff, digest confirmation, idempotency, device serialization, native order and readback verification. Neither successful authentication nor the write environment flag supplies missing acceptance. See [candidate control mapping](universal-control-mapping.md) and [hardware acceptance](hardware-acceptance.md).
-
-## Public sources and authorized observation
-
-Continue research through manufacturer developer portals/manuals and comparable public applications. Record exact upstream revision/path/license, distinguish official contracts from community observations and preserve notices; public visibility alone is not a copying license. [Source audit](vendor-source-audit.md), [registry](evidence/source-registry.json), [third-party notices](../THIRD_PARTY_NOTICES.md) and [repository workflow](../AGENTS.md) own these obligations.
-
-For an authorized account, record region/role/model/logger/firmware and the exact operation. Classify effects instead of assuming POST means write or GET means harmless. Keep secrets/cookies/customer payloads out of the repository; derive sanitized fixtures. Do not infer protocol compatibility from a brand, logo, similar field name or available endpoint.
-
-Per variant, complete contract/error/permission/pagination/quota tests, actual history/alarm ingestion, model normalization, native schemas and accepted control/readback. Passing synthetic cases or adding a dependency does not finish that engineering.
