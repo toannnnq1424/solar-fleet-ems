@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from ..domain import VendorError
 from .cloud import ReadCloud, compact, records
+from .goodwe_plus import GoodWePlus
 
 HOSTS = {
     "global": "https://www.semsportal.com",
@@ -62,7 +63,14 @@ GOODWE_NATIVE_POINTS = {
 
 class GoodWe(ReadCloud):
     evidence_ids = ["GOODWE_API_001"]
-    version = "0.3.0"
+    version = "0.4.0"
+
+    def __new__(cls, integration, credentials, **kwargs):
+        if integration.get("platform") == "sems_plus":
+            return GoodWePlus(integration, credentials, **kwargs)
+        if integration.get("platform") not in (None, "sems"):
+            raise VendorError("unsupported_goodwe_platform")
+        return super().__new__(cls)
 
     def __init__(self, integration, credentials, **kwargs):
         region = integration.get("region", "global")
@@ -75,6 +83,7 @@ class GoodWe(ReadCloud):
         self.access_token, self.expires_at = None, 0
         self.auth_lock = asyncio.Lock()
         self.device_plants = {}
+        self.inventory_ready = False
 
     def validate_response(self, payload):
         if str(payload.get("code")) != "0":
@@ -127,6 +136,7 @@ class GoodWe(ReadCloud):
         )
 
     async def stations(self):
+        self.inventory_ready = False
         await self.authenticate()
         ids = [v.strip() for v in self.credentials.get("plant_ids", "").split(",") if v.strip()]
         if not ids:
@@ -175,7 +185,10 @@ class GoodWe(ReadCloud):
             result.append(
                 {
                     "deviceSn": sn,
-                    "deviceState": 1,
+                    # Receiving a cached station response does not establish
+                    # inverter connectivity. No classic-SEMS status mapping has
+                    # been accepted here; retain the vendor row as evidence.
+                    "deviceState": None,
                     "collectionTime": None,
                     "dataList": self.decode_native_points(row["invert_full"]),
                     "native": row,

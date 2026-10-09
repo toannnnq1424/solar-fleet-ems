@@ -471,7 +471,7 @@ def install_data_workspace(app, controller, user, admin):
         for config in store.list("integration"):
             plugin = controller.registry.find(config["vendor"])
             spec = plugin.registration if plugin else {}
-            minimum = spec.get("minimum_poll_seconds", 120)
+            minimum = minimum_collection_interval(config, spec)
             policy = (
                 store.get("collection_policy", config["id"])
                 or CollectionPolicy(interval_seconds=minimum).model_dump()
@@ -502,7 +502,7 @@ def install_data_workspace(app, controller, user, admin):
         if not config:
             raise HTTPException(404, "integration_not_found")
         plugin = controller.registry.find(config["vendor"])
-        minimum = plugin.registration.get("minimum_poll_seconds", 120) if plugin else 120
+        minimum = minimum_collection_interval(config, plugin.registration if plugin else {})
         if body.interval_seconds < minimum:
             raise HTTPException(422, "collection_interval_below_adapter_minimum")
         with store.transaction():
@@ -549,8 +549,8 @@ def install_data_workspace(app, controller, user, admin):
                 continue
             st = store.get("integration_state", key) or {}
             plugin = controller.registry.find(config["vendor"])
-            minimum = plugin.registration.get("minimum_poll_seconds", 120) if plugin else 120
-            interval = max(minimum, (store.get("collection_policy", key) or {}).get("interval_seconds", 120))
+            minimum = minimum_collection_interval(config, plugin.registration if plugin else {})
+            interval = max(minimum, (store.get("collection_policy", key) or {}).get("interval_seconds", minimum))
             status = connection_status(config, st, interval)
             sources.append(
                 {
@@ -685,10 +685,16 @@ def connection_status(config, state, interval, now=None):
     return value
 
 
+def minimum_collection_interval(config, registration):
+    return registration.get("platform_poll_seconds", {}).get(
+        config.get("platform"), registration.get("minimum_poll_seconds", 120)
+    )
+
+
 def collection_due(store, config, now=None, *, minimum_interval=120):
     policy = store.get("collection_policy", config["id"])
     state = store.get("integration_state", config["id"])
     if not state or not state.get("last_attempt"):
         return True
     age = ((now or utcnow()) - datetime.fromisoformat(state["last_attempt"])).total_seconds()
-    return age < 0 or age >= max(minimum_interval, (policy or {}).get("interval_seconds", 120))
+    return age < 0 or age >= max(minimum_interval, (policy or {}).get("interval_seconds", minimum_interval))

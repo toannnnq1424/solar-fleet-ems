@@ -107,13 +107,16 @@ def _compare_tou_slots(exp_slots: Any, rb_slots: Any) -> bool:
         # Time matching
         exp_time = exp_d.get("time") or exp_d.get("timePoint") or exp_d.get("start_hm")
         rb_time = rb_d.get("time") or rb_d.get("timePoint") or rb_d.get("start_hm")
-        if exp_time and rb_time and str(exp_time).strip() != str(rb_time).strip():
-            return False
+        if exp_time is not None:
+            if rb_time is None or str(exp_time).strip() != str(rb_time).strip():
+                return False
 
         # Target SOC matching (tolerance ±1.0%)
         exp_soc = exp_d.get("target_soc") if "target_soc" in exp_d else (exp_d.get("soc") if "soc" in exp_d else exp_d.get("capValue"))
         rb_soc = rb_d.get("target_soc") if "target_soc" in rb_d else (rb_d.get("soc") if "soc" in rb_d else rb_d.get("capValue"))
-        if exp_soc is not None and rb_soc is not None:
+        if exp_soc is not None:
+            if rb_soc is None:
+                return False
             try:
                 if abs(float(exp_soc) - float(rb_soc)) > 1.0:
                     return False
@@ -124,7 +127,9 @@ def _compare_tou_slots(exp_slots: Any, rb_slots: Any) -> bool:
         # Power matching (tolerance ±50W)
         exp_p = exp_d.get("power_w") if "power_w" in exp_d else (exp_d.get("power") if "power" in exp_d else exp_d.get("chargePower"))
         rb_p = rb_d.get("power_w") if "power_w" in rb_d else (rb_d.get("power") if "power" in rb_d else rb_d.get("chargePower"))
-        if exp_p is not None and rb_p is not None:
+        if exp_p is not None:
+            if rb_p is None:
+                return False
             try:
                 if abs(float(exp_p) - float(rb_p)) > 50.0:
                     return False
@@ -135,10 +140,15 @@ def _compare_tou_slots(exp_slots: Any, rb_slots: Any) -> bool:
         # Grid charge boolean matching
         exp_gc = exp_d.get("grid_charge") if "grid_charge" in exp_d else exp_d.get("gridCharge")
         rb_gc = rb_d.get("grid_charge") if "grid_charge" in rb_d else rb_d.get("gridCharge")
-        if exp_gc is not None and rb_gc is not None:
+        if exp_gc is not None:
+            if rb_gc is None:
+                return False
             norm_exp = _normalize_bool(exp_gc)
             norm_rb = _normalize_bool(rb_gc)
-            if norm_exp is not None and norm_rb is not None and norm_exp != norm_rb:
+            if norm_exp is not None and norm_rb is not None:
+                if norm_exp != norm_rb:
+                    return False
+            elif exp_gc != rb_gc:
                 return False
     return True
 
@@ -217,13 +227,17 @@ def binding_fingerprint(device: Device) -> str:
     return hashlib.sha256(encoded(binding).encode()).hexdigest()
 
 
+MAX_CONFIG_AGE_SECONDS = 60.0
+
+
 def fresh(config: Configuration, *, after=None):
     timestamp = config.device_timestamp
     if not config.freshness_verified or timestamp is None or timestamp.tzinfo is None:
         raise SafetyError("device_readback_freshness_unverified")
     age = (utcnow() - timestamp).total_seconds()
-    if age > 60 or age < -5 or (after is not None and timestamp < after):
+    if age >= MAX_CONFIG_AGE_SECONDS or age < -5 or (after is not None and timestamp < after):
         raise SafetyError("device_readback_stale")
+
 
 
 class CommandEngine:

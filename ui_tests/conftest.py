@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture
-def fixture_server(tmp_path):
+def fixture_server(tmp_path, request):
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -29,7 +29,11 @@ def fixture_server(tmp_path):
     process = subprocess.Popen(
         [sys.executable, "-X", "utf8", str(ROOT / "tests" / "ui_fixture.py"), "--port", str(port)],
         cwd=ROOT,
-        env={**os.environ, "SOLAR_UI_FIXTURE_RUN_ID": run_id},
+        env={
+            **os.environ,
+            "SOLAR_UI_FIXTURE_RUN_ID": run_id,
+            "SOLAR_UI_FIXTURE_EMPTY": "1" if getattr(request, "param", None) == "empty" else "0",
+        },
         stdout=log,
         stderr=subprocess.STDOUT,
         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
@@ -115,4 +119,5 @@ def login(page, origin, account="ui-review"):
     page.get_by_label("Local account", exact=True).fill(account)
     page.get_by_label("Password", exact=True).fill("LOCAL-UI-REVIEW-ONLY-2026")
     page.get_by_role("button", name="Open workspace →", exact=True).click()
-    page.get_by_role("navigation", name="Main navigation").wait_for()
+    # The shared mobile drawer is intentionally closed after authentication.
+    page.locator('.topbar').wait_for()

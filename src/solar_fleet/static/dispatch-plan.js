@@ -106,8 +106,8 @@ export function dispatchPlanCard(ui) {
         ])
       );
 
-      const lowVal = res.scenarios.low_solar_savings_vnd ?? res.scenarios.p10_gloomy_savings_vnd;
-      const highVal = res.scenarios.high_solar_savings_vnd ?? res.scenarios.p90_sunny_savings_vnd;
+      const lowVal = res.scenarios?.low_solar_savings_vnd ?? res.scenarios?.p10_gloomy_savings_vnd;
+      const highVal = res.scenarios?.high_solar_savings_vnd ?? res.scenarios?.p90_sunny_savings_vnd;
       const scenarioBar = res.scenarios ? div("row gap-md wrap align-center card",
         e("b", l("Phân tích độ nhạy quang năng (Độ nhạy thời tiết):", "Solar Generation Sensitivity Scenarios:"), "muted"),
         badge(`${l("Kịch bản nắng yếu (-55%):", "Low Solar (-55%):")} ${number(lowVal)} đ`, "warn"),
@@ -135,10 +135,10 @@ export function dispatchPlanCard(ui) {
 
   root.append(
     card(
-      l("Tối ưu hóa Chi phí Tiền điện theo Biểu giá EVN (3 Giá QĐ 2699/QĐ-BCT)", "EVN Time-of-Use Tariff Arbitrage Optimization"),
+      l("Ước tính lịch sạc / xả tiết kiệm điện", "Estimate a cost-saving battery schedule"),
       p(l(
-        "Thuật toán tối ưu hóa điều độ sạc xả pin dựa trên 3 khung giờ của EVN: Tự động nạp đầy pin trong giờ thấp điểm (đơn giá ~1.100 đ/kWh) và xả công suất cực đại vào 2 khung giờ cao điểm (sáng 09:30-11:30 và tối 17:00-20:00, đơn giá ~3.200 - 4.900 đ/kWh) để triệt tiêu phụ tải đỉnh.",
-        "Algorithm optimizes battery charge/discharge based on EVN 3-tier tariff: auto-charges during off-peak hours (~1,100 VND/kWh) and discharges during morning and evening peak hours (~3,200 - 4,900 VND/kWh) to eliminate peak demand charges."
+        "Chọn nhóm giá điện phù hợp để tính lịch tham khảo từ số đo và cấu hình pin. Kết quả chưa áp dụng cho thiết bị và không phải hóa đơn. Nhờ đơn vị lắp đặt xác nhận nhóm giá nếu bạn chưa rõ.",
+        "Select a tariff category to estimate a schedule from measurements and battery configuration. Results are not sent to equipment and are not a bill. Ask your installer to confirm the category if unsure."
       )),
       div("row gap-sm align-center wrap",
         field(l("Nhóm khách hàng", "Customer Group"), catSelect),
@@ -151,14 +151,15 @@ export function dispatchPlanCard(ui) {
 
   // SECTION 2: MULTI-INVERTER FLEET BALANCING
   const balanceContainer = div("stack gap-sm");
-  const targetPowerInput = input("number", 15); targetPowerInput.min = "1"; targetPowerInput.max = "500";
+  const targetPowerInput = input("number", ""); targetPowerInput.min = "1"; targetPowerInput.max = "500"; targetPowerInput.required = true;
   const modeSelect = select([
     ["charge", l("Nạp sạc (Charge)", "Charge")],
     ["discharge", l("Xả tải (Discharge)", "Discharge")],
   ], "charge");
 
   const runBalanceBtn = btn(l("Phân bổ công suất cân bằng pin", "Compute Balanced Allocation"), async () => {
-    if (!state.site) return;
+    if (!state.site) { balanceContainer.replaceChildren(p(l("Chọn nhà máy trước khi tính toán.", "Select a plant before calculating."))); return; }
+    if (!targetPowerInput.reportValidity()) return;
     runBalanceBtn.disabled = true;
     try {
       const res = await ui.api(`/sites/${encodeURIComponent(state.site)}/fleet-balance`, {
@@ -166,18 +167,22 @@ export function dispatchPlanCard(ui) {
         mode: modeSelect.value,
       });
 
-      const rows = Object.entries(res.allocations || {}).map(([devId, kw]) => [
-        devId,
-        `${kw} kW`,
-        `${res.projected_socs?.[devId] ?? "—"}%`,
-      ]);
+      const rows = Object.entries(res.allocations || {}).map(([devId, kw]) => {
+        const devObj = (state.fleet.devices || []).find(d => d.id === devId);
+        const devLabel = devObj ? `${devObj.name || devObj.vendor_id} · ${devObj.brand || "Solar"}` : devId;
+        return [
+          devLabel,
+          `${kw} kW`,
+          `${res.projected_socs?.[devId] ?? "—"}%`,
+        ];
+      });
 
       balanceContainer.replaceChildren(
         notice(l(
-          `Đã phân bổ tổng ${res.target_total_kw} kW ở chế độ ${res.mode.toUpperCase()}. Các pin có mức SOC lệch nhau được cấp dòng bù để cân bằng suy hao cell.`,
-          `Allocated ${res.target_total_kw} kW in ${res.mode.toUpperCase()} mode. SOC differences are balanced to prevent single-pack degradation.`
+          `Ước tính phân bổ ${res.target_total_kw} kW. Kết quả chỉ để tham khảo, chưa gửi lệnh tới thiết bị.`,
+          `Estimated allocation of ${res.target_total_kw} kW. Advisory only; no equipment command has been sent.`
         )),
-        table([l("Mã biến tần", "Inverter ID"), l("Công suất phân bổ", "Allocated Power"), l("SOC dự kiến sau 1h", "Projected SOC (1h)")], rows)
+        table([l("Biến tần", "Inverter"), l("Công suất phân bổ", "Allocated Power"), l("SOC dự kiến sau 1h", "Projected SOC (1h)")], rows)
       );
     } catch (err) {
       balanceContainer.replaceChildren(p(err.message, "bad"));
@@ -188,10 +193,10 @@ export function dispatchPlanCard(ui) {
 
   root.append(
     card(
-      l("Cân bằng Công suất Đa Biến tần (Multi-Inverter Fleet Balancing)", "Multi-Inverter Fleet Balancing"),
+      l("Chia công suất giữa các biến tần", "Allocate power across inverters"),
       p(l(
-        "Kế thừa từ batpred/inverter.py: Khi trạm có nhiều biến tần hybrid chạy song song, thuật toán phân bổ công suất theo tỷ lệ SOC để tránh chai lệch pin và bảo đảm tất cả các pack pin đạt trạng thái cân bằng đồng thời.",
-        "Derived from batpred/inverter.py: Balances power across parallel hybrid inverters based on real-time SOC to prevent uneven battery wear and synchronize full charge states."
+        "Nhập công suất mong muốn để tính phân bổ tham khảo. Cần mức pin đo được và giới hạn công suất của từng thiết bị. Kết quả tính không tự điều khiển thiết bị.",
+        "Enter the requested power for an advisory allocation. Measured battery levels and each device's limits are required. Calculations do not control equipment."
       )),
       div("row gap-sm align-center wrap",
         field(l("Tổng công suất mục tiêu (kW)", "Target Total Power (kW)"), targetPowerInput),

@@ -39,6 +39,10 @@ PROVIDERS = [
     },
     {
         "id": "GoodWe",
+        "account_identity_field": "account",
+        "minimum_poll_seconds": 300,
+        # Scoped community-tested SEMS+ cadence, not an official quota/SLA.
+        "platform_poll_seconds": {"sems_plus": 60},
         "implemented": True,
         "regions": ["global", "eu", "au"],
         "fields": ["account", "password", "plant_ids"],
@@ -50,7 +54,7 @@ PROVIDERS = [
         "discovery": "plants_devices",
         "read": "native_points",
         "write": "commissioning_required",
-        "evidence": ["GOODWE_API_001"],
+        "evidence": ["GOODWE_API_001", "GOODWE_SEMSPLUS_COMMUNITY_001"],
         "url": "https://www.semsportal.com/",
     },
     {

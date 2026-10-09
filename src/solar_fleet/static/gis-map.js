@@ -1,27 +1,50 @@
 import { l, t, number } from './i18n.js';
+import { plantMedia } from './plant-media.js';
+import { geographicMap, validPosition } from './geographic-map.js';
+import { metricTiles } from './ui-visuals.js';
 
 export async function renderGisMapWorkspace(ui) {
-  const {state,div,p,btn,card,table,input,field,api,go,siteForm}=ui;
+  const {state,div,e,p,btn,card,input,select,field,api,go}=ui;
   const data=await api('/fleet/map-data');
   const search=input('search');
-  const out=div('stack');
+  const scopePlants=data.plants.filter(s=>!state.site||s.id===state.site);
+  const vendor=select([['',l('Tất cả hãng','All vendors')],...Array.from(new Set(scopePlants.map(s=>s.vendor).filter(Boolean))).map(v=>[v,v])]);
+  const status=select([['',l('Tất cả trạng thái','All statuses')],...Array.from(new Set(scopePlants.map(s=>s.status).filter(Boolean))).map(v=>[v,t(v)])]);
+  const viewState={};
+  const out=div('map-reference-layout');
+  let selectedId=data.plants[0]?.id;
   const open=s=>{state.site=s.id;go('overview');};
-  const node=(tag,attrs={},text='')=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));n.textContent=text;return n;};
   const draw=()=>{
-    const rows=data.plants.filter(s=>(s.name+' '+(s.address||'')+' '+(s.vendor||'')).toLocaleLowerCase().includes(search.value.toLocaleLowerCase()));
-    const known=rows.filter(s=>s.latitude!=null&&s.longitude!=null);
-    const svg=node('svg',{viewBox:'0 0 800 390',class:'measurement-chart',role:'img','aria-label':l('Vị trí GPS đã khai báo','Recorded GPS positions')});
-    if(known.length){
-      const lat=known.map(s=>s.latitude),lon=known.map(s=>s.longitude),loX=Math.min(...lon),hiX=Math.max(...lon),loY=Math.min(...lat),hiY=Math.max(...lat);
-      svg.append(node('text',{x:50,y:28},l('Vĩ độ / Kinh độ • Sơ đồ tọa độ','Latitude / Longitude • Coordinate plot')));
-      known.forEach(s=>{const x=80+(s.longitude-loX)/Math.max(0.1,hiX-loX)*620,y=330-(s.latitude-loY)/Math.max(0.1,hiY-loY)*260;
-        const g=node('g',{tabindex:0,role:'button','aria-label':s.name});g.append(node('circle',{cx:x,cy:y,r:8,class:'chart-point'}),node('text',{x:x+12,y:y+4},s.name),node('title',{},s.latitude+', '+s.longitude));g.onclick=()=>open(s);g.onkeydown=ev=>{if(ev.key==='Enter')open(s);};svg.append(g);});
-    }else svg.append(node('text',{x:400,y:195,'text-anchor':'middle'},l('Chưa có nhà máy có tọa độ GPS','No plants with recorded GPS')));
-    out.replaceChildren(card(l('Vị trí nhà máy','Plant locations'),svg,p(l('Sơ đồ GPS không có lớp đường phố hoặc vệ tinh. Nhà máy chưa khai báo tọa độ chỉ xuất hiện trong bảng.','This GPS plot has no street or satellite layer. Plants without coordinates appear only in the directory.'))),
-      card(l('Danh bạ vị trí','Location directory'),table([t('name'),t('status'),'GPS','kWp',l('Công suất','Power'),l('Thao tác','Action')],rows.map(s=>[btn(s.name,()=>open(s)),s.status,s.latitude==null||s.longitude==null?'—':s.latitude+', '+s.longitude,number(s.capacity_kwp),number(s.current_power_kw)+' kW',ui.admin()?btn(t('edit'),()=>siteForm(s)):'—']))),
-      card(l('Nhóm vị trí gần nhau','Nearby location groups'),table([l('Nhóm','Group'),l('Nhà máy','Plants'),'GPS'],data.clusters.map(c=>[c.name||c.cluster_id,c.count||1,c.latitude+', '+c.longitude]))));
+    const rows=scopePlants.filter(s=>(!vendor.value||s.vendor===vendor.value)&&(!status.value||s.status===status.value)&&(s.name+' '+(s.address||'')+' '+(s.vendor||'')).toLocaleLowerCase().includes(search.value.toLocaleLowerCase()));
+    if(!rows.some(s=>s.id===selectedId))selectedId=rows[0]?.id;
+    const selected=rows.find(s=>s.id===selectedId);
+    const svg=geographicMap(ui,rows,selectedId,id=>{selectedId=id;draw();},viewState);
+    const directory=card(l('Danh sách nhà máy','Plant directory'),div('map-site-list',...rows.map(s=>{
+      const item=btn('',()=>{selectedId=s.id;draw();},'map-site-button');
+      item.setAttribute('aria-pressed',String(s.id===selectedId));
+      item.append(plantMedia(ui,state.fleet.sites.find(v=>v.id===s.id)||s,true),div('stack gap-none',e('b',s.name),e('small',s.capacity_kwp==null?'—':number(s.capacity_kwp)+' kWp','muted')));
+      if(!validPosition(s))item.append(e('small',l('Chưa có vị trí GPS','GPS unavailable'),'muted'));
+      return item;
+    })));
+    if(!rows.length)directory.append(p(l('Không có nhà máy phù hợp với bộ lọc.','No plants match these filters.'),'field-help'));
+    const detail=card(l('Thông tin nhà máy','Plant information'));
+    detail.classList.add('map-site-detail');
+    if(selected){
+      const site=state.fleet.sites.find(s=>s.id===selected.id)||selected;
+      detail.append(plantMedia(ui,site),e('h2',selected.name),p(selected.address||l('Chưa có địa chỉ','Address not recorded')),
+        div('fact',e('span',t('status')),ui.badge(selected.status||'UNKNOWN')),
+        div('fact',e('span',l('Công suất khai báo','Declared capacity')),e('b',selected.capacity_kwp==null?'—':number(selected.capacity_kwp)+' kWp')),
+        div('fact',e('span',l('Công suất hiện tại','Current power')),e('b',selected.current_power_kw==null?'—':number(selected.current_power_kw)+' kW')),
+        div('fact',e('span','GPS'),e('b',selected.latitude==null||selected.longitude==null?'—':number(selected.latitude,4)+', '+number(selected.longitude,4))),
+        btn(l('Mở nhà máy','Open plant'),()=>open(selected),'primary'));
+      if(ui.admin())detail.append(btn(l('Chỉnh sửa hồ sơ','Edit plant information'),()=>ui.siteForm(site)));
+    }else detail.append(p(l('Không có nhà máy phù hợp.','No matching plants.')));
+    out.replaceChildren(directory,div('map-canvas',svg),detail);
   };
-  search.oninput=draw;draw();
-  return div('stack',field(l('Tìm nhà máy','Find a plant'),search),out);
+  const filter=()=>{delete viewState.box;draw();};
+  search.oninput=filter;vendor.onchange=filter;status.onchange=filter;draw();
+  return div('stack map-workspace-root',metricTiles(ui,[['plant',l('Nhà máy trong phạm vi','Plants in scope'),scopePlants.length],
+    ['map',l('Có tọa độ','With coordinates'),scopePlants.filter(validPosition).length,'','green']]),
+    div('map-filters',field(l('Tìm nhà máy','Find a plant'),search),field(l('Hãng','Vendor'),vendor),field(t('status'),status)),out,p(l('Bản đồ bờ biển ngoại tuyến độ chi tiết thấp, không dùng để dẫn đường. Vị trí lấy từ hồ sơ nhà máy, không gửi ra bên ngoài. Dùng phím mũi tên để di chuyển và +/− để thu phóng.','Low-detail offline coastline map, not for navigation. Positions come from plant records and never leave this app. Use arrow keys to pan and +/− to zoom.'),'field-help'));
 }
 export function createGisMapView(ui){return {renderMap:()=>renderGisMapWorkspace(ui)};}

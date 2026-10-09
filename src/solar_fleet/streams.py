@@ -26,6 +26,7 @@ def invalidation(store, kind, id, body):
     topics = {
         "device": "devices",
         "latest": "telemetry",
+        "station_report": "telemetry",
         "agent_latest": "telemetry",
         "site": "plants",
         "site_profile": "plants",

@@ -46,6 +46,8 @@ def fixture_app(port=8767):
     create_user(store, "ui-viewer", "LOCAL-UI-REVIEW-ONLY-2026", Role.VIEWER, ["*"])
     create_user(store, "ui-reviewer", "LOCAL-UI-REVIEW-ONLY-2026", Role.INSTALLER, ["*"])
     ctl = Controller(store, Vault(store, Fernet.generate_key()), writes_enabled=True)
+    if os.environ.get("SOLAR_UI_FIXTURE_EMPTY") == "1":
+        return marked_app(ctl, port)
     now = utcnow()
     for index, vendor in enumerate(("Deye", "Solis", "SOLARMAN")):
         site_id, device_id = f"SIM-SITE-{index}", f"SIM-DEVICE-{index}"
@@ -231,6 +233,10 @@ def fixture_app(port=8767):
     ctl.capability = capability
     ctl.engine.capability = capability
     ctl.engine.poll_seconds = 0.01
+    return marked_app(ctl, port)
+
+
+def marked_app(ctl, port):
     app = create_app(ctl, port=port, poll=False)
 
     @app.get("/api/fixture-marker")

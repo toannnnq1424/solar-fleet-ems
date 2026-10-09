@@ -1,4 +1,8 @@
 import { energyFlowCard } from './energy-flow.js';
+import { addPanelExpansion } from './panel-expand.js';
+import { deviceHistoryPanel } from './device-history.js';
+import { deviceLiveMonitor } from './device-live-monitor.js';
+import { requestLatestReadings, refreshReadingMessage } from './reading-refresh.js';
 import { nativeDevice } from "./native-device.js";
 import { createLiveFeed } from "./live.js";
 import {
@@ -12,6 +16,10 @@ import {
 } from "./i18n.js";
 import { createWorkbench, maintenanceSections } from "./workbench.js";
 import { accountsView } from "./accounts.js";
+import { deyeConnectionDialog } from './deye-connection.js';
+import { goodweConnectionGuide } from './connection-guide.js';
+import { goodweConnectionDialog } from './goodwe-connection.js';
+import { openRuleEditor } from './rule-editor.js';
 import { icon } from "./icons.js";
 import { schemaControl } from "./schema-form.js";
 import { renderPlantsMainWorkspace, openPlantWizard } from "./plant-workspace.js";
@@ -23,6 +31,7 @@ import { createFirmwareWorkspace } from "./firmware-workspace.js";
 import { renderSiteOverviewWorkspace } from "./site-overview-workspace.js";
 import { renderControlMainWorkspace } from "./control-workspace.js";
 import { renderScheduleMainWorkspace } from "./schedule-workspace.js";
+import { openScheduleEditor } from './schedule-editor.js';
 import { renderEmsWorkspace } from "./ems-workspace.js";
 import { renderDataConnectionsWorkspace, ownsDataWorkspaceRoute } from "./data-workspace.js";
 import { renderIncidentWorkspace } from "./incident-workspace.js";
@@ -58,7 +67,7 @@ function navigation() {
   return [
     ["overview", "main", "", l("Tổng quan", "Overview"), "home"],
     ["plants", "main", "", l("Nhà máy", "Plants"), "plant"],
-    ["topology", "main", "", l("Hệ thống / SLD", "Topology / SLD"), "activity"],
+    ["topology", "main", "", l("Sơ đồ hệ thống", "System diagram"), "activity"],
     ["plants", "map", "", l("Bản đồ", "Map"), "map"],
     ["devices", "main", "", l("Thiết bị", "Devices"), "device"],
     ["operations", "main", "control", l("Điều khiển", "Control"), "control"],
@@ -66,14 +75,14 @@ function navigation() {
       "operations",
       "main",
       "schedules",
-      l("Lịch / TOU", "Schedules / TOU"),
+      l("Lịch vận hành", "Schedules"),
       "calendar",
     ],
     [
       "operations",
       "main",
       "rules",
-      l("Điều phối EMS", "EMS coordination"),
+      l("Quản lý năng lượng", "Energy management"),
       "activity",
     ],
     [
@@ -110,7 +119,7 @@ function settingsMenu() {
         ["main", "vendors", l("Tài khoản hãng & kết nối", "Vendor accounts")],
         ["main", "site_config", l("Cấu hình nhà máy", "Site configuration")],
         ["main", "device_onboarding", l("Liên kết thiết bị mới", "Device onboarding")],
-        ["agents", "", l("Local Agent", "Local Agents")],
+        ["agents", "", l("Bộ thu thập tại trạm", "On-site collectors")],
         ["source_policy", "", l("Nguồn dữ liệu", "Data sources")],
         ["notification_policy", "", l("Thông báo", "Notifications")],
         ["main", "security", l("Nhật ký bảo mật", "Security journal")],
@@ -159,7 +168,7 @@ function globalSearch(query = "") {
     );
     results.replaceChildren(
       ...sites.slice(0, 6).map((site) =>
-        btn("⌂ " + site.name, () => {
+        btn(site.name, () => {
           closeDialog();
           state.site = site.id;
           return go("plants", "", "plant");
@@ -168,10 +177,10 @@ function globalSearch(query = "") {
       ...devices
         .slice(0, 6)
         .map((device) =>
-          btn("▤ " + device.vendor_id, () => deviceDetail(device.id)),
+          btn(device.vendor_id, () => deviceDetail(device.id)),
         ),
       ...alerts.slice(0, 5).map((a) =>
-        btn("△ " + a.title, () => {
+        btn(a.title, () => {
           closeDialog();
           state.site = a.site_id;
           return go("incidents");
@@ -187,7 +196,8 @@ function globalSearch(query = "") {
 }
 const e = (tag, text = "", cls = "") => {
   const n = document.createElement(tag);
-  n.textContent = text;
+  if (text instanceof Node) n.append(text);
+  else n.textContent = text;
   n.className = cls;
   return n;
 };
@@ -196,7 +206,7 @@ const add = (parent, ...children) => {
   return parent;
 };
 const div = (cls, ...children) => add(e("div", "", cls), ...children);
-const p = (text) => e("p", text, "muted");
+const p = (text, cls = "muted") => e("p", text, cls);
 const btn = (text, action, cls = "") => {
   const n = e("button", text, cls);
   n.type = "button";
@@ -211,7 +221,7 @@ const btn = (text, action, cls = "") => {
     });
   return n;
 };
-const badge = (text, kind = "") => e("span", text, "badge " + kind);
+const badge = (text, kind = "") => e("span", t(text), "badge " + kind);
 const status = (value) =>
   badge(
     t(value),
@@ -229,8 +239,10 @@ const status = (value) =>
         ? "bad"
         : "warn",
   );
-const card = (title, ...children) =>
-  div("card", title ? e("h2", title) : null, ...children);
+const card = (title, ...children) => {
+  const panel = div("card", title ? e("h2", title) : null, ...children);
+  return title ? addPanelExpansion(panel, title) : panel;
+};
 const raw = (title, value) =>
   add(
     e("details"),
@@ -279,7 +291,7 @@ function notice(vi, en, warn = false) {
 function empty(title, description, action) {
   return div(
     "empty",
-    e("div", "◈", "empty-icon"),
+    div("empty-icon", icon("database")),
     e("h2", title),
     p(description),
     action,
@@ -357,6 +369,7 @@ const admin = () =>
   state.me.user.site_ids.includes("*");
 const operator = () => state.me?.user.role !== "Viewer";
 const siteName = (id) => state.fleet.sites.find((s) => s.id === id)?.name || id;
+const siteScopeLabel = site => [site.name, site.vendor, site.account_label].filter(Boolean).join(' · ');
 const sites = () =>
   state.fleet.sites.filter((s) => !state.site || s.id === state.site);
 const devices = () =>
@@ -367,7 +380,7 @@ const records = (kind) =>
   );
 const siteSelect = (value) =>
   select(
-    state.fleet.sites.map((s) => [s.id, s.name]),
+    state.fleet.sites.map((s) => [s.id, siteScopeLabel(s)]),
     value || state.site,
   );
 function showDialog(title, ...children) {
@@ -395,15 +408,15 @@ function form(onSubmit, label = t("save")) {
       f,
       ...children,
       error,
-      div("form-actions", btn(t("cancel"), closeDialog), submit),
+      div("form-actions", btn(t("cancel"), closeDialog, 'dialog-cancel'), submit),
     );
   f.onsubmit = async (event) => {
     event.preventDefault();
     if (!f.reportValidity()) return;
-    submit.disabled = true;
     const workspace = $("#content");
     const controls = [...(workspace?.querySelectorAll('input,select,textarea,button') || [])]
       .map(node => [node, node.disabled]);
+    submit.disabled = true;
     controls.forEach(([node]) => { node.disabled = true; });
     if (workspace) { workspace.inert = true; workspace.setAttribute('aria-busy', 'true'); }
     error.textContent = "";
@@ -465,6 +478,11 @@ function table(headers, rows) {
     }
     body.append(tr);
   }
+  if (!rows.length) {
+    const cell=e('td','','table-empty');cell.colSpan=headers.length;
+    cell.append(icon('database'),e('span',t('noData')));
+    body.append(add(e('tr'),cell));
+  }
   table.append(body);
   return div("table-scroll", table);
 }
@@ -477,15 +495,22 @@ function tabs(options, current, change) {
     b.setAttribute("aria-selected", String(key === current));
     root.append(b);
   }
+  root.onkeydown=event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    const buttons=[...root.querySelectorAll('[role="tab"]')],index=buttons.indexOf(document.activeElement);
+    if(index<0)return;event.preventDefault();
+    const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
+    buttons[next].focus();
+  };
   return root;
 }
 function kpis(items) {
   return div(
     "kpis",
-    ...items.map(([icon, label, value]) =>
+    ...items.map(([glyph, label, value]) =>
       div(
         "card kpi",
-        e("div", icon, "icon"),
+        div("icon", icon(({"⌂":"home","▤":"device","△":"alert","◷":"clock","↻":"refresh","✓":"check","!":"alert"})[glyph] || glyph)),
         div("", e("span", label), e("strong", value)),
       ),
     ),
@@ -659,7 +684,7 @@ const live = createLiveFeed({
     if (label)
       label.textContent =
         value === "CONNECTED"
-          ? l("Cập nhật trực tiếp", "Live updates")
+          ? l("Đã kết nối cập nhật màn hình", "Screen updates connected")
           : l("Kết nối UI: ", "UI connection: ") + value;
   },
   changed: () => {
@@ -675,6 +700,8 @@ async function updateLive() {
     document.fullscreenElement ||
     document.querySelector("dialog[open]") ||
     document.activeElement?.matches("input,select,textarea") ||
+    (state.page === 'devices' && !['', 'inventory'].includes(state.deviceTab || '')) ||
+    (state.page === 'overview' && !['', 'overview'].includes(state.tab)) ||
     !["overview", "devices"].includes(state.page) ||
     state.section !== "main"
   ) {
@@ -682,11 +709,12 @@ async function updateLive() {
   }
   livePending = false;
   liveBusy = true;
+  const epochBeforeLoad=state.epoch;
   try {
     await load();
     // A fullscreen diagram is a reading snapshot. Keep its DOM and freshness
     // timer intact if a stream refresh started just before entering fullscreen.
-    if (document.fullscreenElement) {
+    if (document.fullscreenElement || state.epoch !== epochBeforeLoad || document.querySelector('dialog[open]') || document.activeElement?.matches('input,select,textarea')) {
       livePending = true;
       return;
     }
@@ -704,6 +732,8 @@ document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement) updateLive();
 });
 window.addEventListener("beforeunload", () => live.stop());
+let restoredScopeFor = null;
+const scopeKey = () => 'solar-fleet-scope:' + state.me.user.id;
 async function load() {
   state.me = await api("/me");
   state.csrf = state.me.csrf;
@@ -714,6 +744,10 @@ async function load() {
     api("/providers"),
     api("/workbench"),
   ]);
+  if (restoredScopeFor !== state.me.user.id) {
+    try { state.site = sessionStorage.getItem(scopeKey()) || ''; } catch { /* Storage can be disabled. */ }
+    restoredScopeFor = state.me.user.id;
+  }
   if (state.site && !state.fleet.sites.some((s) => s.id === state.site))
     state.site = "";
 }
@@ -728,38 +762,74 @@ async function refresh() {
   await load();
   await render();
 }
+async function refreshReadings() {
+  const result = await requestLatestReadings(api, state.site ? {site_id: state.site} : {});
+  await refresh();
+  toast(refreshReadingMessage(result));
+}
+function findActiveNavEntry(entries, state) {
+  const p = state.page;
+  const s = state.section;
+  const t = state.tab;
+  const isMaintenance = p === "incidents" && (s === "health" || maintenanceSections.has(s));
+
+  return entries.find(([page, section, tab]) => {
+    if (page !== p) return false;
+    if (p === "overview") return true;
+    if (p === "topology") return true;
+    if (p === "devices") return true;
+    if (p === "plants") {
+      if (section === "map") return s === "map";
+      return s !== "map";
+    }
+    if (p === "operations") {
+      if (tab === "journal") return t === "journal";
+      if (tab === "schedules") return t === "schedules" || s === "schedules" || s === "schedule-plans";
+      if (tab === "rules") {
+        return ["rules", "dispatch", "ems", "optimization", "balancing", "heatpump", "grid_code", "dlm"].includes(t) || s === "rules";
+      }
+      if (tab === "control") {
+        return t === "control" || s === "control" || (!t && s === "main") || !["journal", "schedules", "rules"].includes(t);
+      }
+      return false;
+    }
+    if (p === "incidents") {
+      if (section === "health") return isMaintenance;
+      return !isMaintenance;
+    }
+    if (p === "reports") {
+      if (section === "analytics") return s === "analytics" || t === "analytics";
+      return s !== "analytics" && t !== "analytics";
+    }
+    if (p === "settings") {
+      if (tab === "users") return t === "users";
+      return t !== "users";
+    }
+    return section === s && tab === t;
+  });
+}
+
 async function render() {
+  try { sessionStorage.setItem(scopeKey(), state.site); } catch { /* Nonessential preference only. */ }
   $(".skip-link").textContent = l("Tới nội dung chính", "Skip to content");
   const epoch = ++state.epoch;
   document.documentElement.lang = language;
   document.title = `${t(state.page)} · SolarOne`;
   const nav = e("nav");
+  nav.id = 'workspace-navigation';
   nav.setAttribute("aria-label", l("Điều hướng chính", "Main navigation"));
   const entries = navigation();
-  const maintenancePage = state.page === "incidents" && maintenanceSections.has(state.section);
-  const active = entries.find(
-    ([page, section, tab]) =>
-      page === state.page &&
-      (section === state.section || (maintenancePage && section === "health")) &&
-      (!tab ||
-        tab ===
-          (state.tab || (page === "settings" ? "connections" : "control"))),
-  );
+  const active = findActiveNavEntry(entries, state);
   entries.forEach((entry) => {
     const [page, section, tab, label, symbol] = entry;
-    const selected =
-      entry === active ||
-      (!active &&
-        page === state.page &&
-        section === "main" &&
-        (!tab || tab === "connections"));
+    const selected = entry === active;
     const b = btn("", () => go(page, tab, section), selected ? "active" : "");
     add(b, icon(symbol), e("span", label));
     if (selected) b.setAttribute("aria-current", "page");
     nav.append(b);
   });
   const scope = select(
-    [["", t("all")], ...state.fleet.sites.map((s) => [s.id, s.name])],
+    [["", t("all")], ...state.fleet.sites.map((s) => [s.id, siteScopeLabel(s)])],
     state.site,
   );
   scope.setAttribute("aria-label", l("Phạm vi nhà máy", "Plant scope"));
@@ -809,14 +879,31 @@ async function render() {
     state.page === "settings" &&
     state.section === "main" &&
     ["", "connections"].includes(state.tab);
-  const heading = accountPage
+  const routeTitle = {
+    'operations/rollouts': l('Cấu hình hàng loạt','Bulk configuration'),
+    'operations/handover': l('Kiểm tra & bàn giao','Inspection & handover'),
+    'operations/schedule-plans': l('Kiểm tra lịch theo thiết bị','Equipment schedule checks'),
+    'devices/network_profile': l('Bộ thu thập & mạng','Collectors & network'),
+    'devices/document': l('Tài liệu thiết bị','Equipment documents'),
+    'incidents/playbooks': l('Hướng dẫn xử lý sự cố','Incident playbooks'),
+    'incidents/sla': l('Thời hạn phản hồi & xử lý','Response & resolution targets'),
+    'settings/main/site_config': l('Cấu hình nhà máy','Plant settings'),
+    'settings/main/device_onboarding': l('Liên kết thiết bị mới','Link new equipment'),
+    'settings/main/security': l('Nhật ký bảo mật','Security journal'),
+    'settings/source_policy': l('Chính sách nguồn dữ liệu','Data source policies'),
+    'settings/notification_policy': l('Chính sách thông báo','Notification policies'),
+  }[state.page+'/'+state.section+(state.section==='main'&&state.tab?'/'+state.tab:'')];
+  const heading = routeTitle || (accountPage
     ? l("Tài khoản hãng & thông tin truy cập", "Vendor accounts & access")
     : ownsDataWorkspaceRoute(state)
       ? l("Dữ liệu & kết nối", "Data & connections")
-      : active?.[3] || t(state.page);
+      : active?.[3] || t(state.page));
   document.title = `${heading} · SolarOne`;
   const reportsAnalyticsPage =
     state.page === "reports" && state.section === "analytics";
+  const maintenancePage =
+    state.page === "incidents" &&
+    (state.section === "health" || maintenanceSections.has(state.section));
   const description = accountPage
     ? l(
         "Quản lý các tài khoản đám mây của hãng, thông tin xác thực và quyền truy cập để đồng bộ dữ liệu về SolarOne.",
@@ -834,7 +921,7 @@ async function render() {
           )
         : headings[state.page];
   const wrapper = div(
-    "content-wrap",
+    "content-wrap" + (state.site && state.page === 'overview' ? ' site-content-wrap' : ''),
     div(
       "breadcrumb",
       e("span", t(state.page)),
@@ -851,9 +938,10 @@ async function render() {
     div(
       "page-heading",
       div("", e("h1", heading), p(description)),
-      accountPage
-        ? btn(l("▣ Hướng dẫn cấu hình", "▣ Setup guide"), settingsMenu)
-        : btn(l("↻ Cập nhật", "↻ Refresh"), refresh),
+      div('row', accountPage
+        ? btn(l("Hướng dẫn kết nối", "Connection guide"), settingsMenu)
+        : btn(l("Cập nhật", "Refresh"), refresh),
+          admin() ? btn(l('Lấy số liệu mới nhất', 'Fetch latest readings'), refreshReadings, 'primary') : null),
     ),
   );
   if (state.site)
@@ -861,6 +949,7 @@ async function render() {
       div(
         "scope-banner",
         e("b", siteName(state.site)),
+        state.page === 'overview' && admin() ? btn(l('Lấy số liệu mới nhất', 'Fetch latest readings'), refreshReadings, 'primary') : null,
         btn(l("Xem tất cả nhà máy", "Show all plants"), async () => {
           state.site = "";
           await render();
@@ -882,6 +971,17 @@ async function render() {
       ),
     ),
   );
+  const menu = btn('', () => {
+    const opened = $('.shell').classList.toggle('nav-open');
+    menu.setAttribute('aria-expanded', String(opened));
+    if (opened) nav.querySelector('[aria-current="page"]')?.focus();
+  }, 'mobile-nav-toggle');
+  menu.append(icon('menu'), e('span', l('Danh mục', 'Menu')));
+  menu.setAttribute('aria-controls', nav.id);
+  menu.setAttribute('aria-expanded', 'false');
+  nav.onkeydown = event => {
+    if (event.key === 'Escape') { $('.shell').classList.remove('nav-open'); menu.setAttribute('aria-expanded', 'false'); menu.focus(); }
+  };
   $("#root").replaceChildren(
     div(
       "shell",
@@ -901,6 +1001,7 @@ async function render() {
         "main",
         add(
           e("header", "", "topbar"),
+          menu,
           div("scope", scope),
           (() => {
             const b = btn("", () => globalSearch(), "search-trigger");
@@ -939,7 +1040,7 @@ async function render() {
           e(
             "span",
             state.streamStatus === "CONNECTED"
-              ? l("Cập nhật trực tiếp", "Live updates")
+              ? l("Đã kết nối cập nhật màn hình", "Screen updates connected")
               : l("Kết nối cập nhật", "Update connection"),
             "stream-status muted small",
           ),
@@ -951,7 +1052,7 @@ async function render() {
             e("span", t(state.me.user.role), "muted"),
           ),
           btn(
-            "⌄",
+            icon("chevronDown"),
             () =>
               showDialog(
                 l("Tài khoản", "Account"),
@@ -1030,6 +1131,8 @@ async function render() {
   }
 }
 async function logout() {
+  try { sessionStorage.removeItem(scopeKey()); } catch { /* Nonessential preference only. */ }
+  restoredScopeFor = null;
   live.stop();
   await api("/logout", {});
   state.me = null;
@@ -1059,6 +1162,14 @@ async function overview() {
       ],
     ]),
   );
+  for (const site of sites().filter(site => site.vendor_report)) {
+    const {reportedSummary} = await import('./vendor-report.js');
+    root.append(card(site.name || site.id,
+      reportedSummary({div,e,p,badge}, site.vendor_report),
+      btn(l('Mở tổng quan nhà máy', 'Open plant overview'), () => {
+        state.site = site.id; go('overview', 'overview', 'main');
+      }, 'primary')));
+  }
   const next = card(l("Bắt đầu vận hành", "Get started"));
   [
     [
@@ -1373,6 +1484,7 @@ async function devicesView() {
     div,
     p,
     btn,
+    button: btn,
     badge,
     card,
     raw,
@@ -1408,7 +1520,7 @@ async function deviceDetail(id, tab = "data") {
       "row",
       e("b", d.name || d.vendor_id, "device-title"),
       badge(d.identity.vendor, "blue"),
-      status(d.last_seen ? (d.online ? "online" : "offline") : "UNKNOWN"),
+      status(d.last_seen && d.online != null ? (d.online ? "online" : "offline") : "UNKNOWN"),
     ),
   );
   root.append(
@@ -1426,85 +1538,81 @@ async function deviceDetail(id, tab = "data") {
     ),
   );
   if (tab === "data") {
-    const monitoring = await api('/journal/realtime/' + encodeURIComponent(id));
-    root.append(energyFlowCard({ e, div, p, btn, card, badge }, monitoring.energy_flow, target => {
-      if (target === 'control') deviceDetail(id, 'control');
-      else { closeDialog(); state.site = d.site_id; go('overview', target, 'main'); }
-    }));
-    root.append(
-      div(
-        "grid",
-        card(
-          l("Thông tin kết nối", "Connection info"),
-          fact(t("plants"), siteName(d.site_id)),
-          fact(t("lastSeen"), date(d.last_seen)),
-          fact(t("source"), t(info.latest.source || "VENDOR_CLOUD")),
-        ),
-        card(
-          l("Chất lượng dữ liệu", "Data quality"),
-          p(
-            l(
-              "Dữ liệu gốc được giữ đúng tên và đơn vị của hãng. Chưa tự quy đổi thành sơ đồ năng lượng khi thiếu mapping.",
-              "Native readings retain vendor names and units. Energy flow needs a verified mapping.",
+    const load = async () => {
+      const [monitoring, history] = await Promise.all([
+        api('/journal/realtime/' + encodeURIComponent(id)),
+        api('/devices/' + encodeURIComponent(id) + '/history'),
+      ]);
+      return {monitoring, history};
+    };
+    const initial = await load();
+    const renderReadings = (info, {monitoring, history}) => {
+      const d = info.device, readings = div('stack device-live-details');
+      readings.append(energyFlowCard({ e, div, p, btn, card, badge }, monitoring.energy_flow, target => {
+        if (target === 'control') deviceDetail(id, 'control');
+        else { closeDialog(); state.site = d.site_id; go('overview', target, 'main'); }
+      }));
+      readings.append(deviceHistoryPanel({e,div,p,card,select,field,table}, history.samples || []));
+      readings.append(
+        div(
+          "grid",
+          card(
+            l("Thông tin kết nối", "Connection info"),
+            fact(t("plants"), siteName(d.site_id)),
+            fact(t("lastSeen"), date(d.last_seen)),
+            fact(t("source"), t(info.latest.source || "VENDOR_CLOUD")),
+          ),
+          card(
+            l("Chất lượng dữ liệu", "Data quality"),
+            p(
+              l(
+                "Dữ liệu gốc được giữ đúng tên và đơn vị của hãng. Chưa tự quy đổi thành sơ đồ năng lượng khi thiếu mapping.",
+                "Native readings retain vendor names and units. Energy flow needs a verified mapping.",
+              ),
+            ),
+            badge(
+              l(
+                "Đối chiếu thiết bị trước khi điều khiển",
+                "Commission equipment before control",
+              ),
+              "warn",
             ),
           ),
-          badge(
-            l(
-              "Đối chiếu thiết bị trước khi điều khiển",
-              "Commission equipment before control",
-            ),
-            "warn",
-          ),
         ),
-      ),
-    );
-    root.append(
-      card(
-        l("Thông số mới nhất", "Latest readings"),
-        info.latest.samples.length
-          ? table(
-              [
-                l("Thông số", "Metric"),
-                l("Giá trị", "Value"),
-                l("Đơn vị", "Unit"),
-                t("lastSeen"),
-                l("Chất lượng", "Quality"),
-              ],
-              info.latest.samples.map((s) => [
-                s.metric,
-                number(s.value),
-                s.unit || "—",
-                date(s.source_timestamp),
-                status(s.quality),
-              ]),
-            )
-          : p(t("noData")),
-      ),
-    );
-    const nativePoints = info.latest.native?.dataList;
-    if (Array.isArray(nativePoints) && nativePoints.length) {
-      root.append(card(
-        l("Thông số gốc từ hãng", "Vendor native readings"),
-        notice(
-          "Giữ nguyên tên, trạng thái và đơn vị do nền tảng cung cấp. Thời điểm nhận dữ liệu không thay thế thời điểm thiết bị đo.",
-          "Names, states and units are preserved from the platform. Receipt time does not replace the device measurement time."
+      );
+      readings.append(
+        card(
+          l("Thông số mới nhất", "Latest readings"),
+          info.latest.samples.length
+            ? table(
+                [
+                  l("Thông số", "Metric"),
+                  l("Giá trị", "Value"),
+                  l("Đơn vị", "Unit"),
+                  t("lastSeen"),
+                  l("Chất lượng", "Quality"),
+                ],
+                info.latest.samples.map((s) => [
+                  t(s.metric),
+                  number(s.value),
+                  s.unit || "—",
+                  date(s.source_timestamp),
+                  status(s.quality),
+                ]),
+              )
+            : p(t("noData")),
         ),
-        table(
-          [l("Thông số", "Metric"), l("Giá trị gốc", "Native value"), l("Đơn vị", "Unit")],
-          nativePoints.map((point) => [
-            point.title || point.name || point.key || "—",
-            point.value == null ? "—" : String(point.value),
-            point.unit || "—",
-          ]),
+      );
+      readings.append(
+        raw(
+          l("Chi tiết dữ liệu gốc", "Native data details"),
+          info.latest.native || {},
         ),
-      ));
-    }
-    root.append(
-      raw(
-        l("Chi tiết dữ liệu gốc", "Native data details"),
-        info.latest.native || {},
-      ),
-    );
+      );
+      return readings;
+    };
+    root.append(deviceLiveMonitor({e,div,p,card,field,input,select,table,badge,fact,btn,api}, info, id,
+      {initial, load, render: renderReadings}));
   } else if (tab === "history") {
     const result = await api("/devices/" + id + "/history");
     root.append(
@@ -1997,7 +2105,42 @@ async function commandDetail(id) {
     );
   showDialog(l("Vòng đời lệnh", "Command lifecycle"), root);
 }
-function integrationForm(spec) {
+function integrationForm(spec, ready = false) {
+  if(spec.id==='GoodWe'&&spec.reconnect?.platform==='sems_plus')return goodweConnectionDialog(
+    {e,div,p,btn,field,input,select,form,api,showDialog,closeDialog,refresh,toast},{existing:spec.reconnect});
+  if(spec.id==='GoodWe'&&!ready)return goodweConnectionGuide(
+    {e,div,p,btn,card,field,select,showDialog,closeDialog},()=>integrationForm(spec,true),()=>goodweConnectionDialog(
+      {e,div,p,btn,field,input,select,form,api,showDialog,closeDialog,refresh,toast}));
+  if(spec.id==='Deye'&&!ready)return deyeConnectionDialog(
+    {e,div,p,btn,field,input,select,notice,form,api,showDialog,closeDialog,refresh,toast},
+    {advanced:()=>integrationForm(spec,true),existing:spec.reconnect||null});
+  const accountKeys = new Set(["email", "username", "user_name", "identity_value", "account", "user_account", "password", "user_password"]);
+  const extraKeys = spec.fields.filter(key => !accountKeys.has(key) && !spec.field_defaults?.[key]);
+  const fieldLabel = key => spec.field_labels?.[key] ? l(spec.field_labels[key].vi, spec.field_labels[key].en) : t(key);
+  if (!ready && extraKeys.length) {
+    const root = div("stack connection-guide",
+      div("connection-guide-heading", div("metric-icon blue", icon("plug")),
+        div("", e("h3", l("Kết nối tài khoản ", "Connect your ") + spec.id),
+          p(l("Dùng tài khoản của ứng dụng hãng, không phải mật khẩu SolarOne.", "Use your vendor app account, not your SolarOne password.")))),
+      notice(
+        "Nếu bạn chỉ có email và mật khẩu, hãy nhờ đơn vị lắp đặt hoặc bộ phận hỗ trợ của hãng cấp quyền kết nối ứng dụng. Phiên bản tích hợp hiện tại của hãng này cần thêm thông tin bên dưới.",
+        "If you only have an email and password, ask your installer or vendor support to enable third-party access. This integration currently requires the additional details below."),
+      card(l("Thông tin cần được cấp thêm", "Additional details needed"),
+        ...extraKeys.map(key => div("row", icon("key"), e("span", fieldLabel(key))))),
+      p(l("Chưa có thông tin này? Bạn chưa cần nhập mật khẩu. Không chia sẻ mật khẩu với người hỗ trợ hoặc gửi qua tin nhắn.",
+        "Missing these details? Do not enter your password yet. Never send your password to support or in messages.")),
+      btn(l("Xem lời nhắn gửi đơn vị lắp đặt", "Show a request for your installer"), () => {
+        showDialog(l("Yêu cầu hỗ trợ kết nối", "Connection help request"),
+          p(l("Tôi muốn xem nhà máy trên SolarOne qua tài khoản ", "I would like to monitor my plant in SolarOne using my ") + spec.id +
+            l(". Tôi hiện chỉ có email và mật khẩu. Vui lòng hướng dẫn cấp quyền truy cập cho ứng dụng, đúng khu vực tài khoản, và cung cấp: ",
+              " account. I currently only have my email and password. Please help enable application access for my account region and provide: ") + extraKeys.map(fieldLabel).join(", ") + "."),
+          btn(l("Quay lại", "Back"), () => integrationForm(spec)));
+      }, "secondary"),
+      div("form-actions", btn(l("Để sau", "Not now"), closeDialog),
+        btn(l("Tôi đã có thông tin kết nối", "I have the connection details"), () => integrationForm(spec, true), "primary")));
+    showDialog(l("Trước khi kết nối ", "Before connecting ") + spec.id, root);
+    return;
+  }
   const name = input(
     "text",
     (spec.equipment_brand ? spec.equipment_brand + " · " : "") +
@@ -2082,7 +2225,7 @@ function integrationForm(spec) {
       spec.identity
         ? field(l("Cách đăng nhập hãng", "Vendor login method"), identity)
         : null,
-      ...Object.entries(fields).map(([key, control]) => field(spec.field_labels?.[key] ? l(spec.field_labels[key].vi, spec.field_labels[key].en) : t(key), control)),
+      ...Object.entries(fields).map(([key, control]) => field(fieldLabel(key), control)),
       spec.organization === true
         ? field(
             l(
@@ -2949,109 +3092,8 @@ function scheduleTable(slots) {
     ]),
   );
 }
-function scheduleForm(existing = null) {
-  if (!state.fleet.sites.length) {
-    toast(
-      l(
-        "Thêm nhà máy trước khi tạo lịch.",
-        "Add a plant before creating a schedule.",
-      ),
-    );
-    return;
-  }
-  const name = input("text", existing?.name || ""),
-    site = siteSelect(existing?.site_id);
-  site.disabled = !!existing;
-  name.required = true;
-  name.maxLength = 120;
-  const slots = [],
-    list = div("stack");
-  const addSlot = (values = {}) => {
-    const day = select(
-        days().map((d, i) => [String(i), d]),
-        String(values.day ?? 0),
-      ),
-      start = input("time", values.start || "00:00"),
-      end = input("text", values.end || "06:00"),
-      mode = select(
-        ["self_use", "charge", "discharge", "hold"].map((m) => [m, t(m)]),
-        values.mode || "hold",
-      ),
-      soc = input("number", values.target_soc ?? ""),
-      power = input("number", values.power_kw ?? "");
-    soc.min = "0";
-    soc.max = "100";
-    power.min = "0";
-    power.step = "any";
-    start.required = end.required = true;
-    end.pattern = "(?:(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00)";
-    const row = div(
-      "slot-row",
-      field(l("Ngày", "Day"), day),
-      field(l("Từ", "From"), start),
-      field(l("Đến", "To"), end),
-      field(l("Chế độ", "Mode"), mode),
-      field("SOC %", soc),
-      field("kW", power),
-    );
-    const entry = {
-      row,
-      read: () => ({
-        day: Number(day.value),
-        start: start.value,
-        end: end.value,
-        mode: mode.value,
-        target_soc: soc.value === "" ? null : Number(soc.value),
-        power_kw: power.value === "" ? null : Number(power.value),
-      }),
-    };
-    slots.push(entry);
-    const remove = btn("×", () => {
-      slots.splice(slots.indexOf(entry), 1);
-      row.remove();
-    });
-    remove.setAttribute("aria-label", l("Xóa khung giờ", "Remove time slot"));
-    row.append(remove);
-    list.append(row);
-  };
-  for (const slot of existing?.slots || [{}]) addSlot(slot);
-  const f = form(
-    async () => {
-      const data = {
-        name: name.value,
-        site_id: site.value,
-        slots: slots.map((s) => s.read()),
-      };
-      await api(
-        existing ? `/schedules/${existing.id}/edit` : "/schedules",
-        existing
-          ? { id: existing.id, revision: existing.revision || 1, data }
-          : data,
-      );
-      closeDialog();
-      await refresh();
-    },
-    l("Lưu bản nháp", "Save draft"),
-  );
-  f.finish(
-    div("form-grid", field(t("name"), name), field(t("plants"), site)),
-    notice(
-      "Không xếp chồng khung giờ. Tách lịch qua đêm tại 24:00; có thể sao chép khung giờ đầu tiên sang cả tuần.",
-      "Do not overlap slots. Split overnight periods at 24:00; you can copy the first slot across the week.",
-    ),
-    list,
-    div(
-      "row",
-      btn(l("+ Thêm khung giờ", "+ Add slot"), () => addSlot()),
-      btn(l("Sao chép khung đầu sang tuần", "Copy first slot to week"), () => {
-        if (!slots.length) return;
-        const first = slots[0].read();
-        for (let d = 0; d < 7; d++)
-          if (d !== first.day) addSlot({ ...first, day: d });
-      }),
-    ),
-  );
-  showDialog(l("Tạo lịch sạc / xả", "Create charge / discharge schedule"), f);
+function scheduleForm(existing = null, initial = null) {
+  openScheduleEditor({state,e,div,p,btn,card,input,select,field,notice,form,api,siteSelect,showDialog,closeDialog,refresh,toast},existing,initial);
 }
 function commissionForm() {
   const site = siteSelect(),
@@ -3096,108 +3138,8 @@ function commissionForm() {
   showDialog(l("Ghi kết quả kiểm tra", "Record inspection"), f);
 }
 
-async function ruleForm() {
-  const ds = devices();
-  if (!ds.length) {
-    toast(
-      l(
-        "Cần thiết bị và dữ liệu để tạo quy tắc.",
-        "Devices and readings are needed to create a rule.",
-      ),
-    );
-    return;
-  }
-  const name = input(),
-    device = select(
-      ds.map((d) => [
-        d.id,
-        `${d.name || d.vendor_id} · ${siteName(d.site_id)}`,
-      ]),
-    ),
-    metric = select([]),
-    comparison = select([
-      ["lt", l("Nhỏ hơn", "Less than")],
-      ["gt", l("Lớn hơn", "Greater than")],
-    ]),
-    threshold = input("number"),
-    reserve = input("number", "30");
-  name.required = true;
-  name.maxLength = 120;
-  threshold.required = true;
-  threshold.step = "any";
-  reserve.required = true;
-  reserve.min = "0";
-  reserve.max = "100";
-  let samples = [];
-  async function measurements() {
-    samples = (await api("/devices/" + device.value)).latest.samples || [];
-    const choices = select(
-      samples.map((s, i) => [
-        String(i),
-        `${s.metric} (${s.unit || "?"}) · ${t(s.quality)}`,
-      ]),
-    );
-    metric.replaceChildren(...choices.children);
-  }
-  await measurements();
-  device.onchange = () => run(measurements);
-  const f = form(
-    async () => {
-      const sample = samples[Number(metric.value)];
-      if (!sample?.unit)
-        throw new Error(
-          l(
-            "Cần thông số có đơn vị xác định.",
-            "A metric with an explicit unit is required.",
-          ),
-        );
-      await api("/rules", {
-        site_id: ds.find((d) => d.id === device.value).site_id,
-        name: name.value,
-        conditions: [
-          {
-            device_id: device.value,
-            metric: sample.metric,
-            unit: sample.unit,
-            comparison: comparison.value,
-            threshold: Number(threshold.value),
-          },
-        ],
-        actions: [
-          {
-            device_id: device.value,
-            intent: "SET_RESERVE_SOC",
-            parameters: { value: Number(reserve.value) },
-          },
-        ],
-      });
-      closeDialog();
-      await refresh();
-    },
-    l("Lưu bản nháp", "Save draft"),
-  );
-  f.finish(
-    field(t("name"), name),
-    div(
-      "form-grid",
-      field(t("devices"), device),
-      field(l("Khi thông số", "When metric"), metric),
-      field(l("So sánh", "Comparison"), comparison),
-      field(
-        l("Ngưỡng (cùng đơn vị thông số)", "Threshold (same metric unit)"),
-        threshold,
-      ),
-    ),
-    field(
-      l("Đề xuất mức dự phòng pin (%)", "Proposed battery reserve (%)"),
-      reserve,
-    ),
-    notice(
-      "Mẫu chưa xác minh có thể dùng để soạn quy tắc nhưng sẽ chặn đánh giá. Đây là bản nháp; chưa bật tự động điều khiển.",
-      "Unverified metrics can be used to draft a rule but block evaluation. This is a draft; automatic control remains inactive.",
-    ),
-  );
-  showDialog(l("Quy tắc dự phòng pin", "Battery reserve rule"), f);
+function ruleForm() {
+  return openRuleEditor({state,e,div,p,btn,card,input,select,field,notice,form,api,siteSelect,showDialog,closeDialog,refresh});
 }
 
 function plot(rows, metric) {

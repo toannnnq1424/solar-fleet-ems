@@ -1,5 +1,9 @@
 // One SVG icon vocabulary for navigation and components. No external assets.
 const paths = {
+  maximize: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
+  minimize: 'M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5',
+  menu: "M3 6h18M3 12h18M3 18h18",
+  move: "M12 2v20M2 12h20M8 6l4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4",
   home: "M3 10l9-7 9 7M5 9v12h5v-7h4v7h5V9",
   plant: "M3 21V9l6 3V6l6 3V3h6v18H3zM6 16h1m4 0h1m5 0h1",
   grid: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
@@ -81,14 +85,66 @@ const paths = {
   arrowUpRight: "M7 17L17 7M17 7H7M17 7v10",
   arrowDownRight: "M7 7l10 10M17 17H7M17 17V7",
   recycle: "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z",
+  zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  checkCircle: "M8 12l3 3 6-7M22 12a10 10 0 11-20 0 10 10 0 0120 0",
+  chevronRight: "M9 18l6-6-6-6",
+  fileText: "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM14 8V3.5L18.5 8H14zM8 12h8v2H8v-2zm0 4h8v2H8v-2z",
+  shieldCheck: "M12 2l9 4v6c0 6-9 10-9 10S3 18 3 12V6l9-4zM8 12l3 3 5-6",
 };
+// Normalize older filled glyphs to the same outline vocabulary as navigation.
+Object.assign(paths, {
+  battery: 'M8 4h8a2 2 0 012 2v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2zM10 2h4M9 15h6m-6 3h6',
+  sun: 'M17 12a5 5 0 11-10 0 5 5 0 0110 0M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5',
+  gauge: 'M4 19a10 10 0 1116 0H4zM12 15l5-6M5 12h1m12 0h1M12 5v1',
+  refresh: 'M20 7A9 9 0 004 7M20 2v5h-5M4 17a9 9 0 0016 0M4 22v-5h5',
+  lock: 'M5 10h14v12H5zM8 10V6a4 4 0 018 0v4M12 15v2',
+  unlock: 'M5 10h14v12H5zM8 10V6a4 4 0 017.5-2M12 15v2',
+  power: 'M12 2v10M6 5a9 9 0 1012 0',
+  terminal: 'M3 4h18v16H3zM7 9l3 3-3 3m6 0h4',
+  plug: 'M8 2v6m8-6v6M5 8h14v3a7 7 0 01-14 0V8zM12 18v4',
+  copy: 'M8 7h13v15H8zM16 7V2H3v15h5',
+  upload: 'M12 16V3m-5 5l5-5 5 5M4 16v5h16v-5',
+  download: 'M12 3v13m-5-5l5 5 5-5M4 16v5h16v-5',
+  stop: 'M8 8h8v8H8zM22 12a10 10 0 11-20 0 10 10 0 0120 0',
+  clock: 'M12 6v6l4 2M22 12a10 10 0 11-20 0 10 10 0 0120 0',
+  thermometer: 'M9 14V5a3 3 0 016 0v9a5 5 0 11-6 0zM12 8v10',
+  rocket: 'M9 15l-3-3C10 3 16 2 22 2c0 6-1 12-10 16l-3-3zM6 12H2l4-6h5m1 12v4l6-4v-5M6 16l-4 6 6-4M17 6h.01',
+  database: 'M3 6a9 4 0 1118 0 9 4 0 11-18 0M3 6v12a9 4 0 0018 0V6M3 12a9 4 0 0018 0',
+  server: 'M3 3h18v7H3zM3 14h18v7H3zM7 6h.01M7 17h.01',
+  network: 'M9 2h6v6H9zM2 16h6v6H2zM16 16h6v6h-6zM12 8v4M5 16v-4h14v4',
+  wifi: 'M2 8a16 16 0 0120 0M5 12a11 11 0 0114 0M8 16a6 6 0 018 0M12 20h.01',
+  cpu: 'M5 5h14v14H5zM9 9h6v6H9zM9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3',
+  cloud: 'M6 19a5 5 0 010-10 7 7 0 0113-1 5.5 5.5 0 010 11H6z',
+  pause: 'M7 5h3v14H7zM14 5h3v14h-3z',
+  trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
+  user: 'M16 7a4 4 0 11-8 0 4 4 0 018 0M4 21v-2a8 6 0 0116 0v2',
+  lightbulb: 'M9 18v-3a7 7 0 116 0v3H9zM9 21h6',
+  phone: 'M3 3h5l2 5-3 3a14 14 0 006 6l3-3 5 2v5C11 22 2 13 3 3z',
+  filter: 'M3 5h18l-7 8v7l-4-2v-5L3 5z',
+  moreVertical: 'M12 5h.01M12 12h.01M12 19h.01',
+  leaf: 'M4 20l12-12M7 17C-2 6 12 3 21 3c0 10-2 18-14 14z',
+  coins: 'M3 7a9 4 0 1118 0 9 4 0 11-18 0M3 7v5a9 4 0 0018 0V7M3 12v5a9 4 0 0018 0v-5',
+  share: 'M8 10l8-5M8 14l8 5M8 12a3 3 0 11-6 0 3 3 0 016 0M22 4a3 3 0 11-6 0 3 3 0 016 0M22 20a3 3 0 11-6 0 3 3 0 016 0',
+  arrowDown: 'M12 3v18m-7-7l7 7 7-7',
+  arrowUp: 'M12 21V3m-7 7l7-7 7 7',
+  plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  chevronDown: 'M6 9l6 6 6-6',
+});
+const aliases = {sliders:'control', meter:'gauge', recycle:'refresh', fileText:'report', filePdf:'report', fileSpreadsheet:'report', alertTriangle:'alert'};
 export function icon(name) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("class", "ui-icon");
   svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.7");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
   const path = document.createElementNS(svg.namespaceURI, "path");
-  path.setAttribute("d", paths[name] || paths.grid);
+  path.setAttribute("d", paths[aliases[name] || name] || paths.grid);
   svg.append(path);
   return svg;
 }

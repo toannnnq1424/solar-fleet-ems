@@ -10,7 +10,7 @@ def test_wizard_preserves_missing_and_explicit_zero_metadata(browser_page, coord
     page, origin = browser_page
     login(page, origin, "ui-admin")
     page.goto(origin + "/#plants/main")
-    page.get_by_role("button", name="+ Add Plant Wizard", exact=True).click()
+    page.get_by_role("button", name="+ Add plant", exact=True).click()
     dialog = page.get_by_role("dialog")
     dialog.get_by_label("Plant name", exact=True).fill("SIMULATOR metadata contract")
     dialog.get_by_role("button", name="Next →", exact=True).click()

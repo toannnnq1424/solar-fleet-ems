@@ -4,13 +4,39 @@ import { icon } from './icons.js';
 // Design references: SEM flow card (MIT), evcc Energyflow. Independent rendering
 // on the global design system; no HA services, zero-filled sensors or inline CSS.
 const branches = [
-  ['pv_w', 'solar', 'sun', 'Điện mặt trời', 'Solar PV', 'data', 'M100 66 H300', false],
-  ['grid_w', 'grid', 'bolt', 'Lưới điện', 'Grid', 'data', 'M500 66 H300', false],
-  ['battery_w', 'battery', 'battery', 'Pin / BMS', 'Battery / BMS', 'control', 'M300 66 V154 Q300 166 288 166 H112 Q100 166 100 178 V246', true],
-  ['load_w', 'load', 'home', 'Tải tiêu thụ', 'Site load', 'data', 'M300 66 V246', true],
-  ['eps_w', 'backup', 'shield', 'EPS / Dự phòng', 'EPS / Backup', 'devices', 'M300 66 V154 Q300 166 312 166 H488 Q500 166 500 178 V246', true],
-  ['generator_w', 'generator', 'power', 'Máy phát điện', 'Generator', 'devices', 'M100 426 H22 Q10 426 10 414 V16 Q10 6 22 6 H288 Q300 6 300 18 V66', false],
+  ['pv_w', 'solar', 'Điện mặt trời', 'Solar PV', 'data'],
+  ['grid_w', 'grid', 'Lưới điện', 'Grid', 'data'],
+  ['battery_w', 'battery', 'Pin / BMS', 'Battery / BMS', 'control'],
+  ['load_w', 'load', 'Tải tiêu thụ', 'Site load', 'data'],
+  ['eps_w', 'backup', 'EPS / Dự phòng', 'EPS / Backup', 'devices'],
+  ['generator_w', 'generator', 'Máy phát điện', 'Generator', 'devices'],
 ];
+
+// All views share one snapshot and sign contract. These are presentation
+// coordinates, not verified electrical topology or source-to-sink allocation.
+// Paths end at separate hub ports, never overlap along a shared trunk.
+const layouts = {
+  compass: {
+    solar: 'M300 150 V240', grid: 'M164 300 H246',
+    battery: 'M300 360 V450', load: 'M354 300 H436',
+    backup: 'M270 345 Q210 380 100 450',
+    generator: 'M500 450 Q390 380 330 345',
+  },
+  circuit: {
+    solar: 'M100 150 V270 Q100 285 120 285 H246',
+    grid: 'M500 150 V270 Q500 285 480 285 H354',
+    battery: 'M246 315 H120 Q100 315 100 335 V450',
+    load: 'M354 315 H480 Q500 315 500 335 V450',
+    backup: 'M300 360 V450',
+    generator: 'M164 300 H222 Q230 300 246 300',
+  },
+  isometric: {
+    solar: 'M164 300 H246', grid: 'M436 300 H354',
+    battery: 'M300 240 V150', load: 'M300 360 V450',
+    backup: 'M330 345 Q390 380 500 450',
+    generator: 'M100 450 Q210 380 270 345',
+  },
+};
 
 function svgNode(tag, attributes, ...children) {
   const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -183,85 +209,6 @@ function updateBatteryIllustration(svg, soc, isCharging, isDischarging) {
   }
 }
 
-function inverterHubIllustration(active = false) {
-  const svg = svgNode('svg', { viewBox: '0 0 54 54', class: 'energy-art-svg inverter-art' + (active ? ' is-active' : ''), 'aria-hidden': 'true' });
-  
-  // Side heat-sink cooling fins
-  const ribs = svgNode('path', {
-    d: 'M6 14 H9 M6 20 H9 M6 26 H9 M6 32 H9 M6 38 H9 M45 14 H48 M45 20 H48 M45 26 H48 M45 32 H48 M45 38 H48',
-    stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round', opacity: '0.6'
-  });
-
-  // Main inverter enclosure
-  const chassis = svgNode('rect', {
-    x: '9', y: '7', width: '36', height: '40', rx: '4',
-    fill: 'var(--surface)', stroke: 'currentColor', 'stroke-width': '2'
-  });
-
-  // Tempered glass digital display screen
-  const display = svgNode('rect', {
-    x: '14', y: '12', width: '26', height: '16', rx: '2',
-    fill: '#0f172a', stroke: 'currentColor', 'stroke-width': '0.75', opacity: '0.9'
-  });
-
-  // DC to AC conversion glyphs:
-  // DC symbol (=) on left
-  const dcGlyph = svgNode('path', {
-    d: 'M17 18 H22 M17 21 H22',
-    stroke: '#38bdf8', 'stroke-width': '1.2', 'stroke-linecap': 'round'
-  });
-  // Center conversion arrow
-  const arrowGlyph = svgNode('path', {
-    d: 'M25 20 H28 M27 18 L29 20 L27 22',
-    stroke: '#94a3b8', 'stroke-width': '1.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-  });
-  // AC sine wave (~) on right
-  const acGlyph = svgNode('path', {
-    d: 'M31 20 Q32.5 17 34 20 T37 20',
-    stroke: '#22c55e', 'stroke-width': '1.4', 'stroke-linecap': 'round', fill: 'none'
-  });
-
-  // Status LED cluster:
-  // LED 1 (Run)
-  const ledRun = svgNode('circle', {
-    cx: '20', cy: '36', r: '2.2',
-    fill: active ? '#22c55e' : '#64748b',
-    class: 'art-led-run' + (active ? ' art-led-active' : '')
-  });
-  // LED 2 (Comms)
-  const ledComms = svgNode('circle', {
-    cx: '27', cy: '36', r: '2.2',
-    fill: active ? '#38bdf8' : '#64748b',
-    class: 'art-led-comms'
-  });
-  // LED 3 (Alarm)
-  const ledAlarm = svgNode('circle', {
-    cx: '34', cy: '36', r: '2.2',
-    fill: '#334155',
-    class: 'art-led-alarm'
-  });
-
-  const brandLine = svgNode('line', {
-    x1: '18', y1: '42', x2: '36', y2: '42',
-    stroke: 'currentColor', 'stroke-width': '1', opacity: '0.4'
-  });
-
-  svg.append(ribs, chassis, display, dcGlyph, arrowGlyph, acGlyph, ledRun, ledComms, ledAlarm, brandLine);
-  return svg;
-}
-
-function updateInverterIllustration(svg, active) {
-  svg.classList.toggle('is-active', Boolean(active));
-  const ledRun = svg.querySelector('.art-led-run');
-  const ledComms = svg.querySelector('.art-led-comms');
-  if (ledRun) {
-    ledRun.setAttribute('fill', active ? '#22c55e' : '#64748b');
-    ledRun.classList.toggle('art-led-active', Boolean(active));
-  }
-  if (ledComms) {
-    ledComms.setAttribute('fill', active ? '#38bdf8' : '#64748b');
-  }
-}
 
 function loadIllustration() {
   const svg = svgNode('svg', { viewBox: '0 0 48 48', class: 'energy-art-svg load-art', 'aria-hidden': 'true' });
@@ -326,6 +273,59 @@ function generatorIllustration() {
   return svg;
 }
 
+// Independently drawn orthographic 3D miniatures. Generic equipment, not a
+// claimed product model or inferred wiring. Coordinates stay in code/SVG.
+function equipmentModel(tone) {
+  const svg = svgNode('svg', {viewBox: '0 0 180 150', class: 'power-model-art', 'aria-hidden': 'true'});
+  const project = ([x, y, z]) => [90 + (x - y) * .82, 112 + (x + y) * .36 - z * .92];
+  const points = vertices => vertices.map(v => project(v).join(',')).join(' ');
+  const face = (vertices, cls) => svg.append(svgNode('polygon', {points: points(vertices), class: cls}));
+  const line = (vertices, cls = 'model-frame') => svg.append(svgNode('polyline', {points: points(vertices), class: cls}));
+  function box(x, y, z, w, d, h, kind = 'cabinet') {
+    face([[x,y+d,z],[x+w,y+d,z],[x+w,y+d,z+h],[x,y+d,z+h]], `model-${kind}-front`);
+    face([[x+w,y,z],[x+w,y+d,z],[x+w,y+d,z+h],[x+w,y,z+h]], `model-${kind}-side`);
+    face([[x,y,z+h],[x+w,y,z+h],[x+w,y+d,z+h],[x,y+d,z+h]], `model-${kind}-top`);
+  }
+  box(-45, -38, -5, 90, 76, 5, 'plinth');
+  if (tone === 'solar') {
+    for (const y of [-34, 3]) for (const x of [-38, 3]) {
+      box(x+5, y+5, 0, 3, 22, 12, 'steel');
+      const z = v => 14 + (y + 30 - v) * .42;
+      face([[x,y,z(y)],[x+34,y,z(y)],[x+34,y+30,z(y+30)],[x,y+30,z(y+30)]], 'model-panel');
+      for (let i=1; i<4; i++) line([[x+i*8.5,y,z(y)],[x+i*8.5,y+30,z(y+30)]], 'model-panel-cell');
+      for (let i=1; i<4; i++) line([[x,y+i*7.5,z(y+i*7.5)],[x+34,y+i*7.5,z(y+i*7.5)]], 'model-panel-cell');
+    }
+  } else if (tone === 'grid') {
+    const levels = [[0,23],[35,14],[68,7],[105,2]];
+    for (let i=0; i<levels.length-1; i++) {
+      const [z,a] = levels[i], [nz,b] = levels[i+1];
+      for (const sign of [-1,1]) {
+        line([[sign*a,-a,z],[sign*b,-b,nz]]);
+        line([[sign*a,a,z],[sign*b,b,nz]]);
+        line([[-a,sign*a,z],[b,sign*b,nz],[-b,sign*b,nz],[a,sign*a,z]]);
+      }
+    }
+    for (const z of [58,82]) {
+      box(-39,-3,z,78,6,3,'steel');
+      for (const x of [-37,37]) line([[x,0,z],[x,0,z-12]], 'model-insulator');
+    }
+  } else if (tone === 'battery' || tone === 'backup') {
+    for (const [x,y] of [[-30,-27],[2,-27],[-30,5],[2,5]]) {
+      box(x,y,0,25,22,66);
+      face([[x+4,y+22,50],[x+21,y+22,50],[x+21,y+22,56],[x+4,y+22,56]], 'model-display');
+      for (const z of [12,18,24]) line([[x+5,y+22,z],[x+20,y+22,z]], 'model-vent');
+    }
+  } else {
+    box(-35,-28,0,70,56,36);
+    box(-38,-31,36,76,62,5,'roof');
+    box(-15,-15,41,10,10,37,'steel');
+    box(4,-15,41,10,10,28,'steel');
+    for (const x of [-27,-10,7,24]) face([[x,28,12],[x+8,28,12],[x+8,28,25],[x,28,25]], 'model-window');
+    face([[35,-18,0],[35,-1,0],[35,-1,22],[35,-18,22]], 'model-door');
+  }
+  return svg;
+}
+
 function createBranchArt(tone) {
   const wrap = document.createElement('div');
   wrap.className = 'power-node-art';
@@ -337,7 +337,8 @@ function createBranchArt(tone) {
   else if (tone === 'backup') art = backupIllustration();
   else if (tone === 'generator') art = generatorIllustration();
   else art = icon('device');
-  wrap.append(art);
+  art.classList.add('power-flat-art');
+  wrap.append(art, equipmentModel(tone));
   return { wrap, art };
 }
 
@@ -345,6 +346,9 @@ function createBranchArt(tone) {
 
 export function flowState(metric, snapshot, now = Date.now()) {
   const val = snapshot[metric], meta = snapshot.channels?.[metric];
+  if (meta?.quality === 'VENDOR_REPORTED' && Number.isFinite(val)) {
+    return {value: val, active: false, reverse: false, status: 'VENDOR_REPORTED'};
+  }
   const fresh = meta?.quality === 'GOOD' && Number.isFinite(Date.parse(meta.valid_until)) && Date.parse(meta.valid_until) > now;
   if (!fresh || !Number.isFinite(val)) return { value: null, active: false, reverse: false, status: meta?.quality === 'GOOD' ? 'STALE' : meta?.quality || 'MISSING' };
   return { value: val, active: Math.abs(val) > 10, reverse: val < 0, status: 'GOOD' };
@@ -364,31 +368,55 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
   const p = (text, cls = '') => e('p', text, cls);
   const root = document.createElement('solar-energy-flow');
   root.className = 'power-flow';
+  let selectedView = 'compass';
+  try {
+    const saved = localStorage.getItem('solar-energy-flow-view');
+    if (Object.hasOwn(layouts, saved)) selectedView = saved;
+  } catch { /* Presentation still works when browser storage is unavailable. */ }
+  root.dataset.view = selectedView;
   const outer = card(l('Dòng năng lượng', 'Energy flow'));
   outer.classList.add('energy-flow-card');
+  const inspector = div('flow-reading-inspector');
+  inspector.setAttribute('role', 'tooltip');
+  inspector.hidden = true;
+  let inspected = null;
+  const inspect = entry => {
+    inspected = entry;
+    const meta = snapshot.channels?.[entry.metric];
+    inspector.replaceChildren(e('strong', entry.label),
+      div('row', e('b', entry.reading.textContent), e('span', entry.direction.textContent)),
+      p(entry.source.textContent),
+      p(meta?.quality === 'VENDOR_REPORTED' ? l('Hãng báo cáo · chưa xác minh thời gian đo.', 'Vendor reported · measurement time unverified.') :
+        meta?.quality === 'GOOD' && flowState(entry.metric, snapshot).status === 'GOOD' ?
+          l('Số đo hợp lệ trong cửa sổ cập nhật.', 'Accepted reading within its freshness window.') :
+          l('Thiếu số đo hợp lệ hoặc số đo đã hết hạn.', 'Missing accepted reading or freshness expired.')));
+    inspector.hidden = false;
+  };
   const hasGenerator = snapshot.generator_w != null || snapshot.channels?.generator_w?.sources?.length > 0;
   const stage = div('power-flow-stage' + (hasGenerator ? ' has-generator' : ''));
-  const svg = svgNode('svg', { viewBox: `0 0 600 ${hasGenerator ? 492 : 312}`, preserveAspectRatio: 'none', class: 'power-flow-wires', 'aria-hidden': 'true' });
+  const svg = svgNode('svg', { viewBox: '0 0 600 600', preserveAspectRatio: 'none', class: 'power-flow-wires', 'aria-hidden': 'true' });
   stage.append(svg);
 
-  // Central Inverter Hub with rich hybrid inverter geometry
+  // Neutral aggregation point: do not invent an inverter throughput by adding
+  // PV and battery power (which can double-count the very same energy).
   const hub = btn('', () => navigate('devices'), 'power-node power-hub');
   const hubArtWrap = div('power-node-art');
-  const hubArt = inverterHubIllustration(false);
-  hubArtWrap.append(hubArt);
-  const hubTitle = div('power-node-heading', e('b', l('Biến tần Hybrid', 'Hybrid Inverter')));
-  const hubThroughput = e('strong', '—', 'power-value');
-  const hubStatus = p(l('Xem thiết bị', 'View equipment'), 'small muted power-source');
-  hub.append(hubArtWrap, hubTitle, hubThroughput, hubStatus);
+  hubArtWrap.append(icon('network'));
+  hub.append(hubArtWrap, e('b', l('Tổng hợp', 'Summary')),
+    p(l('Sơ đồ minh họa', 'Illustrative layout'), 'small muted'));
+  hub.title = l('Điểm tổng hợp số liệu, không phải sơ đồ đấu dây đã xác minh.', 'Measurement summary, not a verified wiring diagram.');
   stage.append(hub);
 
   const nodes = [];
-  for (const [metric, tone, glyph, vi, en, route, path] of branches) {
+  for (const [metric, tone, vi, en, route] of branches) {
     if (metric === 'generator_w' && !hasGenerator) continue;
+    const path = layouts[selectedView][tone];
     const wire = svgNode('g', { class: `power-branch tone-${tone}`, 'data-metric': metric });
     wire.append(svgNode('path', { d: path, class: 'power-wire-track' }));
     const moving = svgNode('path', { d: path, class: 'power-wire-motion' });
     wire.append(moving);
+    const arrow = svgNode('path', { d: 'M-6 -5 L1 0 L-6 5', class: 'power-wire-arrow' });
+    wire.append(arrow);
     svg.append(wire);
 
     const node = btn('', () => navigate(route), `power-node tone-${tone} node-${tone}`);
@@ -399,8 +427,40 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
     const source = p('', 'small muted power-source');
     node.append(artWrap, div('power-node-heading', e('b', l(vi, en))), reading, direction, source);
     stage.append(node);
-    nodes.push({ metric, wire, node, art, reading, direction, source, label: l(vi, en), tone });
+    const entry = { metric, wire, node, art, reading, direction, source, arrow, moving, label: l(vi, en), tone };
+    node.onpointerenter = () => inspect(entry);
+    node.onfocus = () => inspect(entry);
+    const hideInspector = () => { inspected = null; inspector.hidden = true; };
+    node.onpointerleave = hideInspector;
+    node.onblur = hideInspector;
+    node.onkeydown = event => { if (event.key === 'Escape') hideInspector(); };
+    nodes.push(entry);
   }
+
+  const views = [
+    ['isometric', 'Mô hình phối cảnh', 'Perspective model', 'layers'],
+    ['compass', 'Sơ đồ dòng điện', 'Power flow', 'network'],
+    ['circuit', 'Sơ đồ thiết bị', 'Equipment diagram', 'device'],
+  ];
+  const viewButtons = views.map(([view, vi, en, glyph]) => {
+    const button = btn('', () => {
+      root.dataset.view = view;
+      try { localStorage.setItem('solar-energy-flow-view', view); } catch { /* Optional UI preference only. */ }
+      for (const entry of nodes) {
+        for (const path of entry.wire.querySelectorAll('.power-wire-track,.power-wire-motion')) path.setAttribute('d', layouts[view][entry.tone]);
+      }
+      for (const item of viewButtons) item.setAttribute('aria-pressed', String(item.dataset.view === view));
+      root.refresh();
+    }, 'flow-view-button');
+    button.append(icon(glyph), e('span', l(vi, en)));
+    button.dataset.view = view;
+    button.dataset.monitorChoice = 'energy-flow-view-' + view;
+    button.setAttribute('aria-pressed', String(view === selectedView));
+    return button;
+  });
+  const viewPicker = div('flow-view-picker', ...viewButtons);
+  viewPicker.setAttribute('role', 'group');
+  viewPicker.setAttribute('aria-label', l('Cách xem dòng năng lượng', 'Energy flow presentation'));
 
   let paused = false, tableMode = false;
   const mode = btn(l('Dạng bảng', 'Table view'), () => {
@@ -413,6 +473,9 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
     motion.textContent = paused ? l('Tiếp tục chuyển động', 'Resume motion') : l('Dừng chuyển động', 'Pause motion');
     motion.setAttribute('aria-pressed', String(paused));
   });
+  // Read-only presentation choices, preserved by the live monitor on refresh.
+  mode.dataset.monitorChoice = 'energy-flow-mode';
+  motion.dataset.monitorChoice = 'energy-flow-motion';
   const full = btn(l('Toàn màn hình', 'Fullscreen'), async () => {
     if (document.fullscreenElement === outer) {
       try { await document.exitFullscreen(); } catch { /* Page may have exited concurrently. */ }
@@ -426,23 +489,24 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
   root.refresh = () => {
     root.classList.toggle('is-hidden', document.hidden);
     let count = 0;
-    let anyActiveFlow = false;
-    let anyValidPower = false;
-    let totalThroughputW = 0;
 
     for (const entry of nodes) {
       const state = flowState(entry.metric, snapshot);
       const { value: val } = state;
       count += val !== null ? 1 : 0;
-      if (val !== null) anyValidPower = true;
-      if (state.active) {
-        anyActiveFlow = true;
-        if (entry.metric === 'pv_w') totalThroughputW += Math.abs(val);
-        else if (entry.metric === 'battery_w') totalThroughputW += Math.abs(val);
-      }
 
       entry.wire.classList.toggle('is-active', state.active);
       entry.wire.classList.toggle('is-reversed', state.reverse);
+      entry.wire.classList.toggle('is-unverified', state.status !== 'GOOD');
+      // Explicit arrow direction follows the same sign gate as moving pulses.
+      // A stopped or unverified branch has neither arrow nor animation.
+      if (state.active) {
+        const length = entry.moving.getTotalLength();
+        const mid = entry.moving.getPointAtLength(length * .6);
+        const next = entry.moving.getPointAtLength(length * .6 + 1);
+        const angle = Math.atan2(next.y - mid.y, next.x - mid.x) * 180 / Math.PI + (state.reverse ? 180 : 0);
+        entry.arrow.setAttribute('transform', `translate(${mid.x} ${mid.y}) rotate(${angle})`);
+      }
       const absVal = Math.abs(val || 0);
       entry.wire.dataset.direction = !state.active ? 'stopped' : state.reverse ? 'reverse' : 'forward';
       entry.wire.dataset.power = !state.active ? 'none' : absVal >= 5000 ? 'high' : absVal >= 1000 ? 'medium' : 'low';
@@ -451,22 +515,27 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
 
       let direction = state.status === 'STALE' ? l('Số đo đã cũ', 'Reading expired') : l('Chưa có số đo hợp lệ', 'No accepted measurement');
       if (val !== null) {
-        if (entry.metric === 'battery_w') direction = val > 0 ? l('Đang sạc ↓', 'Charging ↓') : val < 0 ? l('Đang xả ↑', 'Discharging ↑') : l('Chờ', 'Idle');
-        else if (entry.metric === 'grid_w') direction = val > 0 ? l('Nhập lưới ←', 'Import ←') : val < 0 ? l('Xuất lưới →', 'Export →') : l('Cân bằng', 'Balanced');
+        if (entry.metric === 'battery_w') direction = val > 0 ? l('Đang sạc', 'Charging') : val < 0 ? l('Đang xả', 'Discharging') : l('Chờ', 'Idle');
+        else if (entry.metric === 'grid_w') direction = val > 0 ? l('Nhập lưới', 'Import') : val < 0 ? l('Xuất lưới', 'Export') : l('Cân bằng', 'Balanced');
         else direction = Math.abs(val) <= 10 ? l('Công suất thấp / chờ', 'Low power / idle') : l('Đang truyền điện', 'Power flowing');
       }
       entry.direction.textContent = direction;
+      // Keep charge/discharge visible for a signed vendor value, but do not
+      // animate it or imply that its source clock has been verified.
+      if (state.status === 'VENDOR_REPORTED' && !['battery_w', 'grid_w'].includes(entry.metric)) {
+        entry.direction.textContent = l('Hãng báo cáo', 'Vendor reported');
+      }
 
       const meta = snapshot.channels?.[entry.metric];
       const origins = [...new Set((meta?.sources || []).map(s => s.source))];
       const soc = flowState('battery_soc', snapshot).value;
 
       if (entry.metric === 'battery_w') {
-        const isCharging = val !== null && val > 10;
-        const isDischarging = val !== null && val < -10;
+        const isCharging = state.active && val > 10;
+        const isDischarging = state.active && val < -10;
         updateBatteryIllustration(entry.art, soc, isCharging, isDischarging);
         if (soc != null) {
-          entry.source.textContent = `SOC ${number(soc, 0)}%`;
+          entry.source.textContent = `SOC ${number(soc, 1)}%`;
           entry.node.dataset.soc = String(Math.round(Math.min(100, Math.max(0, soc))));
         } else {
           entry.source.textContent = origins.join(' · ') || l('Chưa có SOC', 'No SOC');
@@ -477,28 +546,16 @@ export function energyFlowCard(ui, snapshot = {}, navigate) {
       entry.node.title = `${entry.label} · ${state.status}\n${(meta?.sources || []).map(s => `${s.device_id} · ${s.metric} · ${s.source_timestamp}`).join('\n')}`;
     }
 
-    // Refresh central inverter hub state & throughput
-    updateInverterIllustration(hubArt, anyActiveFlow);
-    if (!anyValidPower) {
-      hubThroughput.textContent = '—';
-      hubStatus.textContent = l('Chưa có số đo', 'No telemetry');
-    } else if (totalThroughputW >= 1000) {
-      hubThroughput.textContent = `${number(totalThroughputW / 1000, 2)} kW`;
-      hubStatus.textContent = l('Tổng công suất biến đổi', 'Conversion throughput');
-    } else if (totalThroughputW > 0) {
-      hubThroughput.textContent = `${number(totalThroughputW, 0)} W`;
-      hubStatus.textContent = l('Tổng công suất biến đổi', 'Conversion throughput');
-    } else {
-      hubThroughput.textContent = l('Sẵn sàng', 'Standby');
-      hubStatus.textContent = l('Không có dòng tải', 'Zero throughput');
-    }
-
-    summary.textContent = `${count}/${nodes.length} ${l('nhánh có số đo', 'measured branches')}`;
+    const vendor = Object.values(snapshot.channels || {}).some(channel => channel.quality === 'VENDOR_REPORTED');
+    summary.textContent = vendor ? l('Hãng báo cáo · chưa xác minh thời gian', 'Vendor reported · time unverified') :
+      `${count}/${nodes.length} ${l('nhánh có số đo', 'measured branches')}`;
+    if (inspected) inspect(inspected);
   };
 
   root.append(
     div('toolbar', summary, div('row', mode, motion, full)),
-    stage,
+    viewPicker,
+    div('power-flow-viewport', stage, inspector),
     div('power-flow-legend', ...nodes.map(n => div(`row ${n.wire.getAttribute('class').split(' ')[1]}`, e('span', '●'), e('span', n.label)))),
     p(l('Mũi tên thể hiện chiều công suất; không suy ra điện từ nguồn nào cấp riêng cho từng tải. Số đo thiếu hoặc hết hạn dừng chuyển động. EPS là công suất đo, không xác nhận khả năng dự phòng.',
       'Arrows show power direction, not source-to-load allocation or electrical wiring. Missing or expired readings stop motion. EPS power does not certify backup readiness.'), 'small muted')

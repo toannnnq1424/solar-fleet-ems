@@ -1,3 +1,4 @@
+import { registerReadingsEditor, collectionEditor } from "./collection-editor.js";
 import { l } from "./i18n.js";
 
 function downloadJson(value, name) {
@@ -8,15 +9,15 @@ function downloadJson(value, name) {
 }
 
 export async function renderModelLibrary(ui, devices) {
-  const { e, div, p, btn, badge, card, table, field, notice, api, go, state } = ui;
-  const root = div("stack");
+  const { e, div, p, btn, badge, card, table, notice, api, go } = ui;
+  const root = div("stack model-library");
   const response = await api("/model-library");
   const catalog = response.profiles;
   const search = e("input", "", "input-search");
   search.placeholder = l("Tìm hãng, model hoặc profile…", "Find a brand, model or profile…");
   search.setAttribute("aria-label", l("Tìm profile", "Find profile"));
-  const list = div("stack");
-  const detail = div("stack");
+  const list = div("stack model-profile-list");
+  const detail = div("stack model-profile-detail", card(l("Chi tiết model", "Model details"), p(l("Chọn một model để xem thông số, kế hoạch đọc và công cụ giải mã.", "Choose a model to inspect parameters, read plans and decoding tools."), "empty-state")));
   let selectedProfile = null;
   let selectedFields = new Set();
   let generation = 0;
@@ -26,7 +27,7 @@ export async function renderModelLibrary(ui, devices) {
   ), div("row", badge(`${catalog.length} profiles`, "blue"),
     badge(l("Chỉ đọc · chưa nghiệm thu", "Read only · not commissioned"), "warn"),
     btn(l("Quản lý Local Agent", "Manage Local Agents"), () => go("settings", "agents", "main")),
-    btn(l("Ánh xạ dữ liệu", "Data mapping"), () => go("reports", "mapping", "main"))), search, list, detail);
+    btn(l("Ánh xạ dữ liệu", "Data mapping"), () => go("reports", "mapping", "main"))), search, div("model-library-layout",list,detail));
 
   function renderList() {
     const q = search.value.trim().toLowerCase();
@@ -76,14 +77,11 @@ export async function renderModelLibrary(ui, devices) {
         })));
       }
       filter.oninput = renderFields;
-      const raw = e("textarea", "", "input-search");
-      raw.rows = 6; raw.value = "[]";
-      raw.setAttribute("aria-label", l("Dữ liệu thanh ghi JSON", "Register readings JSON"));
-      raw.placeholder = '[{"function":3,"address":0,"value":0}]';
+      const readings = registerReadingsEditor(ui,()=>result.replaceChildren());
       async function run(kind) {
         const body = { profile_digest: profile.profile_digest, field_ids: [...selectedFields] };
         try {
-          if (kind === "decode") body.readings = JSON.parse(raw.value);
+          if (kind === "decode") body.readings = readings.read();
           const value = await api(`/model-library/${encodeURIComponent(id)}/${kind}`, body);
           if (request !== generation) return;
           if (kind === "plan") {
@@ -107,7 +105,7 @@ export async function renderModelLibrary(ui, devices) {
         p(profile.limitations.join(" "), "small muted"), filter, count, rows,
         div("row", btn(l("Xem kế hoạch đọc", "Preview read plan"), () => run("plan"), "primary"),
           btn(l("Soạn cấu hình Agent", "Prepare Agent configuration"), () => editCollection("model"))),
-        field(l("Dữ liệu đã đọc (JSON: function, address, value)", "Collected readings (JSON: function, address, value)"), raw),
+        readings.root,
         btn(l("Giải mã dữ liệu", "Decode readings"), () => run("decode"))), result);
       renderFields();
     } catch (err) { if (request === generation) detail.replaceChildren(p(err.message, "bad")); }
@@ -120,33 +118,10 @@ export async function renderModelLibrary(ui, devices) {
     btn(l("Soạn cấu hình Home Assistant", "Prepare Home Assistant configuration"), () => editCollection("home-assistant"))), setup);
 
   function editCollection(kind) {
-    const target = state.selectedInspectorDevice || devices[0]?.id || "";
-    let draft;
-    if (kind === "model") {
-      draft = { agent_id: "", device_id: target, profile_id: selectedProfile.id,
-        profile_digest: selectedProfile.profile_digest, field_ids: [...selectedFields], transport: "modbus_tcp",
-        address: "", port: 502, unit_id: selectedProfile.unit_id_hint || 1,
-        inverter_model: "", inverter_firmware: "", logger_model: "", logger_firmware: "",
-        reviewed_by: "", evidence_reference: "" };
-    } else {
-      draft = { agent_id: "", base_url: "", bindings: [{ entity_id: "sensor.", device_id: target, expected_unit: "W" }],
-        reviewed_by: "", evidence_reference: "", max_age_seconds: 300 };
-    }
-    const editor = e("textarea", "", "input-search monospace"); editor.rows = 18;
-    editor.value = JSON.stringify(draft, null, 2);
-    editor.setAttribute("aria-label", l("Cấu hình thu thập JSON", "Collection configuration JSON"));
-    const feedback = div("stack");
-    setup.replaceChildren(card(l("Cấu hình thu thập tại chỗ", "Local collection configuration"),
-      p(l("Điền thông tin công trình và Agent đã đăng ký. Token đặt bằng biến môi trường trên Agent. Kiểm tra dưới đây chỉ xác nhận cấu trúc và phạm vi truy cập.",
-        "Enter the installation details and a registered Agent. Set tokens through Agent environment variables. Validation below checks structure and access scope only.")),
-      editor, btn(l("Kiểm tra và tải cấu hình", "Validate and download configuration"), async () => {
-        try {
-          const value = await api(`/local-collection/${kind}/validate`, JSON.parse(editor.value));
-          feedback.replaceChildren(notice("Cấu hình hợp lệ. Chưa thử kết nối thiết bị.", "Configuration valid. Device connectivity has not been tested."));
-          downloadJson(value.config, `${kind}-collection.json`);
-        } catch (err) { feedback.replaceChildren(p(err.message, "bad")); }
-      }, "primary"), feedback));
-    setup.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const profile=kind==='model'?selectedProfile:null;
+    const ids=[...selectedFields];
+    setup.replaceChildren(collectionEditor(ui,kind,devices,profile,ids,config=>downloadJson(config,kind+'-collection.json')));
+    setup.scrollIntoView({ block: "nearest", behavior: "instant" });
   }
   return root;
 }

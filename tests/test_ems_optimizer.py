@@ -55,6 +55,40 @@ class TestFleetInverterBalancer:
 
 
 class TestEVNTOUOptimizer:
+    def test_fractional_vnd_totals_reconcile_before_savings_and_profit(self, monkeypatch):
+        from solar_fleet.ems_optimizer import TariffTierSchedule
+
+        monkeypatch.setattr(TariffTierSchedule, "classify_hour", lambda dt: "NORMAL")
+        optimizer = EVNTOUOptimizer(
+            battery_capacity_kwh=1, roundtrip_efficiency=1, max_c_rate=1,
+            min_soc_pct=0, reserve_soc_pct=0, weekend_load_factor=1,
+        )
+        monkeypatch.setattr(optimizer, "get_rate_for_dt", lambda dt: 1.5)
+        # Exact scenario: raw baseline 2.4, optimized 1.6, raw savings 0.8.
+        # Independent rounding wrongly reports 1 VND despite returned 2 - 2.
+        result = optimizer.optimize_24h(
+            "rounding-fixture", [0.0] * 24, [1.6] + [0.0] * 23,
+            initial_soc_pct=100 * (0.8 / 1.5),
+        )
+        assert result.total_baseline_cost_vnd == 2
+        assert result.total_optimized_cost_vnd == 2
+        assert result.net_savings_vnd == 0
+        assert result.savings_pct == 0
+        assert result.net_profit_vnd == -result.battery_degradation_cost_vnd
+
+    def test_monetary_identities_for_losses_zero_and_savings(self, monkeypatch):
+        from solar_fleet.ems_optimizer import TariffTierSchedule
+
+        for tier in ("NORMAL", "OFF_PEAK", "PEAK"):
+            monkeypatch.setattr(TariffTierSchedule, "classify_hour", lambda dt, tier=tier: tier)
+            for load in (0, 0.0002, 0.7, 1.2345, 8.12345):
+                optimizer = EVNTOUOptimizer(weekend_load_factor=1)
+                result = optimizer.optimize_24h("rounding-fixture", [0.0] * 24, [load] * 24)
+                assert result.net_savings_vnd == result.total_baseline_cost_vnd - result.total_optimized_cost_vnd
+                assert result.net_profit_vnd == result.net_savings_vnd - result.battery_degradation_cost_vnd
+                expected_pct = round(result.net_savings_vnd / result.total_baseline_cost_vnd * 100, 1) if result.total_baseline_cost_vnd else 0
+                assert result.savings_pct == expected_pct
+
     def test_optimizer_achieves_net_savings_on_manufacturing_tariff(self):
         optimizer = EVNTOUOptimizer(
             tariff_category="MANUFACTURING",
@@ -77,9 +111,9 @@ class TestEVNTOUOptimizer:
         assert res.net_savings_vnd > 0.0
         assert res.savings_pct > 0.0  # Net positive savings via off-peak charge & peak shave
         assert len(res.slots_24h) == 24
-        assert len(res.tou_programme) == 6
         assert res.battery_degradation_cost_vnd >= 0.0
-        assert res.net_profit_vnd >= 0.0
+        assert res.net_profit_vnd == round(res.net_savings_vnd - res.battery_degradation_cost_vnd, 0)
+
 
     def test_optimizer_scenarios_p10_p90(self):
         optimizer = EVNTOUOptimizer(tariff_category="MANUFACTURING")
@@ -154,14 +188,59 @@ class TestEMSAPI:
         ]
         ctl.store.add_samples(samples)
 
-        resp = client.get("/api/sites/sim-site/ems-optimization?category=MANUFACTURING", headers=headers)
+        resp = client.get(
+            "/api/sites/sim-site/ems-optimization?category=MANUFACTURING&battery_kwh=15.0&max_charge_kw=6.0&max_discharge_kw=6.0",
+            headers=headers,
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["site_id"] == "sim-site"
         assert data["total_baseline_cost_vnd"] > 0
-        assert data["net_savings_vnd"] >= 0
+        assert data["net_savings_vnd"] == data["total_baseline_cost_vnd"] - data["total_optimized_cost_vnd"]
         assert len(data["slots_24h"]) == 24
+
         assert len(data["tou_programme"]["slots"]) == 6
+
+    def test_ems_optimization_fails_without_battery_specs(self, local):
+        client, ctl = local
+        headers = _auth_headers(client, "admin")
+
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        from solar_fleet.domain import Sample, Source
+
+        now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+        ctl.store.add_samples([
+            Sample(
+                device_id="sim-device",
+                binding_id="bind-01",
+                metric="battery_soc",
+                value=50.0,
+                unit="%",
+                source=Source.CLOUD,
+                source_timestamp=now,
+                received_at=now,
+                quality="GOOD",
+            ),
+            Sample(
+                device_id="sim-device",
+                binding_id="bind-01",
+                metric="pv_power",
+                value=3000.0,
+                unit="W",
+                source=Source.CLOUD,
+                source_timestamp=now,
+                received_at=now,
+                quality="GOOD",
+            ),
+        ])
+
+        # Missing battery_kwh, max_charge_kw, max_discharge_kw without device metadata -> 422
+        resp = client.get("/api/sites/sim-site/ems-optimization?category=MANUFACTURING", headers=headers)
+        assert resp.status_code == 422
+        assert "insufficient_device_configuration" in resp.json()["detail"]
+
 
     def test_ems_optimization_fails_without_battery_soc(self, local):
         client, ctl = local

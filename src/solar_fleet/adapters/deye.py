@@ -304,7 +304,13 @@ class Deye:
             result.extend(rows)
         return result
 
-    async def dynamic_control_read(self, serial: str, *, poll_interval: float = 0.05) -> dict:
+    async def dynamic_control_read(
+        self,
+        serial: str,
+        *,
+        poll_interval: float = 1.5,
+        max_attempts: int = 20,
+    ) -> dict:
         """Trigger an on-demand hardware configuration read via Deye Cloud."""
         read_path = "/v1.0/strategy/dynamicControl/read"
         result_path = "/v1.0/strategy/dynamicControl/readResult"
@@ -318,18 +324,26 @@ class Deye:
             order_param = int(order_id)
         except (ValueError, TypeError):
             order_param = order_id
-        for _ in range(15):  # poll up to 15 attempts
+        for _ in range(max_attempts):
             if poll_interval > 0:
                 await asyncio.sleep(poll_interval)
             res = await self.read(result_path, {"orderId": order_param})
             status = str(res.get("status", ""))
-            if status == "666" or res.get("success"):
+            if status == "666":
                 return res
             if status in ("400", "500"):
                 raise VendorError("dynamic_read_failed")
+            # Pending (100) or executing (300) continues polling
         raise VendorError("dynamic_read_timeout")
 
-    async def configuration(self, device: Device, *, dynamic_read: bool = False) -> Configuration:
+    async def configuration(
+        self,
+        device: Device,
+        *,
+        dynamic_read: bool = False,
+        dynamic_poll_interval: float = 1.5,
+        dynamic_max_attempts: int = 20,
+    ) -> Configuration:
         values = {}
         latest_ts = None
         for name in ("system", "battery", "tou"):
@@ -345,25 +359,29 @@ class Deye:
             )
 
         if dynamic_read and "/v1.0/strategy/dynamicControl/read" in CONTRACTS:
-            try:
-                dyn = await self.dynamic_control_read(device.vendor_id)
-                if isinstance(dyn, dict):
-                    for ts_key in ("collectionTime", "updateTime", "timestamp", "readTime", "time", "lastUpdateTime"):
-                        if ts_key in dyn:
-                            parsed = source_time(dyn[ts_key])
-                            if parsed is not None:
-                                latest_ts = parsed
-                    # If hardware query succeeded without explicit timestamp in payload,
-                    # the readback completion time is the authoritative fresh hardware timestamp.
-                    if latest_ts is None:
-                        latest_ts = datetime.now(UTC)
-                    if "touList" in dyn:
-                        values["touList"] = dyn["touList"]
-                    for k, v in dyn.items():
-                        if k not in ("code", "msg", "requestId", "success", "orderId", "status"):
-                            values[k] = v
-            except Exception:
-                pass
+            # When caller explicitly requests dynamic hardware read, failure must raise
+            # rather than silently downgrading to potentially stale cached data.
+            dyn = await self.dynamic_control_read(
+                device.vendor_id,
+                poll_interval=dynamic_poll_interval,
+                max_attempts=dynamic_max_attempts,
+            )
+            if isinstance(dyn, dict):
+                hardware_ts = None
+                for ts_key in ("collectionTime", "updateTime", "timestamp", "readTime", "time", "lastUpdateTime"):
+                    if ts_key in dyn:
+                        parsed = source_time(dyn[ts_key])
+                        if parsed is not None:
+                            hardware_ts = parsed
+                # If hardware query completed with status 666, the dynamic read observation time
+                # marks the fresh hardware readback.
+                query_completed_at = datetime.now(UTC)
+                latest_ts = hardware_ts or query_completed_at
+                if "touList" in dyn:
+                    values["touList"] = dyn["touList"]
+                for k, v in dyn.items():
+                    if k not in ("code", "msg", "requestId", "success", "orderId", "status"):
+                        values[k] = v
 
         if latest_ts is not None:
             return Configuration(values=values, device_timestamp=latest_ts, freshness_verified=True)

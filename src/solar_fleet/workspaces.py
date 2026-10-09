@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import Depends, HTTPException, Request, Response
 from pydantic import ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
+from .deye_connection import require_managed_application
 from .domain import Model, Role, SafetyError, Sample, utcnow
 from .operational_views import OperationalViews, period_bounds
 from .providers import PROVIDERS
@@ -299,6 +300,8 @@ def install_workspaces(app, controller, user, admin):
         if row is None:
             raise HTTPException(404)
         row["enabled"] = body.enabled
+        if body.enabled:
+            require_managed_application(store, row)
         store.put("integration", id, row)
         old = controller.adapters.pop(id, None)
         if old:
@@ -343,6 +346,11 @@ def install_workspaces(app, controller, user, admin):
             )
             store.audit("operations", {"event": "site_profile_updated", "operator": who.id}, id)
         return site
+
+    @app.get("/api/sites/{id}/vendor-report")
+    async def site_vendor_report(id: str, who=Depends(user)):
+        site_access(id, who)
+        return {"report": controller.reported_station(id)}
 
     @app.get("/api/sites/{id}/overview-summary")
     async def site_overview_summary(id: str, request: Request, who=Depends(user)):
@@ -569,10 +577,12 @@ def install_workspaces(app, controller, user, admin):
             "devices": rows,
             "summary": {
                 "total_devices": len(rows),
-                "online_count": sum(d["online"] for d in rows),
+                "online_count": sum(d.get("online") is True for d in rows),
+                "unknown_connectivity_count": sum(d.get("online") is None for d in rows),
                 "offline_count": sum(d["status"] == "OFFLINE" for d in rows),
                 "unknown_count": sum(d["status"] == "UNKNOWN" for d in rows),
-                "warning_count": 0,
+                # No complete device alarm coverage is established by inventory.
+                "warning_count": None,
                 "commissioned_count": sum(d["commissioned"] for d in rows),
                 "by_type": {
                     key: sum(d["type"] == kind for d in rows)

@@ -61,7 +61,7 @@ class Device(Model):
     name: str | None = None
     logger_id: str | None = None
     last_seen: datetime | None = None
-    online: bool = False
+    online: bool | None = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

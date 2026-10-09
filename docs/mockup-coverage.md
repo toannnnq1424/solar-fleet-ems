@@ -1,3 +1,135 @@
+# Current assessment and energy-flow slice — 09/10/2026
+
+**All 26 screens / 15 sidebar owners remain in scope; user explicitly rejects current
+UI as unfinished.** Three flow modes, illustrative projected SVG equipment, freshness-gated
+direction, shared titled-card expansion and daily-chart inspector are implemented;
+not full pixel parity, all-chart coverage or a production certificate.
+[Final verification](evidence/energy-flow-ui-2026-10-09.md): **1,894 backend / 107 browser
+passed**, 13 backend deprecation warnings; Ruff, 63 JS syntax checks and package build passed.
+Final live visual re-acceptance and the unfinished workflows remain open.
+
+[Assessment](project-assessment-2026-10-09.md): estimated core completion 35–40%, or about
+30% including planned DE/AI; explicitly subjective acceptance-weighted estimates, not LOC.
+[Reference manifest](evidence/ui-reference-manifest-2026-10-09.md): 12 user images kept
+outside Git; quick-control E09.11 added to the backlog. Resume only on the next user command.
+
+# GoodWe live native reads and UI correction — 08/10/2026 (historical)
+
+Freshness follow-up: shared device dialog/monitor receipt GET every 15s; SEMS+ account
+collection minimum 60s, slower policies/rotation/quotas preserved, no sub-second SLA.
+Manual vendor-read button in common shell and device monitoring; plant scope includes
+vendor/account label (login identity restricted to org admins). Verification and known
+limits are in the dated evidence; no assertion of complete sidebar data/pixel parity.
+Resume through the [current backlog checkpoint](vendor-feature-backlog-2026-10-05.md#resume-checkpoint).
+Latest software slice: 1,894 backend / 104 browser passed; latest-client live QA and
+BUG-LIVE-02 (lower readings table retains a different snapshot) remain open.
+
+**Follow-up after the user's blank-overview complaint and 11 GoodWe screenshots:**
+station flow/statistics plus per-inverter telecounting now have separate optional
+shared report contracts and explicit vendor-reported UI. Live site: 6 populated KPI,
+8 dated energy rows. Live both inverters: own serial/AC/DC/rated power and five energy
+periods; shared detail/realtime panel and scoped equipment table. These are monitoring
+snapshots, not GOOD telemetry, billing, commissioning or all-screen pixel parity.
+See [latest evidence](evidence/goodwe-live-read-ui-2026-10-08.md) for test sequence and
+the live statistics-decoder correction. The 26-screen/15-owner inventory still applies.
+
+Screens 06/21/26 now separate native-read availability from verified measurements and
+physical connectivity. Shared searchable/grouped inspector, VI/EN aliases, optional
+technical codes, typed inventory filters, unknown connectivity, honest alarm/sync states
+and account action hierarchy: [actual verification](evidence/goodwe-live-read-ui-2026-10-08.md).
+Earlier native-inspector slice: BE 1,860 passed / UI 100 passed. Live inverter/meter readings visible; logger no-data
+explained. All 15 sidebar owners manually opened with empty and real-account state.
+All 26 screens remain in scope; **not** blanket pixel or full workflow acceptance.
+
+## Previous SEMS+ read-only connection slice — 07/10/2026
+
+The existing account screen now has a separate SEMS+ email/password/server form,
+consent, encrypted persistence and auth/check/sync workflow through the same GoodWe
+plugin. Unknown connectivity survives the shared data path. [Verification and limits](evidence/goodwe-semsplus-connector-2026-10-07.md):
+1,843 backend and 98 browser tests passed. Ready for a user-entered controlled read
+trial, not live acceptance or full mock pixel completion. All 26 screens/15 owners remain.
+
+## Previous GoodWe portal QA and connection guidance — 07/10/2026
+
+[Sanitized baseline](evidence/goodwe-portal-qa-2026-10-07.md): official portal sign-in
+was observed, not a SolarOne connector acceptance. Screen 21 now separates portal
+review from connector readiness; SEMS+ never opens the legacy credential form.
+Classic adapter no longer invents positive connectivity. All 26 screens / 15 owners
+remain unchanged; full pixel acceptance and the unfinished engineering below remain open.
+
+## Deep EMS/network/observation UI — 07/10/2026
+
+Capability-shaped draft actions, three-column rule inspection/dry-run results, detailed
+declared-network layout, four explicitly assigned specialist observation panels and offline
+map layers now extend the existing owners. [Evidence and boundaries](evidence/ui-deep-workspaces-2026-10-07.md).
+No production seed data or new physical capability. Full pixel acceptance, nested rules,
+automatic model mapping and live integration are not inferred from this UI work.
+
+## Prior observation inspector UI — 07/10/2026
+
+Device history and realtime monitoring now share a same-unit two-channel comparison,
+loaded-history time filter, primary-channel min/max/count/time summary and source/quality table.
+Device ID is part of channel identity. Unverified native observations require explicit opt-in
+and hollow markers; this is display-only, not a profile/quality upgrade. Canonical metric labels
+are translated; unknown native fields are not guessed into phase/MPPT names.
+See [verification and limits](evidence/ui-observation-inspector-2026-10-07.md).
+All 26 screens / 15 sidebar owners remain in scope; no full pixel acceptance or live-account readiness claim.
+
+## Prior vendor audit and record-based onboarding — 05/10/2026
+
+New: [vendor feature backlog](vendor-feature-backlog-2026-10-05.md),
+[actual interface audit](vendor-interface-audit-2026-10-05.md), and
+[UI evidence](evidence/ui-onboarding-audit-2026-10-05.md).
+Onboarding now includes all registered platforms and declared OEM brands, inventory search,
+actual record inspection with late-response fencing, collapsed technical bindings and responsive
+left-column steps. Empty details stay visible without fictional connection results or electrical wiring.
+Row 13 and the device-management estimate below are updated; all 26 screens / 15 sidebar owners
+remain in scope. No claim of full pixel acceptance, complete integration or production readiness.
+
+## Prior account readiness, EMS editor and TOU interactions — 04/10/2026
+
+Latest slice: shared three-column EMS draft editor with blank values and observed metric selection;
+TOU pointer/keyboard resize, cancel and touch-friendly destination selection;
+account preflight without password collection, GoodWe platform warning and explicit global-sync scope.
+[Evidence and remaining gates](evidence/ui-account-readiness-2026-10-04.md).
+[Vendor API setup guides](vendor-api-access-guide-vi.md) distinguish credentials from customer grants.
+No seed data added to production; no vendor login or hardware command. The 26-screen inventory
+remains partly implemented: this does not assert all screens match their mockups pixel-for-pixel.
+
+## Prior whole-workspace UI review — 04/10/2026
+
+Current checkpoint: shared spacing, empty tables, mobile navigation and persistent plant scope;
+geographic land map using actual GPS; three-column bulk editor; source/model field editors;
+device monitoring and empty mini-charts; all 15 protocol panels now avoid fabricated readings.
+**78 browser tests passed**, including a genuinely empty in-memory installation across 31 routes.
+The visual sweep covered 32 primary/site views and 29 deeper desktop + 5 mobile states.
+See [verification, changes and remaining gaps](evidence/ui-whole-workspace-2026-10-04.md).
+This is a whole-workspace implementation/review pass, **not pixel-perfect acceptance or a claim
+that all product workflows are implemented**. No production seed data, vendor login or hardware write.
+Rows and ownership below supersede older historical checkpoints where they differ.
+
+## Prior explicit calculation fields, multichannel history and network UI — 04/10/2026
+
+Latest slice: seven blank schema-driven calculator forms replace JSON/presets; site history offers seven channels on shared time and separate kW/% axes; network keeps collectors/profiles/observed metadata visible when empty. Shared card headings/spacing and chart-local mobile scrolling refined. See [actual checks and limitations](evidence/ui-completion-pass-2026-10-04.md). No operational seed data or new hardware capability. Rows 06/08/17/24 and the estimate table below are updated; all 26 screens remain in scope, not accepted as pixel-perfect. [Deye setup guide](deye-developer-setup-vi.md) separates verified registration steps from unconfirmed cross-customer application grants.
+
+## Managed Deye connection + UI — 04/10/2026
+
+Latest authorized slice: separate administrator application setup from end-user-facing Deye email/password entry, actual authentication before persistence, revision/session fences and safe reconnection. Account dialogs use the shared shell/styles; mobile table retains readable columns with local horizontal scroll. See [evidence and limitations](evidence/deye-managed-connection-2026-10-04.md). This is not general customer self-service: linking remains organization-admin-only, and live Deye application grants are unverified. No production seed data or hardware commands added.
+
+## Prior UI-first interactions
+
+Latest: [Visual TOU, reports and explicit market fields](evidence/ui-interactions-2026-10-04.md). Added draft calendar click/keyboard/drag/copy/undo, mixed report charts and four mini-panels, compact archive/download rows, and a non-JSON market scenario editor. Existing 15-sidebar/26-screen responsibilities remain unchanged. This updates rows 09/12 and the TOU/Reports estimates below; it does not close overall pixel or production acceptance.
+
+## UI-first reference pass — 03/10/2026
+
+Latest: [UI refinement and authorized VND rounding correction](evidence/ui-refinement-2026-10-03.md) supersedes the older failed-rounding checkpoint. Added blank weekly matrix, non-JSON hourly prices, compact controls, alert tables/charts and deeper empty-state fixes. Shared styling does not close the 26-screen feature inventory or the estimate → code → unbuilt → acceptance matrix below. The simple SolarHub collage remains excluded as a style target.
+
+Current user priority overrides the older backend-first sequence: finish UI before further core/adapter work. See [actual UI evidence and remaining gaps](evidence/ui-reference-pass-2026-10-03.md). Detailed mockups define the style and full feature scope; the simple SolarHub collage is conceptual only.
+
+Shared shell/icons, site overview, portfolio/onboarding, vendor-account guidance, grouped control capabilities and saved weekly timeline have been revised against actual data paths. Three local plant illustrations now map only to declared installation type with a visible illustration label; unknown devices/types keep SVG fallbacks. No random model pictures or mock customer data were introduced.
+
+This is **not closure of R10, all 26 screens or production readiness**. All current site tabs and capability groups remain discoverable, but basemaps, advanced chart/editor parity, long technical screens and live integrations still have unfinished work. Email/password-only Deye support is not implemented by changing form labels. UI/browser tests and visual QA are recorded separately from backend/hardware acceptance in the evidence file. Older dated conclusions below are historical and are not evidence for the current tree.
+
 # R03/R06/R08 follow-up — declared import rates
 
 Settings → Site configuration owns the append-only effective VND rate editor;
@@ -225,7 +357,7 @@ Quy ước: **BE+FE một phần** = có luồng nối API nhưng thiếu chức
 
 ## Tái sử dụng before_project — 27/09/2026
 
-[Audit 30 dự án](legacy-project-audit.md) ghi rõ inventory khác với đọc sâu toàn bộ code; [hướng dẫn](model-library-and-home-assistant.md) và [validation](legacy-validation-2026-09-27.md) mô tả luồng đã chạy.
+[Audit 30 dự án](legacy-project-audit.md) ghi rõ inventory khác với đọc sâu toàn bộ code; [hướng dẫn](model-library-and-home-assistant.md) mô tả luồng. File `legacy-validation-2026-09-27.md` từng được dẫn ở đây nhưng không có trong checkout hiện tại, nên chưa thể dùng làm bằng chứng xác minh.
 
 | Phạm vi dự toán / ảnh | Mã hiện có sau đợt này | Phần chưa xây | Điều kiện hoàn thành |
 |---|---|---|---|
@@ -267,32 +399,32 @@ Số thứ tự theo 26 ảnh gốc. Ảnh gửi sau `Screenshot 2026-09-13 1928
 
 | Ảnh | Chức năng bắt buộc từ ảnh | BE hiện có và bằng chứng mã | FE hiện có | Thiếu / điều kiện hoàn thành |
 |---|---|---|---|---|
-| 01 | Fleet, list, site, nhanh, lịch, map, alert, report | `workspaces.py`, `operational_views.py`, management/control/report APIs | Các workspace chung và link chi tiết | **BE+FE một phần**; chưa đầy đủ KPI/fleet energy, basemap, preset đa hãng, dashboard rich như ảnh |
+| 01 | Fleet, list, site, nhanh, lịch, map, alert, report | `workspaces.py`, `operational_views.py`, management/control/report APIs | Các workspace chung và link chi tiết | **BE+FE một phần**; fleet energy/preset đa hãng còn thiếu. Map nền địa lý đã có ở owner #22; không dùng collage này làm chuẩn style. |
 | 02 | Site flow PV/inverter/grid/battery/load/EPS, nhanh, status, weather, equipment, log | Overview có nguồn/scope/null; counter theo kỳ; weather Open-Meteo khi có GPS | 11 khối, flow component dùng chung site/device, bảng/toàn màn hình/motion/reduced-motion, route chi tiết | **Một phần**; đã có motion theo chiều công suất và freshness; chưa topology điện/source-to-load được nghiệm thu, dashboard đa biểu đồ chưa đủ, quick preset chưa triển khai theo model |
 | 03 | Site chart, ưu tiên local/cloud, vị trí, trạng thái, cấu hình | Telemetry quality/source, profile, inventory, command engine | Site tabs/data/nguồn/control | **Một phần**; không suy luận flow từ cloud fields chưa xác minh; chưa hợp nhất topology và tất cả KPI |
-| 04 | Site 6 KPI, flow, biểu đồ, tổng năng lượng, kết nối | Counter delta và trạng thái nguồn; EPS/lifetime chưa đủ bằng chứng | Khối KPI, thiết bị, nguồn; unknown hiển thị rõ | **Một phần**; không có mức tự dùng/savings mặc định; còn thiếu chart overlay, vị trí map, presets |
-| 05 | Portfolio/filter/customer/region/source, table/card, map/statistics | Site CRUD/profile, scoped inventory, tọa độ thật | Portfolio/table/card, tìm/lọc, khách hàng; không dựng benchmark | **Một phần**; PR/yield benchmarking cần mẫu/irradiance/công suất hợp lệ; map nền và nhóm vùng còn thiếu |
-| 06 | History ngày/tháng/năm/tổng, nhiều metric/trục, bảng, CSV/XLSX/PDF | Stored samples, time bounds, source ambiguity, export limits | Chọn metric/kỳ, chart điểm theo timestamp, bảng/export | **Một phần**; không tự nội suy; thiếu rollup dài hạn, overlay đa trục, PDF riêng, backfill hãng |
-| 07 | Device inventory/topology/link/discover/reboot/firmware | Device/binding/integration; capability/native descriptors; catalogue 41 model/913 decoder có provenance | Inventory và detail; lệnh/nâng cấp chỉ khi thực sự hỗ trợ | **Một phần**; không có universal Modbus scanner; sức khỏe 96/100 và uptime giả đã bỏ; discovery vật lý/OTA chưa xây đủ |
-| 08 | Remote control mode/export/SOC/charge/EPS/CT/BMS/generator/grid/raw, readback | Shared preview→confirm→order→readback; scope/idempotency/locks | Form intent và khả năng thực tế theo device | **Khung + engine**; chưa 12 nhóm model-specific vận hành; nút khóa không chứng minh hỗ trợ |
-| 09 | TOU tuần, tariff, reserve, backup/generator/load-priority, simulate/deploy | Schedule CRUD/revision/copy, timezone/DST, compile artifact và rollout preparation | Editor dùng chung, list/compile/rollout links | **Một phần**; không có ma trận/ROI/12 thanh ghi universal như tài liệu cũ nói; thiếu editor trực quan đầy đủ và translator hãng |
-| 10 | Alert trend/severity/category/device/filter, diagnostic/playbook | Incident correlation, dedup/order/recovery, trend API, SLA snapshot | List/detail/filter/assign/triage/note/playbook | **Một phần**; trend chart chưa đủ; decoder alarm/SOP theo model, external notifications chưa nghiệm thu |
-| 11 | Command timeline, old/new, ack/readback/verify, filter/export | Journal nối command/audit thật, VERIFIED tách ACK | Journal list/timeline và link device | **Một phần**; cần pagination/tìm kiếm toàn lịch sử, export lớn; chưa physical verification |
-| 12 | Energy reports, self-use/cost/CO₂/cycles/uptime, PDF/XLSX/email | Actual scoped counter report, immutable CSV/XLSX/HTML artifacts | Chọn kỳ, tạo/download report, danh sách artifacts | **Một phần**; PDF/email chưa có; savings/CO₂/cycles/uptime để unknown nếu thiếu mô hình/bằng chứng |
-| 13 | Link wizard brand/type/cloud/local, scan, topology, kiểm tra | Chỉ hoàn tất với binding đã quan sát; không tạo SN giả; scan thiếu transport trả lỗi rõ | Hãng/platform, thông tin thiết bị, luồng tài khoản dùng chung | **Một phần**; QR, physical discovery, topology acceptance, complete guided onboarding còn thiếu |
-| 14 | Data sources/cloud/agent/collection/mapping/diagnostic/sync | Integration state, source policy, collection revisions; scoped mapping-context, version/digest/review; recheck identity + binding/account/agent | Bảng nguồn, config model/HA cùng agent inbox; collection và mapping editor thật, mô phỏng, lịch sử, duyệt độc lập; links account/agent | **BE+FE một phần**; editor mapping đã nối, vẫn chưa có quy trình đưa profile vào production từ UI; health/freshness/failover chưa mọi đường |
-| 15 | Site general/tariff/ownership/notification/sources/automation | Merge site config, finite GPS/IANA validation, versioned local drafts | Forms/site settings và link chức năng chung | **Một phần**; lưu nháp không ghi máy; chưa email/SMS/Zalo/push, tariff billing đầy đủ, owner policy granular |
+| 04 | Site 6 KPI, flow, biểu đồ, tổng năng lượng, kết nối | Counter delta và kênh StationReport riêng từ hãng; exact scope, signed units, dated kWh buckets | 6 KPI fallback có nhãn, sơ đồ tĩnh khi chưa verified time; chart điện năng ngày theo response | **Một phần**; live GoodWe có số, nhưng source TZ, công suất theo giờ, tự dùng/savings, map và presets còn thiếu |
+| 05 | Portfolio/filter/customer/region/source, table/card, map/statistics | Site CRUD/profile, scoped inventory, tọa độ thật | Portfolio/table/card, tìm/lọc, khách hàng; không dựng benchmark | **Một phần**; map đất liền/GPS/zoom đã có ở owner #22; PR/yield benchmarking và nhóm vùng cần bằng chứng/cấu hình hợp lệ. |
+| 06 | History ngày/tháng/năm/tổng, nhiều metric/trục, bảng, CSV/XLSX/PDF | Stored samples, time bounds, source ambiguity, export limits | Bảy kênh site kW/%; device/realtime có so sánh hai kênh cùng đơn vị, lọc thời gian/chất lượng, min/max và bảng nguồn; native chưa xác minh opt-in dấu rỗng, không tự gán pha/MPPT | **Một phần**; thiếu rollup dài hạn, mapping pha/MPPT/latency, zoom/drill-down, PDF riêng, backfill hãng; chưa đủ pixel parity |
+| 07 | Device inventory/topology/link/discover/reboot/firmware | Device/binding/integration; capability/native descriptors; catalogue 41 model/913 decoder có provenance | Inventory/detail + thư viện model hai cột, nhập thanh ghi theo dòng và cấu hình collector theo field; 15 mục giao thức dẫn tới công cụ thật/thiết bị đã đồng bộ, không còn panel dựng telemetry/session mẫu | **Một phần**; không có universal Modbus scanner; sức khỏe 96/100 và uptime giả đã bỏ; discovery vật lý/OTA chưa xây đủ |
+| 08 | Remote control mode/export/SOC/charge/EPS/CT/BMS/generator/grid/raw, readback | Shared preview→confirm→order→readback; scope/idempotency/locks | Thẻ nhóm chức năng gọn, đủ 34 intent theo API, số đo bên phải và shared preview; calculator máy phát/black-start có field trống thay JSON, tách khỏi lệnh thực | **Khung + engine**; chưa nhóm model-specific vận hành đầy đủ; nút khóa hay calculator không chứng minh hỗ trợ |
+| 09 | TOU tuần, tariff, reserve, backup/generator/load-priority, simulate/deploy | Schedule CRUD/revision/copy, timezone/DST, compile artifact và rollout preparation | Ma trận trống/đã lưu; click/keyboard/desktop drag, resize bằng pointer/phím 15 phút, hủy kéo bằng Esc; chuyển bằng chọn ô đích trên mobile; copy/undo/revision conflict | **Một phần**; chưa vẽ tự do, kiểm thao tác trên điện thoại vật lý, ROI đã nghiệm thu hoặc universal register translator; không tự triển khai |
+| 10 | Alert trend/severity/category/device/filter, diagnostic/playbook | Incident correlation, dedup/order/recovery, trend API, SLA snapshot | 3 chart số đếm thật, bảng 8 cột, detail/filter/assign/triage/note/playbook | **Một phần**; chưa đủ drill-down/group chart như ảnh; decoder alarm/SOP theo model, external notifications chưa nghiệm thu |
+| 11 | Command timeline, old/new, ack/readback/verify, filter/export | Journal nối command/audit thật, VERIFIED tách ACK | Bảng 12 cột + detail kể cả trống; loại actor/vendor/source mẫu, giữ số 0 và trạng thái phân trang | **Một phần**; cần nghiệm thu pagination/tìm kiếm toàn lịch sử, export lớn; chưa physical verification |
+| 12 | Energy reports, self-use/cost/CO₂/cycles/uptime, PDF/XLSX/email | Actual scoped counter report, immutable CSV/XLSX/HTML artifacts | Mixed chart có bật/tắt kênh + bảng, 4 mini-panels kể cả trống, xuất/tải tệp ở cột phải; form kịch bản thị trường thay JSON | **Một phần**; PDF/email và các loại báo cáo bổ sung chưa có; savings/CO₂/cycles/uptime để unknown nếu thiếu mô hình/bằng chứng |
+| 13 | Link wizard brand/type/cloud/local, scan, topology, kiểm tra | Chỉ hoàn tất với binding đã quan sát; không tạo SN giả; scan thiếu transport trả lỗi rõ | Bốn bước ở cột trái; platform từ registry + OEM khai báo, tìm thiết bị, panel chi tiết hồ sơ/API thật, source bindings thu gọn, empty/error/late-response fence; không giả sơ đồ điện/online | **Một phần**; QR, physical discovery, topology acceptance, complete guided onboarding còn thiếu; UI chưa nghiệm thu pixel toàn bộ |
+| 14 | Data sources/cloud/agent/collection/mapping/diagnostic/sync | Integration state, source policy, collection revisions; scoped mapping-context, version/digest/review; recheck identity + binding/account/agent | Bảng nguồn/agent inbox; model/HA collector editor dùng field trống, register editor theo dòng; mapping author/simulate/version/review giữ owner hiện tại | **BE+FE một phần**; editor mapping đã nối, vẫn chưa có quy trình đưa profile vào production từ UI; health/freshness/failover chưa mọi đường |
+| 15 | Site general/tariff/ownership/notification/sources/automation | Merge site config, finite GPS/IANA validation, versioned local drafts; sửa bất nhất làm tròn VND optimizer | Forms chia card; bảng giá 24h thay JSON, hiệu suất %, thời gian Việt Nam → UTC; giữ revision/conflict | **Một phần**; lưu tư vấn không ghi máy; chưa email/SMS/Zalo/push, tariff billing đầy đủ, owner policy granular |
 | 16 | Advanced CT/BMS/export/grid/generator/raw/vendor-native + diff | Intent/capability/constraints, evidence and write guards | Nhóm native theo adapter + lý do khóa | **Khung**; model-specific read/edit schemas, enum/unit conversions/readback còn thiếu, không gọi register đoán |
-| 17 | Logger/agent/network, IP/RSSI/SIM, Wi-Fi/DHCP, discovery/mTLS/firmware | Enrollment, scoped ingest, sequence/replay, outbox; đọc FC03/04 TCP/V5 theo digest, HA sensor bridge; network metadata quan sát | Agent list/config/diagnostic views; unknown phân biệt offline | **Một phần**; chưa agent service đầy đủ, Wi-Fi config, RTU scan, mTLS lifecycle, OTA/update/recovery |
-| 18 | Bulk wizard, model compatibility Exact/Partial/Review, dry-run, canary/readback | Shared policy compilation, digest revalidation, rollout/canary/outcomes | Compatibility/compile/confirmation UI | **Engine + FE một phần**; kết quả phụ thuộc actual profile; chưa multi-vendor production rollout/scheduler |
-| 19 | User/role/site scope, 2FA, vendor accounts, security log | Local users/session revoke, RBAC, vault, scoped keys; five roles | User list/filter/actions, actual role matrix/account/log | **Một phần**; đã sửa role filter/Admin control claim; MFA/SSO/multitenancy chưa xây; Raw Command là permission, không thêm role thứ sáu |
-| 20 | Commissioning topology/CT/direction/BMS/control/alarm, evidence/signatures/handover | Six manual check records, handover gate; không unlock hardware | Checklist nhập bằng chứng và lịch sử chung | **Một phần**; không tự PASS điện trở/điện áp/tần số; thiếu electrical tests, signature/file storage, physical acceptance |
-| 21 | Vendor accounts + diagnostic inspector + cert/key/vault, mẫu UI bắt buộc | Actual accounts/check/sync/encryption/API keys; exact vendor credentials | Shared sidebar; table trái, inspector phải, ba thẻ dưới; Bluesun và Eybond hiện diện | **BE+FE một phần**; bố cục theo ảnh, chưa pixel/usability acceptance; cert mTLS chưa cấp; chưa mọi vendor live; không giả token expiry/HTTP200 |
-| 22 | Fleet geographic map/satellite/cluster/filter/site summary/maintenance links | Finite GPS, regional groups, haversine/clustering | Coordinate plot và list/detail/link | **Một phần**; chưa map tile/satellite/boundary/zoom chuẩn GIS; không gọi coordinate plot là basemap hoàn chỉnh |
+| 17 | Logger/agent/network, IP/RSSI/SIM, Wi-Fi/DHCP, discovery/mTLS/firmware | Enrollment, scoped ingest, sequence/replay, outbox; đọc FC03/04 TCP/V5 theo digest, HA sensor bridge; network metadata quan sát | Bố cục list/configuration/diagram/diagnostics theo ảnh 133208; chọn hồ sơ mạng, hiển thị địa chỉ/baud/parity/DHCP khai báo riêng khỏi số đo; đường nét đứt chỉ nối thiết bị–hồ sơ đã lưu; chứng chỉ/ping/RS485 thiếu dữ liệu giữ unknown | **Một phần**; chưa topology truyền thông được quan sát đầy đủ, agent service, Wi-Fi changes, RTU scan, mTLS, OTA/update/recovery. Không suy online từ enrollment. |
+| 18 | Bulk wizard, model compatibility Exact/Partial/Review, dry-run, canary/readback | Shared policy compilation, digest revalidation, rollout/canary/outcomes | Năm bước + ba cột chọn thiết bị/cấu hình/xem bản nháp, không chọn giá trị hộ người dùng; lưu/review/compile/canary theo API thật | **Engine + FE một phần**; kết quả phụ thuộc actual profile; chưa multi-vendor production rollout/scheduler |
+| 19 | User/role/site scope, 2FA, vendor accounts, security log | Local users/session revoke, RBAC, vault, scoped keys; five roles | User/filter/role matrix/account/log; shared scope giữ qua reload theo user, mobile drawer + Escape/focus; không mở thêm quyền | **Một phần**; đã sửa role filter/Admin control claim; MFA/SSO/multitenancy chưa xây; Raw Command là permission, không thêm role thứ sáu |
+| 20 | Commissioning topology/CT/direction/BMS/control/alarm, evidence/signatures/handover | Six manual check records, handover gate; không unlock hardware | Khung hai cột chọn nhà máy + sáu mục nghiệm thu kể cả chưa chọn nhà máy, nhập bằng chứng và lịch sử chung | **Một phần**; không tự PASS điện trở/điện áp/tần số; thiếu electrical tests, signature/file storage, physical acceptance |
+| 21 | Vendor accounts + diagnostic inspector + cert/key/vault, mẫu UI bắt buộc | Accounts/check/sync/vault/keys; Deye managed app; SEMS+ auth/typed discovery/native read cùng GoodWe plugin, unknown connectivity, revision/session/CSRF guards | Table/inspector; separate Deye/SEMS+ dialogs, consent/server selection/password clearing/autofill separation; preflight, check and global-sync scope confirmation | **BE+FE một phần**; Q1 read-only connector trial ready, live acceptance pending; org-admin-only; Deye customer grants, SEMS+ source timestamps/unit/sign/history/alarms, pixel/usability, cert mTLS still open |
+| 22 | Fleet geographic map/satellite/cluster/filter/site summary/maintenance links | Finite GPS, regional groups, haversine/clustering | Natural Earth offline/GPS thật; pan/zoom/fit, list/detail/filter/keyboard; lớp coastline/tên/trạng thái giữ lựa chọn; NORMAL có số đo không đồng nghĩa online | **Một phần**; chưa street/satellite, province boundaries, clustering UX, khảo sát tọa độ cực/kinh tuyến 180°. |
 | 23 | Health/work orders/firmware/calendar | Observation health, work plan versions, execution/evidence/time, independent review | Work orders/plans/service calendar/health; linked incident | **Luồng nội bộ đã kiểm tra, vẫn thiếu sản phẩm**; vật tư/SLA dịch vụ/file attachments/real OTA/compatibility/rollback chưa đủ |
-| 24 | EMS trigger/condition/action, bounds, simulate/activate/log | Deterministic evaluation, quality/unit/freshness, monitor hold/notify, saved drafts; hourly baseline từ lịch sử đủ điều kiện | Rule builder/dry-run/result/log links và baseline 24h/cold-start | **Một phần**; physical dispatch disabled; chưa optimizer, forecast dispatch, full conflict/hysteresis/offline strategy |
-| 25 | Incident detail/assignment/ack/workorder/note/timeline/SLA/escalation | Persisted correlation/revision/history, SLA snapshot, playbook versions, jobs | End-to-end create→respond→note→timeline→workorder; mobile stacking | **Luồng nội bộ đã kiểm tra**; thiếu channels escalation thật, vendor-specific causes, evidence attachments and service SLA |
-| 26 | Device realtime energy/phase/string/battery/latency charts, status/native params | Latest source-aware metrics, stored points, device journal | Actual parameters/measurement charts/control links | **Một phần**; phase/MPPT chart sets, exact sample units/model maps and latency sampling chưa đủ; không dựng sóng giả |
+| 24 | EMS trigger/condition/action, bounds, simulate/activate/log | Deterministic evaluation, quality/unit/freshness, monitor hold/notify, saved drafts; hourly baseline từ lịch sử đủ điều kiện | Danh sách–chi tiết–chạy thử ba cột; editor chọn metric thật và schema hành động từ đúng thiết bị; ngưỡng trống, enum/nested fields, fence response cũ, giữ nguyên tham số cũ không render được; giải thích dry-run thay JSON | **Một phần**; physical dispatch disabled; OR/nested conditions khác nested parameter fields và chưa triển khai; forecast dispatch, conflict/hysteresis/offline, pixel acceptance còn mở. |
+| 25 | Incident detail/assignment/ack/workorder/note/timeline/SLA/escalation | Persisted correlation/revision/history, SLA snapshot, playbook versions, jobs | Create→respond→note→timeline→workorder; filter/card spacing và SLA 2×2 desktop, xếp dọc mobile | **Luồng nội bộ đã kiểm tra**; thiếu channels escalation thật, vendor-specific causes, evidence attachments and service SLA |
+| 26 | Device realtime energy/phase/string/battery/latency charts, status/native params | Latest source-aware metrics, DeviceReport riêng inverter AC/DC/rated/temperature + 5 kỳ điện năng; native fields; shared collector manual refresh | Monitor/dialog tự tải bản nhận 15s, tuổi dữ liệu và chu kỳ hãng; giữ bộ lọc; nút đọc mới; bảng gốc, flow/chart có kiểm chất lượng | **Một phần**; SEMS+ thu thập tối thiểu 60s không phải realtime từng giây; history/MPPT/runtime/battery mapping và pixel/hardware acceptance còn mở. |
 
 Tên module là bằng chứng vị trí mã, không là bằng chứng hoàn thành. Regression tests nằm trong `tests/test_*workspace*.py`, các test adapter, `tests/test_incident_center.py`, `tests/test_maintenance_execution.py`, `tests/test_schedule_planning.py`, `ui_tests/`.
 
@@ -302,21 +434,21 @@ Hash hiện tại có dạng `#page/section/tab`. Label giao diện tách khỏi
 
 | Sidebar / route chuẩn | Phải hiển thị / subtab sở hữu | Liên kết chung và tình trạng |
 |---|---|---|
-| Tổng quan `#overview/main` | Fleet KPI, việc cần chú ý; khi chọn site: Overview, Data, Equipment, Control, Schedule/TOU, Alerts, Journal, Diagnostics, Reports, Network; thẻ Giám sát quy chuẩn lưới Grid-Code (Volt-Watt P(V), tần số, Cos phi, VUF lệch áp 3 pha) | Đã nối API thật và liên kết sâu sang bộ điều phối EMS |
-| Nhà máy `#plants/main` | Portfolio list/card, customers, regions, onboarding, benchmarking, danh mục vi lưới đa tài sản (PV, ESS, Genset, EV, Heat Pump, Smart Meters) | Đã có ma trận tài sản và trạng thái vận hành |
-| Hệ thống / SLD `#topology/main` | Quan hệ inverter–meter–battery–load–logger, ranh giới đo, sơ đồ một sợi SLD phân định 4 vùng điện (PCC lưới, Bus AC Inverter/ESS, ATS Máy phát dự phòng, Phụ tải linh hoạt EV DLM & Bơm nhiệt SG-Ready) | Graph SVG tương tác và bảng phân định ranh giới điện |
-| Bản đồ `#plants/map` | Filter vùng/hãng/state, cluster, site drawer, links overview/control/maintenance/report, trạng thái quy chuẩn lưới | Coordinate view hiện có, cluster và drawer hoạt động |
-| Thiết bị `#devices/main` | Inventory; device Detail, Realtime/Data, Control, Advanced/Native, Journal, Documents, Maintenance; bộ giải mã thanh ghi và bảng mã lỗi 30 hãng | Tra cứu 30 hãng inverter/pin và SOP xử lý |
-| Điều khiển `#operations/main/control` | Chọn site/device, giám sát, intent cơ bản, BMS/TOU/CT/export/generator/grid/native, preview/diff/confirm, command status; bộ biên dịch gói lệnh Modbus FC06/FC16 30 hãng và điều khiển máy phát Diesel / Black-Start | Trình biên dịch Modbus FC06/FC16 và điều độ máy phát hoạt động |
-| Lịch / TOU `#operations/main/schedules` | Weekly editor, templates/copy, tariff reference, reserve, compile report, rollout; quy hoạch điều độ dự báo Predbat 24h & tính rào cản khấu hao cell pin ($/kWh) | Bộ mô phỏng Predbat 24h và biên dịch lịch tự động |
-| Điều phối EMS `#operations/main/rules` | Policies/rules, triggers/conditions/actions, simulation; Bộ điều phối quy chuẩn lưới điện (Volt-Watt, Volt-Var, Freq-Watt, NA003), Cân bằng pha Fortescue IEC 61000-4-30, Quản lý phụ tải nhiệt Carnot & SG-Ready, Điều phối sạc xe điện động EV DLM & chuyển mạch 1p/3p | Toàn bộ 4 engine vật lý đã nối form và API trực tiếp |
-| Dữ liệu & kết nối `#reports/main` | Overview/quality, Sources, Cloud accounts, Local Agent, Collection, Mapping, Diagnostics, Sync log; telemetry/history; Giám sát 6 dòng công tơ 3 pha công nghiệp & mặt phẳng năng lượng 4 góc phần tư Q1-Q4 | Tab Công tơ 3 pha tích hợp bộ giải mã thanh ghi Modbus |
-| Cảnh báo `#incidents/main` | Center list/detail, assign/triage, notes/timeline, playbook, SLA/escalation, linked jobs; giải mã mã lỗi 30 hãng kèm quy trình SOP khắc phục | Danh mục mã lỗi 30 hãng và playbook xử lý |
-| Báo cáo `#reports/analytics` | Period/scope, energy/performance/incident/customer, artifacts/export/scheduled delivery; Giao dịch thị trường điện bán buôn (DAM/IDM) & Doanh thu dịch vụ điều tần sơ cấp FCR | Mô phỏng khớp lệnh đấu thầu và tính doanh thu FCR |
-| Bảo trì `#incidents/health` | Health, Work orders, Plans/calendar, Firmware; execution/checklist/time/review/history; Chẩn đoán suy giảm & sức khỏe cell pin lưu trữ BESS (Độ lệch áp ΔV, nội trở mΩ, dung lượng SOH) | Đã nối thẻ chẩn đoán BESS và nút lập phiếu kiểm tra cell |
-| Nhật ký `#operations/main/journal` | Command lifecycle, operations, sync, audit/security theo quyền; Dòng thời gian điều độ EMS bất biến và kiểm tra đọc lại Readback | Dòng thời gian lệnh, xác minh đọc lại và kiểm toán an toàn |
-| Người dùng `#settings/main/users` | Users, Roles/permissions, Site scope; links cloud accounts/security | Local RBAC năm vai trò, phân quyền theo nhà máy |
-| Cài đặt & Hãng `#settings/main/connections` | Vendor accounts, General/site, Tariff reference, Ownership, Notification policy, Source policy, Device linking, Automation links, Secret/API keys, Evidence; Ma trận chứng cứ giao thức 30 hãng | Đã có tài khoản hãng, chính sách nguồn và chứng cứ protocol |
+| Tổng quan `#overview/main` | Fleet summary; theo site: Overview, Data, Equipment, Control, Schedule/TOU, Alerts, Journal, Diagnostics, Reports, Network | API scoped/unknown; calculator grid-code là tư vấn, không là chứng nhận tuân thủ. |
+| Nhà máy `#plants/main` | Portfolio list/card, khách hàng, vùng, thêm nhà máy, benchmarking, tài sản khai báo | Danh sách/API thật; thiếu bằng chứng không dựng PR/yield hoặc nguồn điện. |
+| Hệ thống / SLD `#topology/main` | Quan hệ inverter–meter–battery–load–logger; ranh giới đo và tài sản | Graph/bảng theo record; chưa nghiệm thu electrical topology hay suy sơ đồ dây thật. |
+| Bản đồ `#plants/map` | Bộ lọc, bản đồ đất liền/GPS, pan/zoom/fit, list/detail, deep links | Natural Earth nền địa lý tổng quan; cluster/satellite UX chưa đủ. |
+| Thiết bị `#devices/main` | Inventory, detail/monitoring, model inspection, native parameters, health, firmware, protocol tools | 41 model catalogue là bằng chứng cộng đồng, không universal support; 15 protocol mục dẫn công cụ thật, không fake telemetry. |
+| Điều khiển `#operations/main/control` | Site/device, nhóm intent, BMS/TOU/CT/export/generator/grid/native, preview/confirm/readback; rollout | Shared engine và capability gates; không tuyên bố FC06/FC16 mọi hãng hoặc điều độ máy phát đã hoạt động thực. |
+| Lịch / TOU `#operations/main/schedules` | Weekly editor/resize/move/copy/undo, tariff reference, compile, prepare rollout | Lịch trống vẫn có ma trận; pointer/keyboard resize và chọn ô đích dùng chung editor; simulation/compile không tự triển khai hay chứng minh scheduler thực địa. |
+| Điều phối EMS `#operations/main/rules` | Rules/conditions/actions, simulation, monitoring; calculators grid/phase/thermal/EV/generator | Shared rule-editor.js cho các nút tạo/sửa; điều kiện AND/metric thật/ngưỡng trống; physical dispatch, nested rules và parity đầy đủ còn mở. |
+| Dữ liệu & kết nối `#reports/main` | Overview, Sources, Cloud accounts, Local Agent, Collection, Mapping, Diagnostics, Sync, Telemetry, Meters | Collection/model/HA theo field, mapping review; meter decoder không là live scan/commissioned meter. |
+| Cảnh báo `#incidents/main` | Trend/filter/list/detail, assign/triage, notes/timeline, playbook, SLA, linked jobs | Workflow nội bộ từ bản ghi; danh mục lỗi/SOP không chứng minh vendor alarms đã được ingest. |
+| Báo cáo `#reports/analytics` | Scope/period, energy/artifacts/export; market advisory | CSV/XLSX/HTML và calculations theo đầu vào; PDF/email và giao dịch DAM/FCR thực không được triển khai. |
+| Bảo trì `#incidents/health` | Health, Work orders, Plans/calendar, Firmware, execution/checklist/time/review | Phiếu và review nội bộ; BESS calculator tư vấn, không thay chẩn đoán/hardware OTA. |
+| Nhật ký `#operations/main/journal` | Commands/readback, sync, hash audit; realtime device monitoring | Nhật ký từ record; sáu KPI/flow/charts/state/bảng kể cả trống, thiếu pha/MPPT/latency mapping. |
+| Người dùng `#settings/main/users` | Users, Roles/permissions, Site scope, account/security links | Local RBAC năm vai trò; chưa MFA/SSO/customer tenancy. Giữ scope qua reload theo user. |
+| Cài đặt & Hãng `#settings/main/connections` | Vendor accounts, Site/general/tariff/ownership, notification/source policy, linking, API keys/evidence | Bố cục ảnh 21; Deye managed app/user dialogs; preflight, platform guide, diagnostics và global-sync confirmation cùng owner; live/customer grants và GoodWe SEMS+ chưa nghiệm thu. |
 
 Các routes tắt trong card phải giữ site scope và dẫn đến cùng chức năng sở hữu. Không thêm CSS riêng theo route; shared primitives và `static/app.css` sở hữu mọi layout/typography/semantic state. Account route tuân bố cục ảnh 21. VI/EN đã có cơ chế chung nhưng còn nhãn kỹ thuật/translation cần trau chuốt.
 
@@ -346,22 +478,22 @@ Các khoảng kLOC dưới đây là **dự toán tham khảo do chủ dự án 
 | Auth/RBAC/secrets 7–12 / 5–8 | Local password/session/CSRF, 5 roles, vault, scoped API keys, revoke | MFA/SSO/tenant boundary, key rotation/backup UI, trusted external audit | Auth failure/revoke/concurrent reads passed; tenant/adversarial tests; restore/rotation diễn tập |
 | Dashboard/site 4–7 / 8–14 | Operational read model, 11 site blocks, period counter, weather service, shared flow có motion/freshness | Full energy accounting, verified topology/source-to-load attribution, multi-axis charts, preset acceptance | Reconcile with site meter/counter and all missing states; 26 reference visual/usability acceptance |
 | Telemetry/WS 8–14 / 5–9 | Poll clients, normalized samples/provenance, quality/source policy, scoped WS/invalidation | Production fanout/storage/backfill, broad exact profiles, clock/failover acceptance | Long-running ingest/reconnect/load tests and live profile comparison with vendor UI |
-| History/analytics 6–10 / 7–12 | Bounded stored points, chart, counter/reset/coverage analysis, export | Durable years of rollup, query/downsample, multi-axis chart, cloud backfill | Known energy baselines, gaps/reset/rollover, timezone periods and scalable export |
-| Device management 5–9 / 6–11 | Discovered IDs/bindings/inventory, manual assets | QR/scan, identity reconciliation across transports, peripheral topology | Same physical device deduped; onboarding and revoke tested across cloud/local |
+| History/analytics 6–10 / 7–12 | Bounded stored points, seven-channel power/SOC chart, device-aware same-unit comparison, time/quality filters, native opt-in, source table, four empty/observed mini-charts, counter/reset/coverage analysis, export | Durable years of rollup, query/downsample, exact phase/MPPT/latency mapping, zoom/drill-down, cloud backfill | No mixed unit/source/device series; unknown/native labels remain honest; known energy baselines, gaps/reset/rollover, timezone periods and scalable export; visual and accessibility acceptance |
+| Device management 5–9 / 6–11 | Discovered IDs/bindings/inventory; shared DeviceReport with per-inverter AC/DC/rated/temperature and period energy panel; scoped unit/identity checks | QR/scan, identity reconciliation, battery topology, MPPT/runtime history, guided connection and pixel acceptance | Each report matches its own serial, no station/device mixing; scoped read/revoke, unit/null/zero and responsive checks plus live observation |
 | Remote engine 10–18 / 8–14 | Intent/capability/preview/confirm/locks/idempotency/readback/quarantine | Most model write mappings/translators, hardware commissioning | Exact account/model/logger/FW identity + accepted range/unit + physical readback + failure recovery |
-| Advanced/native 5–10 / 8–15 | Native groups/evidence/catalog, unknown reasons | Real field read/write schemas for CT/BMS/grid/ATS/generator, per-model screens | Compare each field/enum/scale with native API and device; reviewed independent sensitive gates |
-| TOU 5–9 / 5–9 | Versioned weekly schedules, validation, compile artifacts, source digest, prepare rollout | Visual matrix, per-vendor semantics/slot limits, unattended job execution | Full week/DST/concurrent revisions pass; hardware schedule readback matches intent |
-| EMS 8–16 / 7–12 | Conditions/actions evaluator, fresh units, monitor hold/notify, simulation | Optimizer, hysteresis/conflict arbitration, weather/tariff dispatch, offline policy | Scenario simulator with constraints, blackouts/failovers and field trial accepted |
-| Bulk 6–12 / 4–8 | Canary, compatibility rows, persisted rollout/cancel/outcomes | Complete multi-vendor profiles, distributed rollout worker/rate budget | Partial/unknown outcomes isolated; per-device authority; recover interrupted rollout |
-| Sources/integrations 6–10 / 7–12 | Account/grants/check/sync, collection revisions/source policies; mapping BE+FE author/simulate/version/review | Shipping canonical profiles/activation acceptance, vendor history/alarm pipelines and all failover views | Credential→discovery→binding→telemetry→incident/report flow verified per ecosystem |
-| Commissioning 5–9 / 6–10 | Manual check/evidence text, six-check handover gate | Electrical procedures, measurements integration, uploads/signatures | Recorded real test procedure/outcome reviewed; never auto-unlock from self-attested PASS |
-| Incidents 6–11 / 7–12 | Dedup/out-of-order/recovery, triage/assign/notes/history, SLA, versioned playbook/jobs | Actual vendor alarm decoders/playbooks, external escalation channels/files | Alarm fixture→incident→assignment→job→recovery→close; channels independently observed |
+| Advanced/native 5–10 / 8–15 | Native groups/evidence/catalog, unknown reasons; blank typed generator/black-start advisory forms | Real field read/write schemas for CT/BMS/grid/ATS/generator, per-model screens; advisory forms are not device read/write editors | Compare each field/enum/scale with native API and device; reviewed independent sensitive gates |
+| TOU 5–9 / 5–9 | Versioned schedules, empty/saved matrix, click/keyboard/desktop drag/copy/undo; pointer/keyboard resize and mobile-friendly choose-destination move; validation/compile/source digest/prepare rollout | Freehand painting, physical touch-device acceptance, per-vendor semantics/slot limits, unattended job execution | Resize/cancel/overlap/undo roundtrip; full week/DST/concurrent revisions pass; hardware schedule readback matches intent |
+| EMS 8–16 / 7–12 | Conditions/actions evaluator, monitor hold/notify; three-column directory/inspector/dry-run; observed conditions, device capability schemas, blank targets, stale-response fences and lossless unchanged legacy parameters | Nested/OR conditions and full mock parity, production optimizer, hysteresis/conflict arbitration, weather/tariff dispatch, offline policy | Real draft create/edit, exact field schema and unchanged legacy preservation; explicit zero/boolean; scenario failovers and field acceptance; no preset/JSON-input dependency |
+| Bulk 6–12 / 4–8 | Five-stage guide, blank three-column equipment/settings/review editor, actual draft persistence, canary/compatibility/cancel/outcomes | Complete multi-vendor profiles, distributed rollout worker/rate budget; complex action bundles in one editor | Blank/invalid/zero-value draft tested without commands; partial/unknown outcomes isolated; per-device authority; recover interrupted rollout |
+| Sources/integrations 6–10 / 7–12 | Account/grants/check/sync; Deye managed app; experimental SEMS+ auth/typed discovery/native read and tri-state connectivity; separate credential form with consent; collection/source/mapping policies | SEMS+ live regional/time/unit/sign contract and partial-read recovery; Solis OAuth reconciliation, customer self-service/tenancy, Deye cross-customer grants; canonical profiles/history/alarm/failover; visual density | Credential→discovery→binding→telemetry→incident/report verified per ecosystem; synthetic checks do not prove live acceptance; UI error/reconnect/mobile, pixel and actual grants separately recorded |
+| Commissioning 5–9 / 6–10 | Manual check/evidence text, six-check handover gate; two-column chooser/checklist visible before selecting a site | Electrical procedures, measurements integration, uploads/signatures | Recorded real test procedure/outcome reviewed; never auto-unlock from self-attested PASS |
+| Incidents 6–11 / 7–12 | Dedup/out-of-order/recovery, 3 actual-count charts, full-width list, triage/assign/notes/history, SLA, versioned playbook/jobs | Remaining chart/drill-down parity, actual vendor alarm decoders/playbooks, external escalation channels/files | Alarm fixture→incident→assignment→job→recovery→close; channels independently observed |
 | Maintenance/OTA 5–10 / 6–10 | Work plans, execution/results/time/void/review, health from observations | Parts/service contracts/uploads; firmware package verification/compatibility/transfer/rollback | Independent review plus actual OTA lab fail/recovery trials on exact hardware |
-| Reports 5–9 / 5–9 | CSV/XLSX/HTML stored artifacts tied to scope/date; no fabricated financial metrics | PDF/email, tariffs/CO₂ assumptions, signed customer reports | Reproduce report from source set; correct scope and saved bytes; actual delivery receipt |
+| Reports 5–9 / 5–9 | Scoped CSV/XLSX/HTML artifacts, main/mini charts from API, legend/table interactions, archive downloads, explicit non-JSON advisory market inputs | PDF/email, additional report workflows, tariffs/CO₂ assumptions, signed customer reports | Reproduce report from source set; correct scope and saved bytes; actual delivery receipt |
 | Audit/journal 5–8 / 4–7 | Hash-linked append-only local DB audit, command state history | External anchoring, retention/search/export at scale | Tamper/recovery check and immutable external checkpoint; all commands traced to authorization |
-| Map/fleet 3–6 / 5–9 | Coordinate plot, GPS validation, distance/clusters/regions | Basemap/satellite/geometry/zoom, fleet geographic interaction polish | Geospatial accuracy and map/data attribution plus device/site deep-link QA |
+| Map/fleet 3–6 / 5–9 | Public-domain Natural Earth land geometry, Mercator projection, actual finite GPS, pan/zoom/fit, keyboard markers, filters/list/detail; provenance recorded | Detailed street/satellite maps, boundary data, marker-cluster interaction; antimeridian/polar UX | No invented pins; invalid GPS, zoom persistence, filter and retry browser checks; geography/attribution review at supported zoom levels |
 | Settings 5–8 / 7–11 | Local settings/ownership/source/notification drafts and adapters forms | Granular ownership, delivery integrations, versioned tariff rules | Configuration produces real downstream effect or explicitly remains draft, with audit/revert |
-| Shared UI 1–3 / 10–18 | Single shell/sidebar/app.css, reusable forms/tables/dialogs, VI/EN | Component library cleanup, accessibility/full mobile/translation/visual polish | Routes share styles and semantics; tested keyboard/errors/loading and representative device sizes |
+| Shared UI 1–3 / 10–18 | Single shell/sidebar/app.css, reusable forms/tables/dialogs, VI/EN; scope persistence, mobile drawer/Escape/focus, empty tables, preserve drafts against live refresh, retry; shared rule/platform guides | Component cleanup, comprehensive assistive-technology/contrast/translation review and pixel/usability acceptance | 84 isolated browser contracts; 31 empty-installation routes; previous wide sweep plus 12 new VI/EN states and 430px checks; not exhaustive action or pixel acceptance |
 | 8 vendor platforms 65–115 / 35–68; Bluesun profile extra | Eight cloud read paths of different depth, including Eybond platform/session/collector/native read; profile/registry; Deye-only guarded compiler | Eybond source time/canonical mapping/history/alarm/control, incremental inventory; complete vendor-native maps and OEM acceptance | Contract + field evidence + live account/device acceptance per variant; cannot certify by logo |
 | Site Agent 20–35 BE | Token enrollment/ingest, sequence/replay, SQLite outbox, model FC03/04 TCP/V5 và HA bridge; 41 community profile | Service install/discovery, RTU và full model TCP suite, mTLS/rotations, reconnect/backfill/update/diagnostics | Prolonged offline→reconnect/replay/load test, cert/revoke/update drills and site hardware trial |
 | Tests/simulator/E2E 175–315 combined | BE contracts/workflows and isolated browser simulator; inventory below | Large model/error fixture corpus, HIL, soak/load/security/accessibility/visual acceptance | Trace each acceptance criterion to executable check and actual observed evidence |
@@ -385,7 +517,7 @@ Không thể dùng `LOC hiện có / LOC dự toán` làm % hoàn thành; cũng 
 
 ## Kiểm thử và QA
 
-Đợt mới nhất 27/09: [legacy validation](legacy-validation-2026-09-27.md), gồm full browser sau sửa global CSS và QA flow desktop/mobile. Các bản dưới đây giữ số liệu snapshot cũ.
+Baseline 27/09 từng tham chiếu `legacy-validation-2026-09-27.md` cho browser/CSS/flow desktop/mobile; file hiện không có trong checkout nên cần đối chiếu lại bằng chứng. Các bản dưới đây giữ số liệu snapshot cũ; checkpoint hiện tại ở đầu tài liệu.
 
 Kết quả tổng hợp cuối được ghi trong [audit-validation-2026-09-23.md](audit-validation-2026-09-23.md). Các lỗi phát hiện được sửa rồi chỉ chạy lại kiểm tra bị ảnh hưởng; không coi lần chạy trước sửa là kiểm thử bản cuối. Không dùng tài khoản/thiết bị thật trong suite này.
 
@@ -399,20 +531,20 @@ Screenshots local QA: `work/qa-audit/accounts-vi.png`, `site-overview.png`, ản
 <!-- actual-code-inventory:start -->
 ## Số dòng thực tế có thể đo lại
 
-Đo lúc **2026-10-01T09:49:25.646872+00:00** trên working tree, gồm code chưa commit.
+Đo lúc **2026-10-09T03:10:57.106004+00:00** trên working tree, gồm code chưa commit.
 
 | Nhóm | Số file | Dòng vật lý | Dòng không trống |
 |---|---:|---:|---:|
-| Backend Python | 138 | 49,018 | 42,861 |
-| Frontend JavaScript | 35 | 18,121 | 17,075 |
-| Frontend CSS / HTML | 2 | 6,236 | 5,715 |
-| Test BE / simulator / fixture | 115 | 22,537 | 19,176 |
-| Test UI / browser fixture | 14 | 1,090 | 982 |
-| Scripts tự viết | 4 | 621 | 567 |
-| **Tổng FE (JS + CSS/HTML)** | **37** | **24,357** | **22,790** |
-| **Tổng code ứng dụng BE + FE** | **175** | **73,375** | **65,651** |
-| **Tổng test / simulator / fixture** | **129** | **23,627** | **20,158** |
-| **Tổng code ứng dụng + test + scripts** | **308** | **97,623** | **86,376** |
+| Backend Python | 141 | 50,202 | 43,944 |
+| Frontend JavaScript | 62 | 15,684 | 15,099 |
+| Frontend CSS / HTML | 2 | 9,120 | 8,373 |
+| Test BE / simulator / fixture | 121 | 23,712 | 20,169 |
+| Test UI / browser fixture | 32 | 3,217 | 2,914 |
+| Scripts tự viết | 4 | 624 | 570 |
+| **Tổng FE (JS + CSS/HTML)** | **64** | **24,804** | **23,472** |
+| **Tổng code ứng dụng BE + FE** | **205** | **75,006** | **67,416** |
+| **Tổng test / simulator / fixture** | **153** | **26,929** | **23,083** |
+| **Tổng code ứng dụng + test + scripts** | **362** | **102,559** | **91,069** |
 
 Phương pháp: đếm dòng vật lý (gồm comment và dòng trống), đồng thời công bố số dòng không trống. Không phải semantic SLOC. Không tính dependency, môi trường ảo, lock, generated, assets/ảnh, JSON hợp đồng, tài liệu, build output hoặc cache. Nhóm simulator/fixture không được tính vào production. Không cộng các dòng tổng lần nữa.
 

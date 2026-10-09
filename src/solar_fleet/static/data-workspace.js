@@ -1,5 +1,6 @@
 import { l, t, date } from "./i18n.js";
 import { renderMappingWorkspace } from "./mapping-workspace.js";
+import { metricTiles } from './ui-visuals.js';
 
 const aliases = {quality: "overview", sync: "sync_logs", agents: "agent"};
 const sections = new Set(["overview", "sources", "meters", "cloud", "agent", "collection", "mapping", "diagnostics", "sync_logs"]);
@@ -14,7 +15,7 @@ export function ownsDataWorkspaceRoute(state) {
 }
 
 export async function renderDataConnectionsWorkspace(ui, forcedSection) {
-  const {state, div, e, p, btn, badge, number, card, table, tabs, select, field, notice, api, go, form, input, showDialog, closeDialog, refresh, admin} = ui;
+  const {state, div, e, p, btn, badge, number, card, table, tabs, select, field, fact, notice, api, go, form, input, showDialog, closeDialog, refresh, admin} = ui;
   const root=div("stack data-connections-root");
   const selected=forcedSection||dataWorkspaceSection(state);
   const key=aliases[selected]||selected||'overview';
@@ -135,7 +136,7 @@ export async function renderDataConnectionsWorkspace(ui, forcedSection) {
         ? badge(l('Cách ly (Lỗi liên tiếp)', 'Quarantined'), 'red')
         : st.consecutive_failures > 0
           ? badge(`${st.consecutive_failures} ${l('lỗi', 'errors')}`, 'orange')
-          : badge(l('Bình thường', 'Active'), 'green');
+          : st.last_poll ? badge(l('Đã có lần đọc', 'Poll recorded')) : badge(l('Chưa có lần đọc', 'Not yet polled'));
 
       return [
         d.device_id,
@@ -153,7 +154,7 @@ export async function renderDataConnectionsWorkspace(ui, forcedSection) {
 
     root.append(
       card(
-        l('Field Gateway / Local Agent Daemon', 'Field Gateway / Local Agent Daemon'),
+        l('Bộ thu thập tại công trình', 'On-site data collector'),
         p(l(
           'Dịch vụ nền tự động thu thập dữ liệu biến tần qua Modbus TCP, GoodWe UDP, Eybond LAN và SOLARMAN V5. Hỗ trợ cách ly sự cố (Quarantine Circuit-Breaker sau 5 lần lỗi) và đồng bộ trực tiếp vào cơ sở dữ liệu telemetry của trạm.',
           'Background daemon automatically polling inverters via Modbus TCP, GoodWe UDP, Eybond LAN and SOLARMAN V5. Includes quarantine circuit-breaker after 5 failures and feeds telemetry directly into plant metrics.'
@@ -162,9 +163,7 @@ export async function renderDataConnectionsWorkspace(ui, forcedSection) {
       ),
       card(
         l('Danh sách thiết bị kết nối nội bộ', 'Local Connected Inverters'),
-        devices.length === 0
-          ? p(l('Chưa có thiết bị cục bộ nào được đăng ký.', 'No local devices enrolled yet.'))
-          : table(
+        table(
               [
                 l('Mã thiết bị', 'Device ID'),
                 l('Nhà máy', 'Site'),
@@ -194,7 +193,7 @@ export async function renderDataConnectionsWorkspace(ui, forcedSection) {
       f.finish(field(l('Chu kỳ (giây)','Interval (seconds)'),interval),field(l('Thiết bị mỗi lượt','Devices per poll'),limit));showDialog(c.name,f);
     };
     root.append(card(l('Chính sách thu thập','Collection policies'),table([t('name'),l('Chu kỳ (giây)','Interval (seconds)'),l('Thiết bị mỗi lượt','Devices per poll'),t('status'),l('Lần thử gần nhất','Last attempt'),l('Thao tác','Action')],data.connections.map(c=>[
-      c.name,c.policy.interval_seconds,c.policy.max_devices_per_poll,c.state?.state||'UNKNOWN',date(c.state?.last_attempt),admin()?btn(l('Chỉnh sửa','Edit'),()=>editPolicy(c)):'—']))));
+      c.name,c.policy.interval_seconds,c.policy.max_devices_per_poll,badge(c.state?.state||'UNKNOWN'),date(c.state?.last_attempt),admin()?btn(l('Chỉnh sửa','Edit'),()=>editPolicy(c)):'—']))));
     return root;
   }
   const plantId=state.site||(state.fleet.sites||[])[0]?.id;
@@ -210,13 +209,34 @@ export async function renderDataConnectionsWorkspace(ui, forcedSection) {
     root.append(card(l('Sự kiện đồng bộ','Synchronization events'),table([l('Thời điểm','Time'),l('Sự kiện','Event'),l('Chi tiết','Details')],
       data.recent_sync_errors.map(r=>[date(r.time),r.title,r.desc||'—']))));
   } else if(key==='diagnostics') {
-    root.append(card(l('Chất lượng dữ liệu','Data quality'),p(data.diagnostics.status),p(data.diagnostics.data_freshness)),
+    root.append(card(l('Chất lượng dữ liệu','Data quality'),badge(data.diagnostics.status),
+      fact(l('Số đo hợp lệ / đã nhận','Accepted / received observations'),data.diagnostics.data_freshness),
+      p(l('Chỉ số này là số mẫu hợp lệ, không phải độ trễ tính bằng giây.','This counts accepted samples; it is not latency in seconds.'))),
       btn(l('Nghiệm thu / bàn giao','Commissioning / handover'),()=>{state.site=plantId;return go('operations','','handover');}));
   } else {
-    root.append(card(l('Nguồn dữ liệu đã kết nối','Configured data sources'),table([t('name'),l('Loại','Type'),t('status'),l('Quyền','Access'),l('Đồng bộ cuối','Last sync')],
-      data.sources.map(s=>[s.name,s.type,s.status,s.permissions,date(s.last_sync)]))),
-      card(l('Ưu tiên nguồn','Source priority'),p(data.priority.map(s=>s.title).join(' → ')),
+    root.append(metricTiles(ui,[['database',l('Nguồn đã cấu hình','Configured sources'),data.sources.length],
+      ['cloud',l('Tài khoản hãng','Vendor accounts'),data.sources.filter(s=>s.type==='Cloud').length,'','purple'],
+      ['clock',l('Nguồn có mốc đồng bộ','Sources with sync timestamps'),data.sources.filter(s=>s.last_sync).length,'','green']]),
+      div('source-reference-layout',div('stack',card(l('Nguồn dữ liệu đã kết nối','Configured data sources'),table([t('name'),l('Loại','Type'),t('status'),l('Quyền','Access'),l('Đồng bộ cuối','Last sync')],
+      data.sources.map(s=>[s.name,t(s.type),badge(t(s.status)),t(s.permissions),date(s.last_sync)]))),
+      div('source-settings-row',
+      card(l('Ưu tiên nguồn','Source priority'),div('source-priority-list',...data.priority.map((s,index)=>div('row',badge(String(index+1)),e('b',t(s.title))))),
         btn(l('Sửa chính sách nguồn','Edit source policy'),()=>go('settings','','source_policy'))),
+      card(l('Đường đi dữ liệu','Data path'),div('source-path',
+        e('span',l('Thiết bị / tài khoản hãng','Equipment / vendor account')),e('span','↓'),
+        e('span',l('Kiểm tra nguồn và thời gian','Source and timestamp checks')),e('span','↓'),
+        e('span',l('Lưu số đo → hiển thị','Stored observations → display'))),p(l('Sơ đồ nguyên tắc, không xác nhận kết nối đang hoạt động.','Conceptual path, not proof of an active connection.'),'field-help')),
+      card(l('Thu thập dữ liệu','Data collection'),p(l('Xem chu kỳ đọc và giới hạn lưu trữ trong cấu hình. Không tự gán chu kỳ mặc định vào dữ liệu nhà máy.','Review polling and retention in configuration; no assumed intervals are presented as plant settings.'),'field-help'),
+        btn(l('Mở cấu hình thu thập','Open collection settings'),()=>go('reports','collection','main'))))),
+      div('stack',card(l('Chất lượng dữ liệu','Data quality'),
+        ui.fact(l('Mẫu được chấp nhận / đã nhận','Accepted / received samples'),data.diagnostics.data_freshness),
+        ui.fact(l('Chất lượng số đo','Measurement quality'),t(data.diagnostics.data_quality)),
+        ui.fact(l('Chênh lệch cloud và tại trạm','Cloud / local difference'),data.diagnostics.cloud_vs_local_diff==null?'—':number(data.diagnostics.cloud_vs_local_diff)),
+        p(l('Dấu — là chưa đánh giá; không phải sai lệch bằng 0.','A dash means not evaluated, not zero deviation.'),'field-help')),
+      card(l('Sự kiện đồng bộ gần đây','Recent synchronization events'),
+        data.recent_sync_errors.length?table([l('Thời điểm','Time'),l('Sự kiện','Event')],data.recent_sync_errors.slice(0,5).map(r=>[date(r.time),t(r.title)])):
+          p(l('Chưa có sự kiện được ghi nhận.','No events recorded.')),
+        btn(l('Xem nhật ký đồng bộ','View synchronization log'),()=>go('reports','sync_logs','main'))))),
       notice('Trạng thái đã đăng ký agent không đồng nghĩa thiết bị đang trực tuyến. Dữ liệu thiếu nguồn xác minh chưa được dùng làm chỉ số vận hành.',
         'Agent enrollment does not establish online status. Unverified measurements are not used as operational KPIs.'));
   }

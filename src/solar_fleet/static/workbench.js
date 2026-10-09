@@ -3,6 +3,9 @@ import { createIncidentCenter } from "./incident-center.js";
 import { createSchedulePlanner } from "./schedule-planner.js";
 import { createMaintenanceWorkspace } from "./maintenance-workspace.js";
 import { l, t, date, number } from "./i18n.js";
+import { icon } from "./icons.js";
+import { renderGisMapWorkspace } from './gis-map.js';
+import { openRuleEditor } from './rule-editor.js';
 
 export const maintenanceSections = new Set(["health", "jobs", "work_orders", "plans", "service-calendar", "maintenance_plan", "firmware", "firmware_request"]);
 
@@ -143,7 +146,8 @@ export function createWorkbench(ui) {
       ["", "connections", "vendors", "users", "site_config", "device_onboarding", "security", "evidence"].includes(state.tab);
     const root = div(
       "stack",
-      accountPage ? null : tabs(options, key, setSection),
+      accountPage || (key === "main" && (["plants", "devices"].includes(page) || (page === "overview" && state.site) || (page === 'operations' && state.tab === 'journal')))
+        ? null : tabs(options, key, setSection),
     );
     if (key === "main") {
       if (page === "devices" && technical())
@@ -154,8 +158,12 @@ export function createWorkbench(ui) {
             "primary",
           ),
         );
-      if (page === "operations") root.append(await operationsTools());
-      root.append(page === "incidents" ? await incidentCenter.center() : await base());
+      const tools = page === "operations" ? await operationsTools() : null;
+      const content = page === "incidents" ? await incidentCenter.center() : await base();
+      if (page === 'operations' && state.tab === 'rules' && content.querySelector('.rule-reference-layout')) {
+        content.querySelector('.rule-reference-layout').after(tools);
+      } else if (tools) root.append(tools);
+      root.append(content);
     } else if (page === "incidents" && key === "records") {
       root.append(await base());
     } else if (page === "incidents" && key === "playbooks") {
@@ -173,7 +181,7 @@ export function createWorkbench(ui) {
     } else if (["quality", "mapping", "collection", "sync"].includes(key))
       root.append(await dataWorkspace.view(key));
     else if (labels()[key]) root.append(entityView(key));
-    else if (key === "map") root.append(mapView());
+    else if (key === "map") root.append(await renderGisMapWorkspace(ui));
     else if (key === "plant") root.append(await plantView());
     else if (key === "agents") root.append(agentsView());
     else if (key === "cloud")
@@ -554,8 +562,7 @@ export function createWorkbench(ui) {
         JSON.stringify(r).toLowerCase().includes(search.value.toLowerCase()),
       );
       list.replaceChildren(
-        filtered.length
-          ? table(
+        table(
               [
                 t("name"),
                 t("plants"),
@@ -584,8 +591,7 @@ export function createWorkbench(ui) {
                     : null,
                 ),
               ]),
-            )
-          : p(t("noData")),
+            ),
       );
     };
     search.oninput = draw;
@@ -665,11 +671,15 @@ export function createWorkbench(ui) {
       );
     if (row.state) root.append(badge(row.state));
     root.append(
-      raw(l("Lịch sử phiên bản hiện tại", "Current record metadata"), {
-        revision: row.revision,
-        updated_by: row.updated_by,
-        updated_at: row.updated_at,
-      }),
+      card(
+        l("Lịch sử phiên bản hồ sơ", "Current record metadata"),
+        div(
+          "overview-kpis",
+          div("fact", e("span", l("Phiên bản:", "Revision:")), badge(`rev ${row.revision ?? 1}`, "blue")),
+          div("fact", e("span", l("Người cập nhật:", "Updated by:")), e("b", row.updated_by || l("Hệ thống", "System"))),
+          div("fact", e("span", l("Thời gian cập nhật:", "Updated at:")), e("span", date(row.updated_at)))
+        )
+      )
     );
     if (
       operator() &&
@@ -1293,19 +1303,19 @@ export function createWorkbench(ui) {
     );
     const layout = div("plant-grid"),
       flow = div("energy-flow");
-    for (const [metric, vi, en, icon] of [
-      ["pv_w", "Điện mặt trời", "Solar PV", "☀"],
-      ["load_w", "Tải tiêu thụ", "Consumption", "⌂"],
-      ["grid_import_w", "Nhập từ lưới", "Grid import", "↓"],
-      ["grid_export_w", "Xuất lên lưới", "Grid export", "↑"],
-      ["battery_charge_w", "Sạc pin", "Battery charge", "+"],
-      ["battery_discharge_w", "Xả pin", "Battery discharge", "−"],
+    for (const [metric, vi, en, glyph] of [
+      ["pv_w", "Điện mặt trời", "Solar PV", "sun"],
+      ["load_w", "Tải tiêu thụ", "Consumption", "home"],
+      ["grid_import_w", "Nhập từ lưới", "Grid import", "arrowDown"],
+      ["grid_export_w", "Xuất lên lưới", "Grid export", "arrowUp"],
+      ["battery_charge_w", "Sạc pin", "Battery charge", "plus"],
+      ["battery_discharge_w", "Xả pin", "Battery discharge", "minus"],
     ]) {
       const m = energy.metrics[metric];
       flow.append(
         div(
           "energy-node",
-          e("span", icon, "energy-symbol"),
+          div("energy-symbol", icon(glyph)),
           e("span", l(vi, en)),
           e("strong", m.value == null ? "—" : number(m.value / 1000) + " kW"),
           e(
@@ -1551,7 +1561,7 @@ export function createWorkbench(ui) {
     );
   }
   async function operationsTools() {
-    if (state.tab === "schedules")
+    if (state.tab === "schedules" && (state.ops.schedule || []).some(s=>!state.site||s.site_id===state.site))
       return card(
         l("Chỉnh sửa lịch đã lưu", "Edit a saved schedule"),
         ...(state.ops.schedule || [])
@@ -1700,254 +1710,78 @@ export function createWorkbench(ui) {
     showDialog(rule.name, f);
   }
   function ruleEditor(existing = null) {
-    const name = input("text", existing?.name || ""),
-      description = e("textarea"),
-      site = siteSelect(existing?.site_id);
-    description.value = existing?.description || "";
-    name.required = true;
-    site.disabled = !!existing;
-    name.maxLength = 120;
-    description.maxLength = 2000;
-    const conditions = [],
-      actions = [],
-      conditionList = div("stack"),
-      actionList = div("stack");
-    const opts = () =>
-      state.fleet.devices
-        .filter((d) => d.site_id === site.value)
-        .map((d) => [d.id, deviceName(d.id)]);
-    const addCondition = (values = {}) => {
-      const entry = {
-        device_id: select(opts(), values.device_id),
-        metric: input("text", values.metric || ""),
-        unit: input("text", values.unit || ""),
-        comparison: select(
-          ["lt", "lte", "gt", "gte", "eq"].map((v, i) => [
-            v,
-            ["<", "≤", ">", "≥", "="][i],
-          ]),
-          values.comparison || "lt",
-        ),
-        threshold: input("number", values.threshold ?? 0),
-        max_age_seconds: input("number", values.max_age_seconds ?? 300),
-      };
-      entry.threshold.step = "any";
-      entry.max_age_seconds.min = 1;
-      entry.max_age_seconds.max = 300;
-      const row = div("array-row");
-      for (const [k, label] of [
-        ["device_id", l("Thiết bị", "Device")],
-        ["metric", l("Thông số", "Metric")],
-        ["unit", l("Đơn vị", "Unit")],
-        ["comparison", l("So sánh", "Compare")],
-        ["threshold", l("Ngưỡng", "Threshold")],
-        ["max_age_seconds", l("Tuổi mẫu (s)", "Sample age (s)")],
-      ]) {
-        entry[k].required = true;
-        row.append(field(label, entry[k]));
-      }
-      conditions.push(entry);
-      row.append(
-        btn("×", () => {
-          conditions.splice(conditions.indexOf(entry), 1);
-          row.remove();
-        }),
-      );
-      conditionList.append(row);
-    };
-    const addAction = (values = {}) => {
-      const entry = {
-        device_id: select(opts(), values.device_id),
-        intent: select(
-          [
-            "SET_RESERVE_SOC",
-            "SET_EXPORT_LIMIT",
-            "SET_MAX_CHARGE_CURRENT",
-            "SET_MAX_DISCHARGE_CURRENT",
-            "SET_WORK_MODE",
-            "ENABLE_GRID_CHARGE",
-            "DISABLE_GRID_CHARGE",
-          ].map((v) => [v, t(v)]),
-          values.intent,
-        ),
-        value: input("number", values.parameters?.value ?? 30),
-      };
-      entry.value.step = "any";
-      const row = div(
-        "array-row",
-        field(l("Thiết bị", "Device"), entry.device_id),
-        field(l("Mục tiêu", "Intent"), entry.intent),
-        field(l("Giá trị (theo profile)", "Value (per profile)"), entry.value),
-      );
-      actions.push(entry);
-      row.append(
-        btn("×", () => {
-          actions.splice(actions.indexOf(entry), 1);
-          row.remove();
-        }),
-      );
-      actionList.append(row);
-    };
-    for (const value of existing?.conditions || [{}]) addCondition(value);
-    for (const value of existing?.actions || [{}]) addAction(value);
-    site.onchange = () => {
-      conditions.splice(0);
-      actions.splice(0);
-      conditionList.replaceChildren();
-      actionList.replaceChildren();
-      addCondition();
-      addAction();
-    };
-    const f = form(async () => {
-      const data = {
-        site_id: site.value,
-        name: name.value,
-        description: description.value,
-        conditions: conditions.map((r) => ({
-          device_id: r.device_id.value,
-          metric: r.metric.value,
-          unit: r.unit.value,
-          comparison: r.comparison.value,
-          threshold: Number(r.threshold.value),
-          max_age_seconds: Number(r.max_age_seconds.value),
-        })),
-        actions: actions.map((r) => ({
-          device_id: r.device_id.value,
-          intent: r.intent.value,
-          parameters: ["ENABLE_GRID_CHARGE", "DISABLE_GRID_CHARGE"].includes(
-            r.intent.value,
-          )
-            ? {}
-            : { value: Number(r.value.value) },
-        })),
-      };
-      await api(
-        existing ? `/rules/${existing.id}/edit` : "/rules",
-        existing
-          ? { id: existing.id, revision: existing.revision || 1, data }
-          : data,
-      );
-      closeDialog();
-      await refresh();
-    });
-    f.finish(
-      div("form-grid", field(t("name"), name), field(t("plants"), site)),
-      field(l("Mô tả", "Description"), description),
-      notice(
-        "Tất cả điều kiện phải đúng và dùng số đo mới, đã xác minh, đúng đơn vị. Chỉnh sửa sẽ tạm dừng theo dõi để bạn xem lại.",
-        "All conditions must match fresh, verified readings with exact units. Editing pauses monitoring for review.",
-      ),
-      e("h3", l("Khi tất cả điều kiện đúng", "When all conditions match")),
-      conditionList,
-      btn(l("+ Điều kiện", "+ Condition"), () => addCondition()),
-      e("h3", l("Hành động đề xuất", "Proposed actions")),
-      actionList,
-      btn(l("+ Hành động", "+ Action"), () => addAction()),
-    );
-    showDialog(l("Soạn quy tắc EMS", "EMS rule editor"), f);
+    return openRuleEditor(ui,existing);
   }
+
   function rolloutsView() {
-    const root = div(
-      "stack",
-      notice(
-        "Mỗi thiết bị có kết quả riêng. Xem trước, chạy một thiết bị đầu tiên, xác minh rồi mới triển khai phần còn lại. Hủy chỉ dừng các lệnh chưa gửi.",
-        "Each target has its own result. Preview, run one canary, verify it, then release the remaining targets. Cancellation only stops unsent commands.",
-      ),
-    );
-    if (operator())
-      root.append(
-        btn(
-          l("+ Tạo đợt triển khai", "+ Create rollout"),
-          rolloutForm,
-          "primary",
-        ),
-      );
-    root.append(
-      card(
-        l("Các đợt triển khai", "Rollouts"),
-        table(
-          [
-            t("name"),
-            l("Số thiết bị", "Targets"),
-            t("status"),
-            l("Thời gian", "Created"),
-            t("details"),
-          ],
-          rows("rollout").map((r) => [
-            r.name,
-            r.targets.length,
-            r.state,
-            date(r.created_at),
-            btn(t("details"), () => rolloutDetail(r)),
-          ]),
-        ),
-      ),
-    );
+    const root = div('stack rollout-workspace');
+    const stages=[l('Chọn thiết bị','Choose targets'),l('Soạn cấu hình','Draft settings'),l('Xem trước','Preview'),l('Thử một thiết bị','Verify first device'),l('Triển khai','Release remaining')];
+    root.append(div('rollout-stages',...stages.map((label,i)=>div('rollout-stage',e('span',String(i+1),'step-number'),e('b',label)))));
+    root.append(notice(
+      'Lưu bản nháp không gửi lệnh. Sau khi xem trước, thử một thiết bị và xác minh kết quả trước khi triển khai phần còn lại.',
+      'Saving a draft sends no command. Preview, test one device and verify the outcome before releasing the remaining targets.'));
+    const editor=div('rollout-editor-host');
+    if(operator()){
+      root.append(btn(l('+ Tạo đợt triển khai','+ Create rollout'),()=>{rolloutForm(editor);editor.querySelector('input')?.focus();},'primary'),editor);
+      rolloutForm(editor);
+    }
+    root.append(card(l('Các đợt triển khai','Rollouts'),table(
+      [t('name'),l('Số thiết bị','Targets'),t('status'),l('Thời gian','Created'),t('details')],
+      rows('rollout').map(r=>[r.name,r.targets.length,t(r.state),date(r.created_at),btn(t('details'),()=>rolloutDetail(r))]))));
     return root;
   }
-  function rolloutForm() {
-    const name = input(),
-      intent = select(
-        [
-          "SET_RESERVE_SOC",
-          "SET_EXPORT_LIMIT",
-          "SET_MAX_CHARGE_CURRENT",
-          "SET_MAX_DISCHARGE_CURRENT",
-          "ENABLE_GRID_CHARGE",
-          "DISABLE_GRID_CHARGE",
-        ].map((v) => [v, t(v)]),
-      ),
-      value = input("number", 30),
-      note = e("textarea");
-    value.step = "any";
-    name.required = true;
-    name.maxLength = 160;
-    note.maxLength = 2000;
-    const choices = devices().map((d) => ({ d, box: input("checkbox") }));
-    const f = form(async () => {
-      const selected = choices.filter((c) => c.box.checked);
-      const result = await api("/rollouts", {
-        name: name.value,
-        note: note.value,
-        actions: selected.map(({ d }) => ({
-          device_id: d.id,
-          intent: intent.value,
-          parameters: ["ENABLE_GRID_CHARGE", "DISABLE_GRID_CHARGE"].includes(
-            intent.value,
-          )
-            ? {}
-            : { value: Number(value.value) },
-        })),
-      });
-      await refresh();
-      rolloutDetail(result);
-    });
-    f.finish(
-      field(t("name"), name),
-      div(
-        "form-grid",
-        field(l("Mục tiêu", "Intent"), intent),
-        field(l("Giá trị theo profile", "Value per profile"), value),
-      ),
-      field(l("Ghi chú triển khai", "Deployment note"), note),
-      div(
-        "checklist",
-        ...choices.map(({ d, box }) =>
-          add(
-            e("label", "", "check"),
-            box,
-            e("span", `${deviceName(d.id)} · ${siteName(d.site_id)}`),
-          ),
-        ),
-      ),
-      p(
-        l(
-          "Tối đa 20 thiết bị mỗi đợt. Đánh giá sẽ chỉ rõ thiết bị bị chặn.",
-          "Up to 20 targets per rollout. Assessment identifies blocked devices.",
-        ),
-      ),
-    );
-    showDialog(l("Cấu hình hàng loạt", "Bulk configuration"), f);
+  function rolloutForm(host) {
+    const name=input(),note=e('textarea'),search=input('search');
+    const intents=['SET_RESERVE_SOC','SET_EXPORT_LIMIT','SET_MAX_CHARGE_CURRENT','SET_MAX_DISCHARGE_CURRENT','ENABLE_GRID_CHARGE','DISABLE_GRID_CHARGE'];
+    const intent=select([['',l('Chọn thay đổi cần thực hiện','Choose a setting')],...intents.map(v=>[v,t(v)])],'');
+    const value=input('number','');value.step='any';value.min='0';
+    name.required=true;name.maxLength=160;note.maxLength=2000;intent.required=true;
+    const choices=devices().map(d=>({d,box:input('checkbox')}));
+    const list=div('rollout-target-list'),summary=div('stack'),count=e('b');
+    const valueField=field(l('Giá trị theo hồ sơ thiết bị','Value in device profile units'),value);
+    const guidance=p('','field-help');
+    const booleanIntent=()=>['ENABLE_GRID_CHARGE','DISABLE_GRID_CHARGE'].includes(intent.value);
+    const drawSummary=()=>{
+      const selected=choices.filter(c=>c.box.checked);
+      count.textContent=selected.length+' / 20 '+l('thiết bị','devices');
+      summary.replaceChildren(
+        fact(l('Tên đợt triển khai','Rollout name'),name.value.trim()||'—'),
+        fact(l('Thay đổi','Setting'),intent.value?t(intent.value):'—'),
+        fact(l('Giá trị','Value'),booleanIntent()?t(intent.value):value.value||'—'),
+        fact(l('Thiết bị đã chọn','Selected targets'),String(selected.length)),
+        ...selected.map(({d})=>div('rollout-selected',icon('device'),e('span',deviceName(d.id)),e('small',siteName(d.site_id),'muted'))),
+        p(l('Chưa đánh giá tương thích. Kết quả xem trước sẽ nêu phạm vi, đơn vị, quyền và thiết bị bị chặn.','Compatibility has not been assessed. Preview will identify ranges, units, permissions and blocked targets.'),'field-help'));
+    };
+    const drawList=()=>{
+      list.replaceChildren(...choices.filter(({d})=>(deviceName(d.id)+' '+siteName(d.site_id)+' '+d.identity.vendor).toLocaleLowerCase().includes(search.value.toLocaleLowerCase())).map(({d,box})=>{
+        const label=add(e('label','','rollout-target'),box,div('stack gap-none',e('b',deviceName(d.id)),e('small',siteName(d.site_id)+' · '+d.identity.vendor,'muted')));
+        box.onchange=drawSummary;return label;
+      }));
+      if(!list.children.length)list.append(p(l('Không có thiết bị phù hợp trong phạm vi này.','No matching equipment in this scope.'),'empty-state'));
+    };
+    intent.onchange=()=>{
+      const boolean=booleanIntent();valueField.hidden=boolean;value.required=!boolean;value.disabled=boolean;
+      if(intent.value==='SET_RESERVE_SOC')value.max='100';else value.removeAttribute('max');
+      guidance.textContent=boolean?l('Chỉ thay đổi quyền sạc từ điện lưới, không đặt công suất sạc.','Changes grid-charging permission only, not charging power.'):l('Nhập giá trị của bạn. Đơn vị và khoảng hợp lệ phải được đối chiếu trong bước xem trước của từng thiết bị.','Supply your own value. Units and valid ranges must be confirmed in each device preview.');
+      drawSummary();
+    };
+    search.oninput=drawList;name.oninput=note.oninput=value.oninput=drawSummary;
+    const f=form(async()=>{
+      const selected=choices.filter(c=>c.box.checked);
+      if(!name.value.trim())throw new Error(l('Nhập tên đợt triển khai.','Enter a rollout name.'));
+      if(!selected.length||selected.length>20)throw new Error(l('Chọn từ 1 đến 20 thiết bị.','Select between 1 and 20 targets.'));
+      if(!booleanIntent()&&(value.value.trim()===''||!Number.isFinite(Number(value.value))))throw new Error(l('Nhập giá trị hợp lệ.','Enter a valid value.'));
+      const result=await api('/rollouts',{name:name.value.trim(),note:note.value,actions:selected.map(({d})=>({device_id:d.id,intent:intent.value,parameters:booleanIntent()?{}:{value:Number(value.value)}}))});
+      await refresh();rolloutDetail(result);
+    },l('Lưu bản nháp và xem xét','Save draft for review'));
+    f.finish(div('rollout-editor-grid',
+      card(l('1. Chọn thiết bị','1. Select equipment'),div('card-head',count),field(l('Tìm thiết bị trong phạm vi','Find equipment in scope'),search),list),
+      card(l('2. Cấu hình cần thay đổi','2. Draft configuration'),field(l('Tên đợt triển khai','Rollout name'),name),field(l('Thay đổi','Setting'),intent),valueField,guidance,field(l('Ghi chú triển khai','Deployment note'),note)),
+      card(l('3. Kiểm tra bản nháp','3. Review draft'),summary)));
+    f.classList.add('rollout-editor');
+    f.querySelector('.form-actions button[type="button"]')?.remove();
+    drawList();intent.onchange();
+    if(host instanceof HTMLElement)host.replaceChildren(f);else showDialog(l('Cấu hình hàng loạt','Bulk configuration'),f);
   }
   async function rolloutDetail(row) {
     const root = div(
@@ -2055,7 +1889,9 @@ export function createWorkbench(ui) {
     showDialog(row.name, root);
   }
   async function handoverView() {
-    if (!state.site) return requireSite();
+    if (!state.site) return div('handover-layout',requireSite(),card(l('Hồ sơ cần kiểm tra','Review checklist'),
+      p(l('Chọn nhà máy để tải các kết quả đã lưu. Chưa có nhà máy được chọn nên không thể kết luận hạng mục nào đã đạt.','Choose a plant to load its recorded checks. No pass result can be established before selecting a plant.'),'field-help'),
+      table([l('Hạng mục','Check'),t('status')],[['Sơ đồ đấu nối','Device topology'],['Công tơ / CT','Meter / CT'],['Chiều công suất','Power direction'],['Pin / BMS','Battery / BMS'],['Điều khiển và đọc lại','Control and readback'],['Cảnh báo thiết bị','Equipment alerts']].map(([vi,en])=>[l(vi,en),'—']))));
     const result = await api(`/sites/${state.site}/handover`),
       root = div("stack");
     root.append(

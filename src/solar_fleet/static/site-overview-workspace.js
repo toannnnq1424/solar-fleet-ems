@@ -1,259 +1,205 @@
 import { energyFlowCard } from './energy-flow.js';
-import { renderModelLibrary } from './model-workspace.js';
-import { measurementChart } from './measurement-chart.js';
+import { measurementChart, multiMeasurementChart } from './measurement-chart.js';
 import { renderControlMainWorkspace } from './control-workspace.js';
+import { renderScheduleMainWorkspace } from './schedule-workspace.js';
 import { renderReportWorkspace } from './report-workspace.js';
+import { renderJournalMainWorkspace } from './journal-workspace.js';
+import { renderIncidentWorkspace } from './incident-workspace.js';
 import { l, t, number, date } from './i18n.js';
 import { icon } from './icons.js';
+import { plantMedia } from './plant-media.js';
+import { percentageGauge } from './ui-visuals.js';
+import { reportedNotice, reportedFlow, reportedEnergyChart } from './vendor-report.js';
+import { equipmentPower } from './device-report.js';
 
-// Site cards consume the scoped operational read model. Unknown is never zero.
-function renderHeroKpiDeck(ctx, ef, ps, to) {
-  const { div, e, badge } = ctx;
-  const pvW = ef.pv_w;
-  const gridW = ef.grid_w;
-  const batW = ef.battery_w;
-  const batSoc = ef.battery_soc ?? ef.soc;
-  const loadW = ef.load_w;
+// All tiles display observed/stored values only. Missing is not zero or offline.
+const quantity = (value, unit) => value == null ? '—' : number(value, 1) + ' ' + unit;
+const stateLabel = value => ({
+  ONLINE: l('Đang nhận dữ liệu', 'Receiving data'),
+  OFFLINE: l('Mất kết nối', 'Offline'),
+  UNKNOWN: l('Chưa xác định', 'Unknown'),
+}[value] || t(value || 'UNKNOWN'));
 
-  const fmtPwr = (w) => {
-    if (w == null) return "—";
-    const absW = Math.abs(w);
-    if (absW >= 1000) return `${number(Math.round(absW / 10) / 100)} kW`;
-    return `${number(Math.round(absW))} W`;
-  };
-
-  const gridDirection = gridW == null ? "" : (gridW >= 0 ? l("Đang phát lưới", "Exporting to grid") : l("Đang nhận lưới", "Importing from grid"));
-  const batDirection = batW == null ? "" : (batW >= 0 ? l("Đang nạp", "Charging") : l("Đang xả", "Discharging"));
-
-  const kpis = [
-    {
-      title: l("Điện mặt trời", "Solar PV"),
-      val: fmtPwr(pvW),
-      sub: ps.today_yield_kwh != null ? `${number(ps.today_yield_kwh)} kWh ${l("hôm nay", "today")}` : l("Công suất PV tức thời", "Instantaneous PV"),
-      colorClass: "solar",
-      badgeText: pvW > 50 ? l("Đang phát", "Generating") : l("Chờ bức xạ", "Standby"),
-      badgeClass: pvW > 50 ? "good" : "gray",
-      tab: "data",
-    },
-    {
-      title: l("Lưới điện EVN", "Power Grid"),
-      val: fmtPwr(gridW),
-      sub: gridDirection || l("Hòa lưới 3 pha", "3-phase Grid"),
-      colorClass: "grid",
-      badgeText: ef.grid_frequency_hz ? `${ef.grid_frequency_hz} Hz` : "50.0 Hz",
-      badgeClass: "good",
-      tab: "data",
-    },
-    {
-      title: l("Hệ thống lưu trữ", "Battery Storage"),
-      val: batSoc != null ? `${number(batSoc)}%` : fmtPwr(batW),
-      sub: batDirection || (batSoc != null ? fmtPwr(batW) : l("LFP LiFePO4", "LFP LiFePO4")),
-      colorClass: "battery",
-      badgeText: batSoc != null ? (batSoc > 20 ? l("An toàn", "Optimal") : l("Mức thấp", "Low")) : l("Lưu trữ", "Storage"),
-      badgeClass: batSoc != null && batSoc > 20 ? "good" : "warn",
-      tab: "control",
-    },
-    {
-      title: l("Phụ tải tiêu thụ", "Site Load"),
-      val: fmtPwr(loadW),
-      sub: ps.today_consumption_kwh != null ? `${number(ps.today_consumption_kwh)} kWh ${l("tiêu thụ", "consumed")}` : l("Công suất tiêu thụ", "Active Load"),
-      colorClass: "load",
-      badgeText: l("Phụ tải hoạt động", "Active Load"),
-      badgeClass: "good",
-      tab: "reports",
-    },
-  ];
-
-  const deck = div("hero-kpi-grid");
-  for (const k of kpis) {
-    const cardEl = div(`kpi-stat-card clickable ${k.colorClass}`);
-    cardEl.onclick = () => to(k.tab);
-
-    const head = div("row", e("span", k.title, "kpi-title"), badge(k.badgeText, k.badgeClass));
-    const valEl = e("div", k.val, "kpi-big-value");
-    const subEl = e("div", k.sub, "kpi-sub-label");
-
-    cardEl.append(head, valEl, subEl);
-    deck.append(cardEl);
-  }
-  return deck;
+function equipmentTable(ctx, rows) {
+  return ctx.table([l('Thiết bị', 'Equipment'), l('Hãng / Model', 'Brand / Model'),
+    l('Kết nối', 'Connection'), l('Công suất', 'Power'), l('Mức pin', 'Battery level')],
+    rows.map(d => [
+      ctx.btn(d.name || d.serial || d.id, () => ctx.deviceDetail(d.id), 'link'),
+      [d.brand, d.model].filter(Boolean).join(' · ') || '—',
+      ctx.badge(stateLabel(d.status), d.status === 'ONLINE' ? 'good' : 'warn'),
+      equipmentPower(ctx, d), quantity(d.soc_pct, '%'),
+    ]));
 }
 
-export function renderSubtabOverview(ctx, siteId, data) {
-  const {div,e,btn,badge,card,p,table}=ctx;
-  const root=div('stack'), to=tab=>ctx.go('overview',tab,'main');
-  const value=(v,unit='')=>v==null?'—':`${number(v)}${unit?' '+unit:''}`;
-  const fact=(label,v)=>div('fact',e('span',label),e('b',v??'—'));
-  const stateLabel=s=>({UNKNOWN:l('Chưa xác định','Unknown'),ENROLLED:l('Đã đăng ký; chưa xác minh online','Enrolled; online unverified'),NOT_ENROLLED:l('Chưa đăng ký','Not enrolled'),ONLINE:l('Có dữ liệu mới','Fresh data'),OFFLINE:l('Ngoại tuyến','Offline')})[s]||s||l('Chưa xác định','Unknown');
-  const ef=data.energy_flow||{}, ps=data.plant_status||{};
-  root.append(renderHeroKpiDeck(ctx, ef, ps, to));
-  root.append(energyFlowCard(ctx, ef, to));
-
-  const presets={self_consumption:l('Tự tiêu thụ','Self consumption'),zero_export:l('Không phát lưới','Zero export'),battery_first:l('Ưu tiên pin','Battery first'),backup_eps:l('Dự phòng EPS','EPS backup')};
-  root.append(card(l('Điều khiển nhanh','Quick control'),p(l('Chọn thiết bị và xem khả năng hỗ trợ trước khi xác nhận lệnh.','Select equipment and review its capabilities before confirming a command.')),
-    div('preset-grid',...(data.quick_presets||[]).map(item=>div('preset-item',e('b',presets[item.id]||item.id),badge(l('Cần cấu hình theo thiết bị','Device configuration required'),'warn'),btn(l('Cấu hình chi tiết','Detailed configuration'),()=>to('control')))))),
-    card(l('Trạng thái nhà máy','Plant status'),badge(stateLabel(ps.status),ps.status==='ONLINE'?'good':''),
-      div('overview-kpis',fact(l('Sản lượng hôm nay','Yield today'),value(ps.today_yield_kwh,'kWh')),fact(l('Tiêu thụ hôm nay','Consumption today'),value(ps.today_consumption_kwh,'kWh')),fact(l('Sản lượng tháng','Monthly yield'),value(ps.month_yield_kwh,'kWh')),fact(l('Sản lượng năm','Yearly yield'),value(ps.year_yield_kwh,'kWh')),fact(l('Sản lượng tích lũy','Lifetime yield'),value(ps.total_yield_kwh,'kWh'))),
-      btn(l('Chọn thời gian và xem dữ liệu chi tiết','Choose period and inspect measurements'),()=>to('data'),'link')));
-  const comparisons=data.comparison_yield_load||{};
-  root.append(card(l('Sản lượng & tiêu thụ','Yield & consumption'),table([l('Khoảng thời gian','Period'),l('Sản lượng PV (kWh)','PV yield (kWh)'),l('Tiêu thụ (kWh)','Consumption (kWh)')],
-    [['today',l('Hôm nay','Today')],['month',l('Tháng này','This month')],['year',l('Năm nay','This year')]].map(([key,label])=>[label,value(comparisons[key]?.yield_kwh),value(comparisons[key]?.consumption_kwh)])),
-    btn(l('Mở biểu đồ theo thời gian','Open measurement chart'),()=>to('data'),'link')));
-  const gridCard = card(l('Quy chuẩn lưới điện & Chất lượng điện năng (Grid Code & Power Quality)', 'Grid Code Compliance & Power Quality'),
-    badge(l('Chưa đánh giá quy chuẩn', 'Compliance not assessed'), 'gray'),
-    div('overview-kpis',
-      fact(l('Tần số lưới (f):', 'Grid Frequency:'), value(ef.grid_frequency_hz, 'Hz')),
-      fact(l('Điện áp trung bình (V):', 'Avg Grid Voltage:'), value(ef.grid_voltage_v, 'V')),
-      fact(l('Hệ số công suất Cos φ:', 'Power Factor Cos φ:'), badge(value(ef.power_factor, ''), 'good')),
-      fact(l('Lệch áp 3 pha (VUF):', 'Voltage Unbalance (VUF):'), badge(value(ef.vuf_pct, '%'), 'good')),
-      fact(l('Chế độ Volt-Watt P(V):', 'Volt-Watt State:'), badge(l('Chưa xác định', 'Unknown'), 'gray'))
-    ),
-    btn(l('Mở bộ điều phối quy chuẩn lưới EMS', 'Open EMS Grid Code Regulator'), () => ctx.go('operations', 'main', 'rules'), 'link'));
-  root.append(gridCard);
-  const sc=data.self_consumption||{},weather=data.weather||{}, weatherMeta=weather.meta||{};
-  const forecast=(weather.hourly_forecast||[]).filter(pt=>Date.parse(pt.hour+'Z')>=Date.now()).slice(0,24);
-  root.append(div('grid',card(l('Tỉ lệ tự dùng','Self consumption'),fact(l('Tự dùng PV','PV self consumption'),value(sc.self_consumption_pct,'%')),fact(l('Tự chủ năng lượng','Self sufficiency'),value(sc.self_sufficiency_pct,'%')),
-    p(l('Cần số đo cùng kỳ và cùng ranh giới đo để tính tỉ lệ.','Ratios require aligned periods and a verified measurement boundary.')),btn(l('Xem báo cáo','View reports'),()=>to('reports'),'link')),
-    card(l('Thời tiết & dự báo','Weather & forecast'),fact(l('Nhiệt độ','Temperature'),value(weather.temperature_c,'°C')),fact(l('Bức xạ','Irradiance'),value(weather.ghi_wm2??weather.irradiance_wm2,'W/m²')),
-      fact(l('Nguồn và thời điểm','Source and time'),weatherMeta.source?`${weatherMeta.source} · ${date(weatherMeta.fetched_at)}`:l('Chưa kết nối nguồn thời tiết','Weather source not connected')),
-      badge(weatherMeta.stale?l('Dữ liệu cũ','Stale data'):weather.status||l('Chưa xác định','Unknown')),
-      forecast.length?measurementChart(forecast.map(pt=>({source_timestamp:pt.hour+'Z',value:pt.ghi_wm2})),l('Bức xạ dự báo • Open-Meteo','Forecast irradiance • Open-Meteo'),'W/m²'):p(l('Chưa có dự báo cho công trình này.','No forecast is available for this site.')))));
-  const eq=data.equipment||{},conn=data.connectivity||{};
-  root.append(div('grid',card(l('Thiết bị trong hệ thống','System equipment'),table([l('Thiết bị','Device'),l('Loại','Type'),'Model',t('status')],(eq.items||[]).map(item=>[
-    btn(item.name||item.id,()=>ctx.deviceDetail(item.id),'link'),t(item.type),item.model||'—',badge(stateLabel(item.status),item.status==='ONLINE'?'good':'')])),btn(l('Xem tất cả thiết bị','View all equipment'),()=>to('devices'),'link')),
-    card(l('Kết nối & nguồn dữ liệu','Connections & data sources'),...['local_agent','cloud_api','direct_modbus'].map(key=>fact(conn[key]?.label||key,stateLabel(conn[key]?.status))),
-      btn(l('Mở logger / agent / mạng','Open logger / agent / network'),()=>to('network'),'link'),btn(l('Quản lý nguồn dữ liệu','Manage sources'),()=>ctx.go('reports','sources'),'link'))));
-  root.append(div('grid',card(l('Cảnh báo gần đây','Recent alerts'),table([t('title'),t('status'),l('Thời điểm','Time')],(data.recent_alerts||[]).map(a=>[btn(a.title,()=>to('incidents'),'link'),a.status,date(a.updated_at||a.created_at)])),btn(l('Mở trung tâm cảnh báo','Open incident center'),()=>ctx.go('incidents'),'link')),
-    card(l('Nhật ký điều khiển','Command journal'),table([l('Lệnh','Command'),t('status'),l('Thời điểm','Time')],(data.recent_commands||[]).map(c=>[c.intent||c.event||c.id,c.status||c.state||'—',date(c.timestamp||c.created_at)])),btn(l('Mở nhật ký','Open journal'),()=>to('journal'),'link'))));
-  const loc=data.location_info||{};
-  root.append(card(l('Vị trí & thông tin','Location & information'),div('overview-kpis',fact(l('Địa chỉ','Address'),loc.address),fact('GPS',loc.latitude==null||loc.longitude==null?'—':`${loc.latitude}, ${loc.longitude}`),fact(l('Công suất lắp đặt','Installed capacity'),value(loc.capacity_kwp,'kWp')),fact(l('Khách hàng','Customer'),loc.customer),fact(l('Múi giờ','Timezone'),loc.timezone)),
-    div('row',btn(l('Bản đồ','Map'),()=>ctx.go('plants','','map')),btn(l('Chẩn đoán & nghiệm thu','Diagnostics & commissioning'),()=>to('diagnostics')),btn(l('Sửa thông tin','Edit information'),()=>ctx.siteForm(data.site)))));
+export async function renderSubtabOverview(ctx, siteId, data) {
+  const {div, e, card, p, btn, badge} = ctx;
+  const ps = data.plant_status || {}, flow = data.energy_flow || {};
+  const report = data.vendor_report, nativePower = report?.power || {}, energy = report?.periods || {};
+  const to = tab => ctx.go('overview', tab, 'main');
+  const tiles = [
+    ['sun', l('Điện mặt trời', 'Solar power'), flow.pv_w, 'kW', 'solar', nativePower.pv_w, 1000],
+    ['home', l('Đang tiêu thụ', 'Consumption'), flow.load_w, 'kW', 'blue', nativePower.load_w, 1000],
+    ['battery', l('Mức pin', 'Battery level'), flow.battery_soc, '%', 'purple', nativePower.battery_soc, 1],
+    ['chart', l('Sản lượng hôm nay', 'Generated today'), ps.today_yield_kwh, 'kWh', 'green', energy.today?.generation_kwh, 1],
+    ['calendar', l('Sản lượng tháng này', 'Generated this month'), ps.month_yield_kwh, 'kWh', 'blue', energy.month?.generation_kwh, 1],
+    ['bolt', l('Tiêu thụ hôm nay', 'Consumed today'), ps.today_consumption_kwh, 'kWh', 'solar', energy.today?.consumption_kwh, 1],
+  ];
+  const root = div('stack site-dashboard',
+    div('site-metrics', ...tiles.map(([glyph,label,value,unit,tone,reported,scale]) =>
+      div('site-metric', div('metric-icon ' + tone, icon(glyph)),
+        div('stack gap-none', e('span', label, 'muted small'),
+          e('strong', quantity((value ?? reported) == null ? null : (value ?? reported) / scale, unit)),
+          e('small', value == null && reported != null ? l('Hãng báo cáo', 'Vendor reported') : value == null ? l('Chưa có số đo', 'No measurement') : l('Theo dữ liệu đã nhận', 'From received data'), 'muted'))))));
+  if (report) root.append(reportedNotice(ctx, report));
+  const aside = div('stack');
+  const items = data.equipment?.items || [];
+  aside.append(card(l('Tình trạng nhà máy', 'Plant status'),
+    div('fact', e('span', l('Kết nối', 'Connection')), badge(stateLabel(ps.status), ps.status === 'ONLINE' ? 'good' : 'warn')),
+    div('fact', e('span', l('Thiết bị đã liên kết', 'Linked equipment')), e('b', String(items.length))),
+    div('fact', e('span', l('Đã nhận thông số', 'Readings received')), e('b', String(items.filter(d => d.reading_summary?.sample_count > 0).length))),
+    div('fact', e('span', l('Có số đo mới đã xác minh', 'With verified recent readings')), e('b', String(items.filter(d => d.reading_summary?.verified_recent_count > 0).length))),
+    p(l('Có thông số gốc chưa có nghĩa đã đủ dữ liệu cho biểu đồ, tính tiền hoặc điều khiển. Không có số đo mới chưa đủ để kết luận thiết bị đã tắt.', 'Native readings alone do not establish chart, billing or control readiness. Missing recent readings does not mean equipment is switched off.')),
+    btn(l('Xem thiết bị & thông số gốc', 'View equipment & native readings'), () => to('devices'), 'link')));
+  aside.append(card(l('Thao tác nhanh', 'Quick actions'),
+    p(l('Xem trạng thái và điều kiện trước khi thay đổi thiết bị.', 'Review equipment state and requirements before making changes.')),
+    div('quick-action-list',
+      ...[['control','control',l('Điều khiển thiết bị','Equipment control')],
+        ['calendar','schedules',l('Đặt lịch vận hành','Operating schedules')],
+        ['shield','diagnostics',l('Kiểm tra lắp đặt','Installation checks')]]
+        .map(([glyph,tab,label]) => {
+          const action = btn(label, () => to(tab), 'secondary');
+          action.prepend(icon(glyph)); return action;
+        }))));
+  const weather = data.weather || {};
+  aside.append(card(l('Thời tiết tại trạm', 'Site weather'),
+    div('row', div('metric-icon solar', icon('sun')), e('strong', quantity(weather.temperature_c, '°C'))),
+    p(weather.condition && weather.condition !== 'UNKNOWN' ? weather.condition : l('Chưa có dữ liệu thời tiết', 'Weather unavailable')),
+    p(data.location_info?.address || l('Chưa khai báo địa chỉ', 'Address not recorded'))));
+  const dashboardGrid = div('site-dashboard-grid');
+  const flowCard = energyFlowCard(ctx, reportedFlow(flow, report), to);
+  flowCard.classList.add('dashboard-flow');
+  dashboardGrid.append(flowCard);
+  root.append(dashboardGrid);
+  const chartBody = div('stack');
+  try {
+    const series = await ctx.api('/sites/' + encodeURIComponent(siteId) + '/telemetry-timeseries?metric=pv_w&period=today');
+    chartBody.append(measurementChart(series.samples || [], l('Điện mặt trời', 'Solar power'), 'W'),
+      p(l('Chỉ hiển thị các số đo đã lưu; không nội suy thời gian thiếu dữ liệu.', 'Stored observations only; missing intervals are not interpolated.')));
+  } catch (error) {
+    chartBody.append(p(l('Không tải được số đo: ', 'Measurements unavailable: ') + error.message));
+  }
+  const powerCard=card(l('Công suất trong ngày', 'Power today'), chartBody,
+    btn(l('Xem lịch sử chi tiết', 'View measurement history'), () => to('data'), 'link'));
+  powerCard.classList.add('dashboard-chart');
+  dashboardGrid.append(powerCard);
+  const [statusCard,quickCard,weatherCard]=[...aside.children];
+  statusCard.classList.add('dashboard-status');
+  quickCard.classList.add('dashboard-actions');
+  weatherCard.classList.add('dashboard-weather');
+  dashboardGrid.append(statusCard,quickCard);
+  const periods = data.comparison_yield_load || {};
+  const usage = data.self_consumption || {};
+  const energyCard=card(l('Sản lượng & tiêu thụ','Generation & consumption'),
+      div('energy-periods',...[['today',l('Hôm nay','Today')],['month',l('Tháng này','This month')],['year',l('Năm nay','This year')]]
+        .map(([key,label])=>div('energy-period',e('h3',label),
+          div('fact',e('span',l('Sản lượng','Generation')),e('b',quantity(periods[key]?.yield_kwh ?? energy[key]?.generation_kwh,'kWh'))),
+          div('fact',e('span',l('Tiêu thụ','Consumption')),e('b',quantity(periods[key]?.consumption_kwh ?? energy[key]?.consumption_kwh,'kWh'))),
+          energy[key] ? p(l('Bổ sung từ báo cáo hãng · ', 'Supplemented by vendor report · ') + energy[key].start_date + ' → ' + energy[key].end_date, 'small muted') : null))));
+  if (report?.daily_energy?.length) energyCard.append(reportedEnergyChart(report));
+  energyCard.classList.add('dashboard-energy');
+  const usageCard=card(l('Hiệu quả sử dụng năng lượng','Energy use'),
+      div('energy-use-summary',percentageGauge(usage.self_consumption_pct,l('Tự dùng','Self use')),
+        div('stack',div('fact',e('span',l('Tỷ lệ tự dùng','Self consumption')),e('b',quantity(usage.self_consumption_pct,'%'))),
+          div('fact',e('span',l('Tỷ lệ tự chủ','Self sufficiency')),e('b',quantity(usage.self_sufficiency_pct,'%'))))),
+      p(l('Chỉ tính khi đủ dữ liệu đo và xác định được nguồn năng lượng.','Calculated only with sufficient measurements and energy-source attribution.')));
+  usageCard.classList.add('dashboard-usage');
+  dashboardGrid.append(energyCard,usageCard,weatherCard);
+  const alerts = (data.recent_alerts || []).filter(a => !['closed','resolved'].includes(a.status));
+  const equipmentCard=card(l('Thiết bị trong nhà máy', 'Plant equipment'),
+      items.length ? equipmentTable(ctx, items) : p(l('Chưa có thiết bị được đồng bộ.', 'No synchronized equipment.')),
+      btn(l('Xem tất cả thiết bị', 'View all equipment'), () => to('devices'), 'link'));
+  equipmentCard.classList.add('dashboard-equipment');
+  const alertsCard=card(l('Cảnh báo cần xem', 'Alerts to review'),
+      alerts.length ? div('stack', ...alerts.map(a => div('alert-list-item',
+        icon('alert'), div('stack gap-none', e('b', a.title || a.code || l('Cảnh báo','Alert')),
+          e('span', t(a.status), 'small muted')))))
+        : p(l('Không có cảnh báo đang mở trong dữ liệu đã nhận.', 'No open alerts in received data.')),
+      btn(l('Mở trung tâm cảnh báo', 'Open alert center'), () => to('incidents'), 'link'));
+  alertsCard.classList.add('dashboard-alerts');
+  const commandsCard=card(l('Lệnh gần đây','Recent commands'),
+      ctx.table([l('Thời điểm','Time'),l('Thao tác','Action'),l('Kết quả','Outcome')],
+        (data.recent_commands||[]).map(command=>[date(command.created_at),t(command.intent),badge(command.status)])),
+      btn(l('Xem nhật ký điều khiển','View command journal'),()=>to('journal'),'link'));
+  commandsCard.classList.add('dashboard-commands');
+  const connectionCard=card(l('Đường kết nối','Connection paths'),
+      ...[['cloud_api',l('Tài khoản hãng','Vendor cloud')],['local_agent',l('Bộ thu thập tại trạm','On-site collector')],['direct_modbus',l('Kết nối thiết bị trực tiếp','Direct equipment connection')]]
+        .map(([key,label])=>div('fact',e('span',label),badge(data.connectivity?.[key]?.status||'UNKNOWN'))),
+      btn(l('Xem chi tiết kết nối','View connection details'),()=>to('network'),'link'));
+  connectionCard.classList.add('dashboard-connections');
+  dashboardGrid.append(equipmentCard,connectionCard,alertsCard,commandsCard);
   return root;
 }
 
 export async function renderSubtabData(ctx, siteId) {
-  const {div, p, btn, card, api, select, field, table}=ctx;
-  const metric=select([['pv_w',l('PV','PV')],['load_w',l('Tải','Load')],['grid_import_w',l('Nhập lưới','Grid import')],['grid_export_w',l('Xuất lưới','Grid export')],['battery_charge_w',l('Sạc pin','Battery charge')],['battery_discharge_w',l('Xả pin','Battery discharge')]]);
+  const {div,e,p,btn,card,api,select,field,table,input}=ctx;
+  const options=[
+    ['pv_w',l('Điện mặt trời','Solar power'),'W'],['load_w',l('Tiêu thụ','Consumption'),'W'],
+    ['grid_import_w',l('Mua từ lưới','Grid import'),'W'],['grid_export_w',l('Phát lên lưới','Grid export'),'W'],
+    ['battery_charge_w',l('Sạc pin','Battery charge'),'W'],['battery_discharge_w',l('Xả pin','Battery discharge'),'W'],
+    ['soc_pct',l('Mức pin','Battery level'),'%']];
   const period=select([['today',l('Hôm nay','Today')],['week',l('7 ngày','7 days')],['month',l('Tháng này','This month')],['year',l('Năm nay','This year')]]);
-  const out=div('stack');
-  async function loadData(){
-    try {
-      const res=await api('/sites/'+encodeURIComponent(siteId)+'/telemetry-timeseries?'+new URLSearchParams({metric:metric.value,period:period.value}));
-      const rows=res.samples||[],units=[...new Set(rows.map(s=>s.unit))];
-      out.replaceChildren(p(`${res.total_points} · ${res.reason}`),measurementChart(rows,metric.selectedOptions[0].textContent,units[0]||'W'),
-        table([l('Thời điểm','Time'),l('Giá trị','Value'),l('Đơn vị','Unit'),l('Nguồn','Source'),l('Chất lượng','Quality')],rows.slice(-100).map(s=>[date(s.source_timestamp),number(s.value),s.unit,s.source,s.quality])),
-        btn(l('Xuất dữ liệu thiết bị','Export device data'),()=>ctx.go('reports','telemetry','analytics')));
-    } catch(err){out.replaceChildren(p(err.message));}
+  const out=div('stack'),summary=div('stack'),selectors=div('measurement-selectors'),checks=[];
+  let requestId=0;
+  for(const [i,[key,label]] of options.entries()){
+    const control=input('checkbox');control.checked=i<2;control.dataset.metric=key;checks.push(control);
+    const item=field(label,control);item.classList.add('series-'+i);selectors.append(item);control.onchange=loadData;
   }
-  metric.onchange=loadData;period.onchange=loadData;
-  const root=div('stack',card(l('Dữ liệu lưu trữ','Stored measurements'),div('row',field(l('Thông số','Metric'),metric),field(l('Khoảng thời gian','Period'),period)),out));
+  async function loadData(){
+    const current=++requestId,selected=options.flatMap((v,i)=>checks[i].checked?[{key:v[0],label:v[1],unit:v[2],color:i}]:[]);
+    out.replaceChildren(p(l('Đang tải số đo…','Loading measurements…')));summary.replaceChildren();
+    if(!selected.length){out.replaceChildren(div('measurement-plot-scroll',multiMeasurementChart([])),p(l('Chọn ít nhất một thông số trong phần chọn hiển thị.','Choose at least one metric in the display options.')));return;}
+    const results=await Promise.all(selected.map(async c=>{
+      try{return {...c,...await api('/sites/'+encodeURIComponent(siteId)+'/telemetry-timeseries?'+new URLSearchParams({metric:c.key,period:period.value}))};}
+      catch(err){return {...c,samples:[],failure:err.message};}
+    }));
+    if(current!==requestId)return;
+    const rows=results.flatMap(c=>(c.samples||[]).map(s=>({...s,label:c.label}))).sort((a,b)=>Date.parse(b.source_timestamp)-Date.parse(a.source_timestamp));
+    for(const c of results)summary.append(div('measurement-channel-summary series-'+c.color,e('b',c.label),p(c.failure||(
+      c.reason==='AMBIGUOUS_SOURCE'?l('Cần phân định nguồn đo','Resolve ambiguous sources'):
+      c.reason==='EXPORT_LIMIT'?l('Chọn khoảng ngắn hơn','Choose a shorter period'):
+      number(c.samples?.length||0,0)+' '+l('số đo đã lưu','stored observations')))));
+    const details=e('details','','measurement-table');details.append(e('summary',l('Bảng số đo gần nhất (tối đa 100 dòng)','Recent observations (up to 100 rows)')),
+      table([l('Thời điểm','Time'),l('Thông số','Metric'),l('Giá trị','Value'),l('Đơn vị','Unit'),l('Thiết bị','Device'),l('Nguồn','Source')],rows.slice(0,100).map(s=>[date(s.source_timestamp),s.label,number(s.value),s.unit,s.device_id,t(s.source)])));
+    out.replaceChildren(div('measurement-plot-scroll',multiMeasurementChart(results)),
+      p(l('Chỉ nối các số đo cùng nguồn cách nhau tối đa 5 phút. Mỗi đường tối đa 1.500 điểm quan sát; không cộng các thiết bị hoặc điền khoảng thiếu.','Only same-source observations at most 5 minutes apart are joined. Up to 1,500 observed points per trace; no device summing or gap filling.'),'field-help'),details,
+      btn(l('Xuất dữ liệu thiết bị','Export device data'),()=>ctx.go('reports','telemetry','analytics')));
+  }
+  period.onchange=loadData;
+  const periodField=field(l('Khoảng thời gian','Period'),period);periodField.classList.add('measurement-period');
+  const root=div('measurement-reference-layout',
+    card(l('Công suất và mức pin theo thời gian','Power and battery level over time'),periodField,out),
+    card(l('Chọn thông số hiển thị','Choose displayed metrics'),selectors,summary));
   await loadData();return root;
 }
 
-export async function renderSubtabDevices(ctx, siteId) {
-  const { div, e, btn, card, table, badge, api } = ctx;
-  const container = div("stack");
-
-  let viewMode = "card";
-  const siteDevices = (ctx.devices() || []).filter((d) => d.site_id === siteId);
-
-  const headerRow = div("row",
-    div("", e("h3", l("Danh sách thiết bị thuộc trạm", "Site Equipment Portfolio")), e("p", `${l("Tổng cộng:", "Total:")} ${siteDevices.length} ${l("thiết bị kết nối", "connected devices")}`, "small muted")),
-    div("row",
-      btn(l("Dạng thẻ lưới", "Grid View"), () => { viewMode = "card"; renderDevList(); }, "secondary"),
-      btn(l("Dạng bảng", "Table View"), () => { viewMode = "table"; renderDevList(); }, "secondary")
-    )
-  );
-  container.append(headerRow);
-
-  const listContainer = div("stack");
-  container.append(listContainer);
-
-  function renderDevList() {
-    if (viewMode === "card") {
-      const grid = div("device-card-grid");
-      siteDevices.forEach((d) => {
-        const c = div("device-visual-card",
-          div("row",
-            div("row",
-              div("device-type-icon", icon("device")),
-              div("", e("b", d.name || d.id), e("p", d.model || l("Chưa xác định model", "Model unknown"), "small muted"))
-            ),
-            badge(d.online ? l("Trực tuyến", "Online") : l("Ngoại tuyến", "Offline"), d.online ? "good" : "")
-          ),
-          div("device-card-metrics",
-            div("fact", e("span", "Hãng:"), badge(d.brand || "UNKNOWN")),
-            div("fact", e("span", "Serial:"), e("code", d.vendor_id || "—")),
-            div("fact", e("span", "Firmware:"), e("b", d.identity?.firmware || "—")),
-            div("fact", e("span", "Nhiệt độ:"), e("b", "—"))
-          ),
-          div("row",
-            btn(l("Tra cứu thanh ghi Modbus", "Inspect Modbus"), () => inspectVendorRegisters(d.brand || "UNKNOWN"), "primary"),
-            btn(l("Chi tiết thiết bị →", "Device detail →"), () => ctx.deviceDetail(d.id), "link")
-          )
-        );
-        grid.append(c);
-      });
-      listContainer.replaceChildren(grid);
-    } else {
-      listContainer.replaceChildren(
-        table(
-          [l("Thiết bị", "Device"), l("Hãng", "Vendor"), l("Model", "Model"), l("Serial", "Serial"), t("status"), l("Thao tác", "Action")],
-          siteDevices.map((d) => [
-            d.name || d.id,
-            badge(d.brand || "UNKNOWN"),
-            d.model || "—",
-            d.serial_number || "—",
-            badge(d.online ? l("Trực tuyến", "Online") : l("Ngoại tuyến", "Offline"), d.online ? "good" : ""),
-            btn(l("Tra cứu Modbus", "Inspect Modbus"), () => inspectVendorRegisters(d.brand || "UNKNOWN"), "secondary"),
-          ])
-        )
-      );
-    }
+export async function renderSubtabDevices(ctx, siteId, data) {
+  const all = data.equipment?.items || [];
+  const query = ctx.input('search');
+  query.placeholder = l('Tìm tên, hãng hoặc số sê-ri', 'Search name, brand or serial');
+  query.setAttribute('aria-label', query.placeholder);
+  const content = ctx.div('stack');
+  function update() {
+    const term = query.value.trim().toLocaleLowerCase();
+    const rows = all.filter(d => [d.name,d.brand,d.model,d.serial].join(' ').toLocaleLowerCase().includes(term));
+    content.replaceChildren(equipmentTable(ctx, rows));
   }
-  renderDevList();
-
-  const inspectorCard = div("stack");
-  container.append(inspectorCard);
-
-  async function inspectVendorRegisters() {
-    inspectorCard.replaceChildren(e('p', l('Đang tải thư viện model…', 'Loading model library…')));
-    try { inspectorCard.replaceChildren(await renderModelLibrary(ctx, siteDevices)); }
-    catch (err) { inspectorCard.replaceChildren(e('p', err.message, 'bad')); }
-  }
-
-  return container;
+  query.oninput = update; update();
+  return ctx.card(l('Thiết bị đã liên kết', 'Linked equipment'), query, content);
 }
-
-// ============================================================================
-// SUB-TAB 4: ĐIỀU KHIỂN CHUYÊN SÂU (Interactive Control Panel)
-// ============================================================================
-
-export async function renderSubtabControl(ctx) { return await renderControlMainWorkspace(ctx); }
-
-
-export function renderSubtabSchedules(ctx) {
- const rows=ctx.records("schedule").filter(r=>r.site_id===ctx.state.site);
- return ctx.card(l("Lịch nhà máy", "Site schedules"),ctx.table([t("name"),t("status")],rows.map(r=>[r.name,r.state])),
-  ctx.btn(l("Soạn lịch, kiểm tra và triển khai", "Edit, compile and deploy schedules"),()=>ctx.go("operations", "schedules")));
-}
-
-
-export function renderSubtabIncidents(ctx, siteId) {
- const rows=ctx.records("incident").filter(r=>r.site_id===siteId);
- return ctx.card(l("Cảnh báo nhà máy","Site incidents"),ctx.table([t("name"),t("status")],
-  rows.map(r=>[ctx.btn(r.title,()=>ctx.recordDetail("incident",r),"link"),r.status])),
-  ctx.btn(l("Mở trung tâm xử lý sự cố","Open incident center"),()=>ctx.go("incidents")));
-}
-
-
-export function renderSubtabJournal(ctx) {
- return ctx.card(l("Nhật ký nhà máy","Site journal"),
- ctx.p(l("Xem sự kiện, vòng đời lệnh và bằng chứng đọc lại trong nhật ký chung.","Inspect events, command lifecycle and readback evidence in the shared journal.")),
- ctx.btn(l("Mở nhật ký","Open journal"),()=>ctx.go("journal")));
-}
-
-
+export async function renderSubtabControl(ctx) { return renderControlMainWorkspace(ctx); }
+export async function renderSubtabSchedules(ctx) { return renderScheduleMainWorkspace(ctx); }
+export async function renderSubtabIncidents(ctx) { return renderIncidentWorkspace(ctx); }
+export async function renderSubtabJournal(ctx) { return renderJournalMainWorkspace(ctx); }
 export async function renderSubtabDiagnostics(ctx, siteId) {
  const {card,table,select,field,input,btn,api,notice,div}=ctx;
  const root=div("stack");
@@ -262,9 +208,9 @@ export async function renderSubtabDiagnostics(ctx, siteId) {
  const labels={topology:l("Sơ đồ đấu nối","Topology"),meter_ct:"Meter / CT",power_direction:l("Chiều công suất","Power direction"),battery:"BMS",control_readback:l("Điều khiển & đọc lại","Control & readback"),alarms:l("Cảnh báo","Alarms")};
  root.append(card(l("Kiểm tra nghiệm thu","Commissioning checks"),
   notice("Đây là biên bản xác nhận thủ công, không tự cấp chứng chỉ hay mở quyền điều khiển.","These are manual attestations; they do not issue certificates or unlock control."),
-  table([l("Hạng mục","Check"),t("status"),l("Bằng chứng","Evidence")],data.steps.map(s=>[labels[s.id],s.status,s.evidence||"—"]))));
+  table([l("Hạng mục","Check"),t("status"),l("Bằng chứng","Evidence")],data.steps.map(s=>[labels[s.id],t(s.status),s.evidence||"—"]))));
  if(["Installer","Senior Engineer"].includes(ctx.state.me.user.role)) {
- const check=select(Object.entries(labels)),result=select([["pending","pending"],["pass","pass"],["warning","warning"],["fail","fail"]]),evidence=input("text","");
+ const check=select(Object.entries(labels)),result=select(["pending","pass","warning","fail"].map(key=>[key,t(key)])),evidence=input("text","");
  const save=btn(l("Ghi nhận kết quả","Record result"),async()=>{
   try {await api(`/sites/${encodeURIComponent(siteId)}/diagnostics-checklist`,{site_id:siteId,check:check.value,result:result.value,evidence:evidence.value});await ctx.render();}
   catch(error){root.append(ctx.p(error.message,"bad"));}
@@ -276,92 +222,60 @@ export async function renderSubtabDiagnostics(ctx, siteId) {
 }
 
 
-export async function renderSubtabReports(ctx) { return await renderReportWorkspace(ctx); }
 
-
+export async function renderSubtabReports(ctx) { return renderReportWorkspace(ctx); }
 export async function renderSubtabNetwork(ctx, siteId) {
- const root=ctx.div("stack");
- try {
- const data=await ctx.api(`/sites/${encodeURIComponent(siteId)}/network-status`);
- root.append(ctx.card(l("Logger / Agent / Mạng","Logger / Agent / Network"),
- ctx.notice("Đăng ký agent không có nghĩa là agent đang online. Chưa có phép đo đường truyền thì hiển thị chưa xác định.","Enrollment is not online status. Network measurements remain unknown until observed."),
- ctx.table(["Agent",t("status"),l("Lần thấy cuối","Last seen")],data.agents.map(a=>[a.name||a.id,a.enabled?"ENROLLED":"DISABLED",a.last_seen||"—"])),
- ctx.btn(l("Cấu hình và chẩn đoán nguồn","Source configuration and diagnostics"),()=>ctx.go("reports","sources"))));
- } catch(error){root.append(ctx.p(error.message,"bad"));}
- return root;
+  const data=await ctx.api('/sites/'+encodeURIComponent(siteId)+'/network-status');
+  return networkWorkspace(ctx,siteId,data);
 }
-
-
-export async function renderSiteOverviewWorkspace(ctx, siteId) {
-  const { div, e, empty, l, api } = ctx;
-  const container = div("stack");
-
-  const subtabs = [
-    ["overview", l("Tổng quan", "Overview")],
-    ["data", l("Dữ liệu", "Data")],
-    ["devices", l("Thiết bị", "Equipment")],
-    ["control", l("Điều khiển", "Control")],
-    ["schedules", l("Lịch / TOU", "Schedule / TOU")],
-    ["incidents", l("Cảnh báo", "Alerts")],
-    ["journal", l("Nhật ký", "Journal")],
-    ["diagnostics", l("Chẩn đoán", "Diagnostics")],
-    ["reports", l("Báo cáo", "Reports")],
-    ["network", l("Logger / Agent / Mạng", "Network")],
+export function renderSubtabPlantInfo(ctx, siteId, data) {
+  const site = data.site || {}, loc = data.location_info || {}, specs = site.declared_specs || {};
+  const fields = [
+    [l('Tên nhà máy','Plant name'), site.name],
+    [l('Chủ sở hữu','Owner'), loc.customer || site.customer],
+    [l('Địa chỉ','Address'), loc.address],
+    [l('Múi giờ','Timezone'), loc.timezone],
+    [l('Tọa độ','Coordinates'), loc.latitude != null && loc.longitude != null ? loc.latitude + ', ' + loc.longitude : null],
+    [l('Công suất lắp đặt','Installed capacity'), quantity(site.capacity_kwp ?? loc.capacity_kwp,'kWp')],
+    [l('Dung lượng pin khai báo','Declared battery capacity'), quantity(specs.battery_capacity_kwh,'kWh')],
+    [l('Giới hạn phát lưới khai báo','Declared export limit'), quantity(specs.grid_limit_kw,'kW')],
+    [l('Ngày khởi tạo','Created'), site.created_at ? date(site.created_at) : null],
   ];
-
-  const currentSubtab = ctx.state.tab || "overview";
-  const subnav = div("overview-subtabs");
-  subtabs.forEach(([id, label]) => {
-    const b = e(
-      "button",
-      label,
-      "overview-subtab-btn" + (currentSubtab === id ? " active" : "")
-    );
-    b.onclick = () => {
-      ctx.go("overview", id, "main");
-    };
-    subnav.append(b);
-  });
-  container.append(subnav);
-
+  return ctx.card(l('Hồ sơ nhà máy','Plant information'),
+    plantMedia(ctx,site),
+    ctx.div('plant-info-attrs-grid', ...fields.map(([label,value]) =>
+      ctx.div('plant-info-attr', ctx.e('span',label,'attr-label'),ctx.e('b',value ?? '—','attr-val')))),
+    ctx.admin() ? ctx.btn(l('Chỉnh sửa hồ sơ','Edit plant information'), () => ctx.siteForm(site)) : null);
+}
+export async function renderSiteOverviewWorkspace(ctx, siteId) {
+  const container = ctx.div('stack site-workspace');
   let data;
-  try {
-    data = await api(`/sites/${siteId}/overview-summary`);
-  } catch {
-    data = null;
+  try { data = await ctx.api('/sites/' + encodeURIComponent(siteId) + '/overview-summary'); }
+  catch (error) {
+    return ctx.empty(l('Không tải được dữ liệu nhà máy','Could not load plant data'),error.message,
+      ctx.btn(l('Thử lại','Retry'),() => ctx.render()));
   }
-
-  if (!data) {
-    container.append(
-      empty(
-        l("Không tải được dữ liệu nhà máy", "Could not load plant data"),
-        l("Vui lòng kiểm tra lại kết nối.", "Please check connection.")
-      )
-    );
-    return container;
-  }
-
-  if (currentSubtab === "data") {
-    container.append(await renderSubtabData(ctx, siteId, data));
-  } else if (currentSubtab === "devices") {
-    container.append(await renderSubtabDevices(ctx, siteId, data));
-  } else if (currentSubtab === "control") {
-    container.append(await renderSubtabControl(ctx, siteId, data));
-  } else if (currentSubtab === "schedules") {
-    container.append(renderSubtabSchedules(ctx, siteId, data));
-  } else if (currentSubtab === "incidents") {
-    container.append(renderSubtabIncidents(ctx, siteId, data));
-  } else if (currentSubtab === "journal") {
-    container.append(renderSubtabJournal(ctx, siteId, data));
-  } else if (currentSubtab === "diagnostics") {
-    container.append(await renderSubtabDiagnostics(ctx, siteId, data));
-  } else if (currentSubtab === "reports") {
-    container.append(await renderSubtabReports(ctx, siteId, data));
-  } else if (currentSubtab === "network") {
-    container.append(await renderSubtabNetwork(ctx, siteId, data));
-  } else {
-    container.append(renderSubtabOverview(ctx, siteId, data));
-  }
-
+  const site = data.site || {}, ps = data.plant_status || {};
+  container.append(ctx.div('site-heading',
+    ctx.div('row', plantMedia(ctx,site,true),
+      ctx.div('stack gap-none', ctx.e('h2',site.name || siteId),
+        ctx.e('p',data.location_info?.address || l('Chưa khai báo địa chỉ','Address not recorded'),'muted small'))),
+    ctx.div('row',ctx.badge(stateLabel(ps.status),ps.status === 'ONLINE' ? 'good' : 'warn'),
+      ctx.btn(l('Hồ sơ nhà máy','Plant information'), () => ctx.go('overview','plant_info','main')))));
+  const subtabs = [
+    ['overview',l('Tổng quan','Overview')], ['data',l('Dữ liệu','Data')], ['devices',l('Thiết bị','Equipment')],
+    ['control',l('Điều khiển','Control')], ['schedules',l('Lịch vận hành','Schedules')],
+    ['incidents',l('Cảnh báo','Alerts')], ['journal',l('Nhật ký','Journal')],
+    ['reports',l('Báo cáo','Reports')], ['diagnostics',l('Kiểm tra lắp đặt','Installation checks')],
+    ['network',l('Kết nối','Connections')], ['plant_info',l('Hồ sơ','Plant information')],
+  ];
+  const current = ctx.state.tab || 'overview';
+  container.append(ctx.tabs(subtabs,current,tab=>ctx.go('overview',tab,'main')));
+  const views = {overview:renderSubtabOverview,data:renderSubtabData,devices:renderSubtabDevices,
+    control:renderSubtabControl,schedules:renderSubtabSchedules,incidents:renderSubtabIncidents,
+    journal:renderSubtabJournal,diagnostics:renderSubtabDiagnostics,reports:renderSubtabReports,
+    network:renderSubtabNetwork,plant_info:renderSubtabPlantInfo};
+  container.append(await (views[current] || renderSubtabOverview)(ctx,siteId,data));
   return container;
 }
+import { networkWorkspace } from './network-workspace.js';

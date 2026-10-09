@@ -138,11 +138,60 @@ async def test_config_with_dynamic_read_fetches_fresh_hardware_timestamp(device)
         return ok()
 
     client = make(handler)
-    config = await client.configuration(device, dynamic_read=True)
+    config = await client.configuration(device, dynamic_read=True, dynamic_poll_interval=0)
     assert config.values["maxChargeCurrent"] == 35
     assert config.freshness_verified is True
     assert config.device_timestamp is not None
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_dynamic_control_read_polls_until_666_ignoring_intermediate_success():
+    # Sequence of statuses: 100 (pending), 100 (pending), 300 (executing), 666 (completed)
+    status_seq = iter(["100", "100", "300", "666"])
+    poll_count = 0
+
+    def handler(request):
+        nonlocal poll_count
+        if result := auth(request):
+            return result
+        path = request.url.path
+        if path.endswith("/dynamicControl/readResult"):
+            poll_count += 1
+            st = next(status_seq)
+            # Deye API returns success: True for HTTP call even when order status is pending
+            return ok(status=st, maxSellPower=8000)
+        if path.endswith("/dynamicControl/read"):
+            return ok(orderId=12345)
+        return ok()
+
+    client = make(handler)
+    res = await client.dynamic_control_read("TEST-SN", poll_interval=0, max_attempts=10)
+    assert res["status"] == "666"
+    assert poll_count == 4
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_dynamic_control_read_raises_on_hardware_failure():
+    from solar_fleet.domain import VendorError
+
+    def handler(request):
+        if result := auth(request):
+            return result
+        path = request.url.path
+        if path.endswith("/dynamicControl/readResult"):
+            return ok(status="400")
+        if path.endswith("/dynamicControl/read"):
+            return ok(orderId=12345)
+        return ok()
+
+    client = make(handler)
+    with pytest.raises(VendorError, match="dynamic_read_failed"):
+        await client.dynamic_control_read("TEST-SN", poll_interval=0, max_attempts=5)
+    await client.close()
+
+
 
 
 @pytest.mark.asyncio

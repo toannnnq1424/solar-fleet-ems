@@ -4,7 +4,14 @@ Ngày lập: **27/09/2026**. Chủ sở hữu thực thi: người/agent làm vi
 
 ## 1. Hợp đồng tiếp tục
 
-Đây là **hàng đợi thực thi chuẩn** khi người dùng nói “tiếp tục”, “làm tiếp” hoặc yêu cầu tiếp tục sửa chữa mà không chỉ định phạm vi khác. Chỉ dẫn mới, cụ thể của người dùng được ưu tiên; ở plan mode chỉ khảo sát/lập kế hoạch, không sửa file hay commit.
+**Checkpoint 09/10/2026:** user yêu cầu báo cáo, commit/push rồi dừng chờ lệnh. Xem
+[checkpoint duy nhất](vendor-feature-backlog-2026-10-05.md#resume-checkpoint), SESSION-2026-10-09-03,
+[đánh giá thật](project-assessment-2026-10-09.md) và [verification 1.894 BE/107 UI](evidence/energy-flow-ui-2026-10-09.md).
+UI-ENERGY-09/LIVE-01/GW-01 vẫn mở; 12 ảnh lưu riêng ngoài Git. E09.11 quick-control và
+ASSESS-EMS-01 đã lập bước tiếp, chưa triển khai. Commit/push theo quyền riêng lần này,
+không cấp quyền deploy/ghi thiết bị hoặc tự chạy tiếp sau bàn giao.
+
+Đây là lộ trình nền R01–R12. Từ **08/10/2026**, điểm vào tiếp tục chuẩn là [checkpoint và runbook trong vendor backlog](vendor-feature-backlog-2026-10-05.md#resume-checkpoint), theo yêu cầu người dùng; tài liệu này giữ các chi tiết/gate R01–R12, không tạo hàng đợi cạnh tranh. Chỉ dẫn mới, cụ thể của người dùng được ưu tiên; ở plan mode chỉ khảo sát/lập kế hoạch, không sửa file hay commit.
 
 - Đọc tài liệu này, `AGENTS.md`, trạng thái Git và bằng chứng liên quan trước khi chọn việc. Không dựa vào trí nhớ hội thoại hoặc số test của lần trước.
 - Bắt đầu từ **Điểm tiếp tục** bên dưới, làm một lát cắt hoàn chỉnh BE → FE → test → tài liệu nếu có UI. Không tự chuyển sang sửa nhãn nhỏ khi nhiệm vụ an toàn/dữ liệu còn làm được.
@@ -187,39 +194,187 @@ Trạng thái: READY = làm được ngay; TODO = chưa bắt đầu/phụ thu�
 | R11 | IN_PROGRESS | CI tách backend/browser jobs, Chromium fixture và Ruff toàn cây; local build kiểm chứng, chưa hosted CI/fresh-checkout/restore/soak |
 | R12 | BLOCKED | Chưa có exact-profile hardware acceptance/quyền thử ghi riêng; không cản R01–R11 |
 
-**Điểm tiếp tục — đợt before_project integration (01/10/2026):**
+**Điểm tiếp tục hiện tại — GoodWe native reads thực tế + UI, 08/10/2026:**
 
-Đợt này tập trung bổ sung code từ before_project (toàn bộ quyền đã mua), mở rộng local agent và chuẩn hoá interface.
+Ưu tiên mới: sửa số liệu đứng yên/lệch thời điểm. Đã triển khai monitor đọc lại local
+mỗi 15s ngay trong dialog, nhịp SEMS+ 60s (không SLA hãng), bỏ cache station 15 phút,
+nút “Lấy số liệu mới nhất” dùng collector chung và trả trạng thái chờ/lỗi rõ ràng.
+Selector nhà máy gồm tên/hãng/tài khoản (identity chỉ org-admin). Suite cuối lát cắt
+đạt 1.894 backend / 104 browser; live latest-client và đối chiếu nhiều chu kỳ thật
+còn mở tại LIVE-01 trong [checkpoint chuẩn](vendor-feature-backlog-2026-10-05.md#resume-checkpoint).
+Chưa tuyên bố realtime từng giây hoặc mọi màn đủ
+dữ liệu. Tiếp theo rà từng sidebar có input nào còn thiếu, rồi mock/power-history/
+MPPT/battery relationship; không lấp dữ liệu trống bằng tổng nhà máy hoặc dữ liệu giả.
 
-**Đã hoàn thành trong đợt này:**
+Runbook mới bao gồm BUG-LIVE-02 (bảng thông số phía dưới modal khác snapshot với
+panel live; cần tái hiện client mới), toàn bộ UI/VQA/interface và kế hoạch DE/AI.
+Storage audit xác nhận UNKNOWN timestamp ghi đè mỗi kênh; DE-00 lưu receipt hữu hạn
+là việc chưa triển khai, không phải warehouse đã tồn tại. Không tiếp tục từ các
+điểm ưu tiên lịch sử bên dưới nếu mâu thuẫn checkpoint đầu vendor backlog.
 
-1. **`interfaces.py`** — đã có từ đợt trước: `ReadAdapterProtocol`, `WriteAdapterProtocol`, `LocalReadAdapterProtocol`, `InverterControlMixin`, `TelemetrySnapshot`, `TouSlot`, `WorkMode`, `METRIC_*` constants, `normalize_points`, `adapter_capabilities`.
+**Ưu tiên mới từ người dùng: số liệu ở Tổng quan và các màn khác chưa có.** Đã tìm
+API station flow/statistics bị thiếu trong connector, viết `StationReport` monitoring
+chung và đường adapter → guarded poll → store → scoped fleet/site → UI/report.
+Kênh này tách canonical để không giả thời gian/GOOD-quality hoặc mở điều khiển.
+Số kiểm thử và live acceptance mới phải đọc evidence 08/10, không lấy baseline bên dưới.
+Chưa hoàn tất power history, alarm, device KPI mapping, toàn bộ UI hay physical control.
 
-2. **Register profiles mới (modbus_profiles/):**
-   - `sungrow_registers.py` — 40+ fields từ Sungrow-SHx-Inverter-Modbus-Home-Assistant (MIT, mkaiser, 2026-06-19); input + holding registers, decode helper.
-   - `huawei_registers.py` — 50+ fields từ huawei-solar-lib (MIT, wlcrs); SUN2000 + LUNA2000 battery + power meter, gain-based decode.
-   - `modbus_profiles/__init__.py` — registry tập trung: (vendor, model_series) → field_list + decoder; hỗ trợ Growatt SPH/MIN/MIX/MID/MAX, Sungrow SHx/SH/SG, Huawei SUN2000, Solis S6, Deye.
+08/10 follow-up: sửa statistics thực tế (dated day/month/year bucket, không flat
+summary fallback) và thêm DeviceReport riêng mỗi inverter từ telemetry+telecounting.
+Live Tổng quan đủ 6 KPI/8 ngày, hai inverter khác serial/AC, có 5 kỳ phát/sạc/xả.
+Shared device detail/realtime card + inventory/site table, không SOC station→device.
+Tiếp theo ưu tiên GoodWe equipment history/MPPT/runtime + battery relationship và
+timezone, kiểm lại UI deep flows. 11 ảnh portal đã phân loại vào backlog; AC-port,
+backup/cold-start, mode, on/off/dispatch chưa được triển khai hoặc nghiệm thu.
 
-3. **Local adapters:**
-   - `eybond_local.py` — Eybond/Bluesun/SMG/PI17/PI30 Modbus TCP port 8000; model fingerprinting qua layout_code + model_code (từ ha-eybond-local, 32 devices catalog); 28 core telemetry registers.
-   - `goodwe_local.py` — GoodWe ES/ET/EH/DT UDP port 8899; dùng goodwe library nếu cài (preferred), fallback AA55 UDP; map 25 sensor fields.
-   - `modbus_local.py` — ModbusTcpPoller: generic Modbus TCP poller dùng profile registry; gộp register addresses thành blocks hiệu quả (≤8 addr gap, max 125 regs/block).
-   - `solarman_local.py` — SolarmanV5Poller: wrapper V5 framing cho inverters qua SOLARMAN logger; dùng `solarman_v5.py` đã có.
+- Người dùng đã liên kết GoodWe SEMS+ hk trong SolarOne và đăng nhập lại để QA.
+  Đã sửa batch telemetry hỏng vì envelope thành công bỏ trường `data` trên logger/
+  BATTERY_BANK. Chỉ miễn trường data ở đúng loại/endpoint; không bỏ qua auth/lỗi schema.
+  Controller đã lưu sáu snapshot qua luân phiên, ba có số đo, 220 native points.
+  Không timestamp nguồn; không canonical KPI, history chart hoặc quyền ghi mới.
+- UI dùng một native inspector chung cho chi tiết/giám sát: lọc nhóm, tìm tiếng Việt,
+  alias thân thiện, mã kỹ thuật ẩn mặc định, giữ đơn vị/zero/null. Sửa boolean hóa
+  connectivity ở OperationalViews, bộ đếm unknown, tên/loại/lọc thiết bị, cảnh báo
+  zero hardcoded và trạng thái đồng bộ tài khoản. Tổng quan tách đã nhận/đã xác minh.
+- [Evidence](evidence/goodwe-live-read-ui-2026-10-08.md): cuối đợt BE **1.860 passed**,
+  UI **100 passed**; native UI thật inverter 98, meter 24, logger 0 kèm giải thích;
+  15 sidebar đã mở ở trạng thái rỗng và tài khoản thật. Không là pixel/hardware acceptance.
+- Tiếp theo: tiếp tục UI mock chi tiết/network/EMS/native và thử deep flows; nghiên cứu
+  source timestamps, exact model/firmware, battery relationship, I3 history/alarms.
+  GoodWe portal có work-mode/TOU/peak-shaving/smart-charge, nhưng API/control/readback
+  chưa đủ hợp đồng và nghiệm thu. Không tự mở khóa chỉ vì có menu hoặc tài khoản.
+- Môi trường QA thủ công trong cùng browser phải dùng **localhost** nếu SolarOne thật
+  dùng **127.0.0.1** (hoặc browser profile riêng): cookie không tách theo port.
+  Không dùng phiên thật trong automated tests. Giữ một controller, writes=false;
+  không commit/push/deploy. Chưa tuyên bố toàn bộ UI hoàn thiện hoặc yêu cầu Deye ngay.
 
-4. **`local_daemon.py`** — LocalAgentDaemon: điều phối N polling coroutines, per-device asyncio task, exponential backoff quarantine (5 fail → 60–600s), shared outbox queue, status API.
+**Checkpoint trước — SEMS+ read-only connector trial, 07/10/2026:**
 
-5. **`adapters/__init__.py`** — export đầy đủ: interface, TOU, cloud adapters, local adapters, daemon.
+- Đã triển khai I1/I2 có giới hạn qua cùng GoodWe plugin: auth/region/consent/vault,
+  typed discovery/related devices, native telemetry và connectivity UNKNOWN end-to-end.
+  [Evidence](evidence/goodwe-semsplus-connector-2026-10-07.md): BE 1.843 passed,
+  browser 98 passed; fixtures không gọi hãng. Không là live hoặc pixel acceptance.
+- Form SEMS+ riêng dùng email/mật khẩu/máy chủ, không App ID/Secret; đã sửa autofill
+  tài khoản SolarOne lẫn vào form hãng, xóa password sau phản hồi, nhãn trạng thái và
+  cảnh báo dễ hiểu. Người dùng tự nhập và xác nhận consent; không lấy bí mật qua chat.
+- Tiếp theo Q1-connector: xác thực trên SolarOne → kiểm tra đọc → đối chiếu inventory,
+  type/relationship/time/unit với portal; mọi sai khác giữ UNKNOWN, bổ sung contract test
+  đã loại bí mật trước sửa mapping. Không tự đổi vùng hoặc mở ghi. Deye vẫn cần app keys.
+- Các phần độc lập còn làm được: UI pixel/accessibility toàn 26 màn, density/hierarchy,
+  nested rules, source timestamps/canonical mappings và network executor. Không gọi tất cả
+  là “chờ tài khoản”. I3 history/alarms và live soak còn mở. Chưa commit/push/deploy.
 
-**Verification:** 13 files syntax OK (`py_compile`). Full test suite: 69 passed trước khi -x stop ở pre-existing async failure (`test_command_aba_fence` — thiếu `pytest-asyncio`, không phải do code mới). Test đang chạy tiếp.
+**Checkpoint trước — GoodWe portal QA, 07/10/2026:**
 
-**Còn lại / Phiên kế tiếp:**
-- Kiểm tra result đầy đủ của test suite (đang chạy).
-- Viết unit tests cho register profile decoders (Sungrow, Huawei decode path).
-- Viết contract tests cho EybondLocalAdapter và GoodWeLocalAdapter với mock socket.
-- Thêm `Sunsynk` local adapter (Modbus TCP port 502, đã có `tou_builder.py` cho Sunsynk TOU format).
-- Wiring LocalAgentDaemon vào main application bootstrap / service entrypoint.
-- Frontend: UI quản lý local device configs (address/port/vendor/model_series/poll_interval).
-- Hardware acceptance R12: cần exact device + real credentials để nghiệm thu.
+- Người dùng đã đăng nhập SEMS+; [baseline chỉ đọc đã loại định danh](evidence/goodwe-portal-qa-2026-10-07.md) ghi inventory, số đo thay đổi, alarm recovery/acknowledgment và nhóm chức năng logger/analytics/report. Không lấy credentials/cookie/token, không gọi API bằng phiên browser, không ghi phần cứng; tab được giữ để đối chiếu tiếp.
+- Không hỏi lại tên app từ logo. Q1-portal có bằng chứng, **Q1 SolarOne connector chưa chạy**. GoodWe runtime còn classic SEMS. Nguồn MIT gateway SEMS+ đã kiểm code/test ở revision ghim, chưa nhập code hay thử live credentials.
+- Sửa xác nhận: `GoodWe.latest()` bỏ online cố định (version 0.3.1); giữ native status và missing timestamp. Common boolean vẫn gộp unknown vào false: I2 phải xử lý end-to-end, chưa được coi xong chỉ từ bản vá này. UI SEMS+ tách portal/inventory/connector, không mở form legacy cho mật khẩu SEMS+.
+- Bước tiếp theo: scoped I1 auth/region/allowlist/errors/consent và I2 typed discovery cho SEMS+ qua plugin/Controller hiện hữu; connectivity ba trạng thái và native timestamp/unit. Fixtures trước, rồi người dùng nhập lại tài khoản **trong SolarOne** khi connector đủ điều kiện. Không tái sử dụng/copy browser session. Không suy các nút portal thành capability được mở khóa.
+- UI U/R10 vẫn chưa hoàn tất: pixel/accessibility toàn 26 màn, nested rules/auto model mapping và network executors còn mở. Không tự chuyển mọi công việc còn thiếu thành “chờ tài khoản”. Kết quả checks đợt này cập nhật ở evidence; chưa commit/push/deploy.
+
+**Checkpoint trước — UI chuyên sâu EMS/network, 07/10/2026:**
+
+- [Evidence](evidence/ui-deep-workspaces-2026-10-07.md): EMS action schema theo device, draft trống, fence và lossless legacy preservation; directory/inspector/dry-run ba cột; network khai báo tách quan sát; bốn specialist chart panels chọn kênh; lớp bản đồ. Shared shell/app.css, không seed production hoặc tự unlock capability.
+- Verification cuối: 96 browser đạt (150,38s), BE 1.810 đạt/13 warnings (293,97s), Ruff/55 JS/build/56 assets byte-match/diff-check đạt. 16 ảnh final VI/EN/1600/430, zero page errors/overflow/commands. Các lần lỗi setup test/capture ghi trong evidence, không tính là đạt.
+- Vẫn chưa đóng U/R10: OR/nested conditions, auto exact-model phase/MPPT mapping, physical network diagnostics/Wi-Fi/mTLS/OTA và pixel/accessibility acceptance còn công việc kỹ thuật, không chỉ thiếu credentials.
+- Q1 đầu tiên có thể là kiểm tra portal GoodWe **chỉ đọc do người dùng đăng nhập**, để xác minh nền tảng/quyền/plant ID. Không gọi đây là SolarOne connector acceptance: SEMS+ integration chưa xác minh. Deye còn app keys/grants. Không lưu secrets/customer payload/screenshot định danh trong Git; không thử ghi phần cứng từ quyền login.
+- Đã mở và giữ tab in-app `https://semsplus.goodwe.com/#/login` cho người dùng đăng nhập, chưa nhập credentials hoặc chấp thuận điều khoản. Chờ người dùng báo đã đăng nhập; không đọc password fields. Tab này là portal hãng, không phải SolarOne.
+- Giữ thứ tự interface I0–I6 trong backlog canonical; chưa thay core/adapter ở đợt này, chưa commit/push/deploy. Tiếp tục sửa UI độc lập với hãng bị chặn; sau baseline read-only mới chốt các interface gaps có bằng chứng.
+
+**Checkpoint trước — UI biểu đồ quan sát, 07/10/2026:**
+
+- Đã tiếp tục cổng U, không nhảy sang refactor backend. Device history và realtime chung bộ so sánh cùng đơn vị, lọc thời gian/chất lượng, min/max/count/time, bảng truy nguồn. Tách device ID trong channel identity; dữ liệu UNVERIFIED phải chủ động chọn, marker rỗng, không đổi quality backend. Thông số canonical có nhãn VI/EN thay code.
+- Xem [evidence](evidence/ui-observation-inspector-2026-10-07.md) cho test/QA và giới hạn. Không seed production, tài khoản thật, hardware write, commit/push/deploy.
+- Verification: 89 UI đạt (150,50s, trong quá trình refinement); final affected 10 UI đạt (17,31s); 1.810 BE đạt (310,88s, 13 warnings); Ruff/51 JS/build/52 wheel assets/diff-check đạt. Tám ảnh inspector VI/EN + một realtime; fixture riêng đã dừng. Không quy thành pixel acceptance.
+- Tiếp theo vẫn UI: nhóm chart AC-phase/DC-string/battery/latency đúng mapping, network topology/unknown, action fields theo capability, nested EMS, map layers và nghiệm thu pixel/accessibility toàn bộ. Cải thiện chart hiện tại không đồng nghĩa đã xây mọi nhóm chart chuyên sâu. Không suy phase/MPPT từ tên native gần giống.
+- Q0/Q1 còn prerequisites Deye/GoodWe đã ghi; chưa yêu cầu người dùng nhập mật khẩu. Refactor I0–I6 theo kế hoạch dưới chỉ sau UI và baseline QA hoặc kết luận blocked có phạm vi.
+
+**Checkpoint trước — kế hoạch interface đã hợp nhất, 07/10/2026:**
+
+- Theo yêu cầu người dùng, toàn bộ nghiên cứu và kế hoạch theo hàm nằm trong [vendor-feature-backlog-2026-10-05.md, Phần II](vendor-feature-backlog-2026-10-05.md#interface-plan), gồm 34 intent và đối chiếu F01–F58. File kế hoạch tách trước đây chỉ còn redirect, tránh hai nguồn cập nhật khác nhau.
+- **Thứ tự được yêu cầu:** U (UI tồn đọng) → Q0 (điều kiện tối thiểu đăng nhập an toàn) → Q1 (người dùng nhập tài khoản, QA đọc có scope) → I0–I6 (chuẩn hóa từng nhóm hàm) → Q2 (QA hồi quy). Hãng bị blocked không chặn nghiên cứu/triển khai độc lập trên hãng đủ điều kiện; không bịa live acceptance.
+- Giữ IntegrationRegistry/Controller làm nền; chung semantics khi khả thi, derived service có provenance, extension đặc thù giữ riêng nhưng chung guards. Không ép mọi hãng có mọi method, không cho direct send bypass CommandEngine.
+- Lượt 07/10 chỉ chỉnh tài liệu, chưa sửa UI/backend, chưa login/push/deploy; không chạy lại tests/build. Kế hoạch không tự cấp quyền viết phần cứng. Bước triển khai kế tiếp vẫn là UI theo các thiếu sót trong checkpoint 05/10 bên dưới; các prereq xác thực chưa được coi đã giải quyết.
+
+**Checkpoint trước — vendor audit / UI onboarding, 05/10/2026:**
+
+- Đã viết [58 hạng mục phát triển](vendor-feature-backlog-2026-10-05.md), phân biệt API/UI/marketing/lịch sử/chưa rõ; không suy Traffic System hay Supply System từ menu. [Audit interface](vendor-interface-audit-2026-10-05.md) ghi 7 findings: registry thật nhưng history/alarm chưa nối, facade trùng có lỗi quality tái hiện, native routes phần lớn pure/locked, Bluesun island và auth còn thiếu. Không sửa backend ở đợt này.
+- UI onboarding tách module, provider/OEM đúng danh mục, search/inspect hồ sơ thực, chống response muộn, nguồn kỹ thuật thu gọn, bước ở cột trái, responsive VI/EN. Visual QA bắt và sửa chữ `null` từ DOM replaceChildren. Không thêm seed production, fake graph/online hoặc lệnh.
+- Xem [evidence](evidence/ui-onboarding-audit-2026-10-05.md) cho lệnh, số test và phạm vi. R10 vẫn mở, không nghiệm thu pixel toàn bộ 26 màn hình.
+- Tiếp tục UI: phase/string/battery/latency charts đúng semantics, network/topology empty/unknown, action fields theo capability, nested EMS và map layers/accessibility. Giữ 15 sidebar, một stylesheet; không lấp số liệu thiếu. Backlog tính năng hãng là cho tương lai, không tự triển khai 58 mục.
+- Gate QA thật vẫn mở: Deye cần application keys và kiểm grant/region; GoodWe phải xác định SEMS/SEMS+ và nối contract thật. Chưa xin mật khẩu, chưa login hãng. IA-03 cần regression/fix trước khi dùng facade nhưng chưa thấy nó nằm trên poll chính; không đánh đồng với dữ liệu dashboard hiện tại.
+
+**Checkpoint trước — UI account readiness / EMS / TOU, 04/10/2026:**
+
+- Đã thêm preflight không thu mật khẩu, GoodWe chọn nền tảng/cảnh báo SEMS+, diagnostic khóa lựa chọn khi đang chạy và xác nhận phạm vi global sync. Một rule editor ba cột cho tạo/sửa/đa điều kiện, chọn metric/unit đã quan sát, không preset ngưỡng. TOU resize pointer/phím 15 phút, hủy kéo bằng Esc, chọn ô đích trên mobile và undo. Không thêm seed production/core adapter/hardware action.
+- Đã soạn [bộ hướng dẫn xin quyền API](vendor-api-access-guide-vi.md) theo từng hãng và mẫu thư; không đánh đồng mọi hãng cần App ID/Secret. Chỉ nghiên cứu công khai, chưa đăng ký/gửi đơn thay người dùng.
+- Verification cuối: **84 UI đạt** (133,92s), **1.810 BE đạt** (291,03s, 13 warnings; trước sửa Esc frontend cuối), Ruff/50 JS modules/build/wheel 51 assets/diff-check đạt. 12 ảnh VI/EN mới, không page overflow/exception; xem [bằng chứng và giới hạn](evidence/ui-account-readiness-2026-10-04.md). Đây không phải nghiệm thu pixel toàn bộ UI.
+- R10 tiếp theo: chart AC-phase/DC-string/battery/latency cần đúng semantics, onboarding/network sâu, nested rule và field hành động theo model, map layers/clustering, touch trên thiết bị thật, accessibility và pixel/usability. Tiếp tục UI độc lập; không lấp bằng data giả, không coi chỉ chờ tài khoản.
+- Gate tài khoản thật: Deye chưa có app keys; GoodWe chưa xác định app/version và connector SEMS+ chưa được kiểm chứng. Portal cũ có thông báo chuyển nền tảng; không suy mọi API/vùng đã tắt. Solis OAuth trong code dùng client_credentials khác customer-consent contract chính thức; cần reconcile trước live QA. Các phần này là việc backend còn thiếu, không được báo đã sẵn sàng chỉ vì có form hoặc khóa. Không xin mật khẩu trong chat, không tự login/phát lệnh/push.
+
+**Checkpoint trước — UI toàn workspace, 04/10/2026:**
+
+- Chỉ dẫn hiện tại ưu tiên toàn bộ UI; đợt này không tiếp tục core backend, login hãng, push hay hardware. Đã rà 26 nhóm màn hình theo mock chi tiết, không dùng collage SolarHub làm chuẩn style; không thêm seed production.
+- Đã sửa shared spacing/empty tables/mobile drawer và giữ plant scope; form gửi lại sau lỗi, bảo toàn bản nháp khi live refresh; bỏ các panel protocol dựng số đo/session mẫu. Thêm basemap đất liền/GPS thật/pan/zoom, bulk editor ba cột, model/HA collector fields và register rows thay JSON, datetime-local, realtime sáu KPI + flow/chart/status/mini-charts, SLA/handover/maintenance layout. [Bằng chứng và giới hạn](evidence/ui-whole-workspace-2026-10-04.md).
+- Verification: **78 UI đạt** (120,63s), gồm 31 routes trên installation thật sự trống; **1.810 BE đạt** (297,77s, 13 warnings) trước các refinements UI cuối; Ruff/48 JS modules/build/wheel byte comparison/diff-check đạt. Visual sweep 32 primary/site + 29 deep desktop + 5 mobile không page overflow/exception. Không suy pixel acceptance từ các số này.
+- R10 vẫn IN_PROGRESS: cần nghiệm thu pixel/usability, đúng nhóm chart AC-phase/DC-string/battery/latency, EMS rule-builder và sâu onboarding/network, calendar resize/touch, map layers/clustering, accessibility. Không coi chúng chỉ là chờ tài khoản hoặc lấp bằng fake data. Giữ các phần độc lập này trước khi tự mở rộng core; sửa cả BE chỉ theo phạm vi mới được giao.
+- Deye/GoodWe chưa live acceptance, chưa thử tài khoản người dùng trong đợt này. Deye cross-customer app grants/customer tenancy và GoodWe platform/discovery vẫn mở; không hứa production-ready. Không tự nhắn yêu cầu mật khẩu trong chat hoặc phát lệnh thiết bị.
+
+**Checkpoint trước — ngoại lệ core Deye cùng UI, 04/10/2026 (lịch sử):**
+
+- Chỉ dẫn mới cho phép triển khai backend luồng Deye email/password ngay, cùng UI. Đã tách ứng dụng quản trị khỏi form tài khoản, xác thực trước khi lưu, mã hóa credentials, kiểm session/revision và buộc liên kết lại khi khóa thay đổi/tắt. Không mở rộng quyền: chỉ quản trị viên toàn tổ chức được liên kết; chưa customer self-service đa tenant. Xem [bằng chứng Deye](evidence/deye-managed-connection-2026-10-04.md). Các dòng “chưa sửa backend/login” dưới đây mô tả đợt trước, không còn là trạng thái của lát cắt mới.
+- Verification đợt Deye: **1.810 backend đạt** (298,96s, 13 warnings), **67 browser đạt** ở lần full cuối (103,96s); 21 Deye/registry và 11 UI liên quan đạt ở các lần kiểm tra bổ sung. Ruff/all-JS/build/inventory/diff-check đạt. Đã xem ảnh VI/EN desktop/mobile, chỉnh dialog 700px và bảng tài khoản cuộn ngang trong card; không có live acceptance hay seed production.
+- Đợt UI tiếp theo đã thực hiện: bảy calculator grid/phase/heat/SG-ready/EV/genset/black-start thay JSON/presets bằng field trống; chart lịch sử bảy kênh với trục kW/% và ngắt khoảng thiếu; network summary/collectors/profiles/observed metadata trống. Sửa SG-ready đọc đúng `target_tank_temp_c`, bỏ fallback VUF/CUF bằng 0 và nhãn tuân thủ suy đoán. Chỉnh shared headings/spacing và chart mobile. **1.810 BE đạt** (301,77s, 13 warnings), **70 UI đạt** cuối (112,29s), Ruff/JS/build đạt. Xem [bằng chứng](evidence/ui-completion-pass-2026-10-04.md).
+- Tiếp theo: form engineer còn dài và timestamp ISO cần hướng dẫn/chọn giờ dễ dùng; chart pha/MPPT, network topology/onboarding/rollout và bản đồ nền; trạng thái site scope chưa giữ khi reload. UI 26 màn hình chưa đạt nghiệm thu pixel/usability toàn bộ. Deye cần xác nhận app A (không nhà máy) dùng cho customer B và cấp quyền phù hợp; [hướng dẫn và thư hỏi hãng](deye-developer-setup-vi.md) đã đối chiếu portal. Customer self-service/multitenancy và GoodWe platform/discovery chưa hoàn thiện; không coi fixture là live acceptance, không phát lệnh hay hứa production-ready.
+
+- Đợt mới: TOU click/keyboard/kéo cả slot desktop/sao chép ngày/hoàn tác trong bản nháp; báo cáo mixed chart + 4 mini-panels, archive/download; bỏ JSON kịch bản thị trường, thay bằng field và validation rõ ràng. Xem [bằng chứng 04/10](evidence/ui-interactions-2026-10-04.md). Không sửa backend/core/login, không tự triển khai lịch hoặc giao dịch. Cuối đợt 64 UI đạt (98,82s), sau chỉnh CSS mobile 9 ca liên quan đạt (16,91s); 1.791 backend đạt (284,81s, 13 warnings), 38 ca calculation/market đạt. Ruff/JS/build đạt; đây không là nghiệm thu pixel/hardware/production.
+- Việc UI tiếp theo: các calculator EMS còn JSON, chart đo đếm đa kênh/pha, chi tiết network/onboarding/rollout và map nền. Tiếp tục kiểm tra trống/có dữ liệu/lỗi và responsive; chưa đóng R10 hay tuyên bố pixel-perfect mọi màn. TOU drag/copy cơ bản đã có, không tiếp tục liệt kê là hoàn toàn chưa xây.
+
+- Đợt refinement mới: ma trận TOU trống/đã lưu, giá 24h thay JSON, giờ Việt Nam, hiệu suất %, thẻ điều khiển gọn, bảng cảnh báo 8 cột + charts, wizard liên kết và các tab sâu. Xem [bằng chứng mới](evidence/ui-refinement-2026-10-03.md). Cuối đợt **56/56 UI đạt, 87,70s** và **1.791/1.791 backend đạt, 13 warnings, 289,81s**; Ruff/JS/build đạt. Đây là kiểm thử local trên working tree chưa commit, không là release/hardware acceptance.
+- Người dùng đã cho phép sửa riêng lỗi tiền: baseline/optimized cost được làm tròn trước khi tính savings/percentage/profit. Đã có hồi quy trường hợp lệch 1 VND và các tariff/load biên; không hạ assertion hoặc đổi thuật toán dispatch. Không sửa core/adapter khác trong đợt mới.
+- Kiểm tra 32 route chính + 29 tab sâu desktop và 5 view mobile, sửa thêm `[object Object]`, `null%`, thanh phân bố giả, fallback người thao tác/hãng và prerequisite xanh gây hiểu nhầm. JSON nhập giá và kịch bản thị trường đã bỏ; công cụ JSON kỹ sư EMS khác vẫn còn. Tiếp tục UI: map nền, multi-metric/phase charts, TOU resize/touch, exact-model native fields, rollout/network/onboarding chưa đủ parity. Sau UI: Deye read-only do người dùng nhập credentials → sửa từng đường backend kèm regression → QA tổng, không sửa backend mù trước hoặc chờ cuối mới test.
+- Theo chỉ dẫn mới của người dùng, hoàn thiện UI theo các mockup chi tiết trước khi sửa backend/core tiếp. Ảnh SolarHub đơn giản chỉ mô tả ý tưởng, không thay thế bộ mockup đầy đủ.
+- Đã sửa shared styles/icon SVG, luồng site thật, danh sách/thêm nhà máy, ảnh minh họa đúng loại công trình, hướng dẫn kết nối hãng, nhóm điều khiển và lịch đã lưu. Ngoại trừ lỗi làm tròn được cho phép riêng, giữ nguyên core và thay đổi adapter/backend có sẵn của người dùng.
+- Bằng chứng và giới hạn tại [UI reference pass](evidence/ui-reference-pass-2026-10-03.md). R10 vẫn IN_PROGRESS; còn đối chiếu pixel/interaction ở trang chuyên sâu, bản đồ nền, chart/editor và màn hình thiết bị. Không gọi phần còn thiếu là chỉ chờ credentials.
+- Các khẳng định tuyệt đối trong mục 01/10 bên dưới là lịch sử, **không tiếp tục coi là đã nghiệm thu**: đã tìm thấy dữ liệu hiển thị dựng sẵn, tiến trình thành công giả, nhãn kỹ thuật và diễn giải bảo mật quá mức trong code giao diện. Các chỗ được sửa được liệt kê trong evidence, không tuyên bố đã tìm hết mọi lỗi.
+- Người dùng cho phép mở trang Deye sau khi xong UI, tự nhập email/mật khẩu rồi kiểm thử đọc. Chưa mở/đăng nhập thật; không thu mật khẩu trong chat, không phát lệnh phần cứng. Hướng dẫn App ID/Secret mô tả giới hạn connector hiện tại, không phải email/password integration đã hoàn thành.
+
+**Lịch sử — đợt UI/UX Humanization, Subtab Navigation & Crash Remediation (01/10/2026):**
+
+Đợt này giải quyết dứt điểm các phàn nàn và lỗi giao diện người dùng nghiêm trọng theo phản hồi trực tiếp:
+1. **Khắc phục lỗi sập trang `button is not a function`:**
+   - Trong `device-workspace.js`: chuẩn hóa hàm tạo nút bấm, alias `button: btn` trong toàn bộ context UI để loại bỏ triệt để ngoại lệ TypeError khi người dùng chuyển qua các tab kiểm thử giao thức.
+2. **Gọn gàng dải Subtab Thiết bị (`#devices/main`):**
+   - Tái cấu trúc 20 subtab kéo dài vô tận gây rối mắt thành **6 subtab chính mạch lạc**:
+     1. `inventory`: Danh mục thiết bị (Device Inventory)
+     2. `inspector`: Kiểm tra thanh ghi Modbus (Modbus Register Inspector)
+     3. `protocols`: Giao thức & Hồ sơ hãng (Vendor Protocols & Lab)
+     4. `native_config`: Tham số theo thiết bị (Device Parameters)
+     5. `health`: Sức khỏe & Độ tin cậy (Health & Reliability)
+     6. `firmware`: Quản lý Firmware & OTA (Firmware Compliance & OTA)
+   - Thiết kế thanh công cụ phụ (`.protocol-subbar` và `.protocol-selector`) tích hợp dropdown chọn 16 bộ công cụ lab/giao thức hãng (`solis_mqtt`, `goodwe_sems`, `growatt_sph`, `solis_hybrid`, `deye_hybrid`, `solarman_v5`, `smartess_local`, `sungrow_shx`, v.v.), giữ trọn vẹn khả năng kiểm thử của kỹ sư mà không làm rối người dùng phổ thông.
+3. **Giữ chỉ mục Sidebar bên trái khi ấn các subtab:**
+   - Triển khai thuật toán định tuyến `findActiveNavEntry(entries, state)` trong `workspace.js` ánh xạ chính xác tất cả các trang con, subtab và section về đúng menu cha trên sidebar (Overview, Plants, Devices, Control, EMS Rules, Schedules, Incidents, Reports, Settings, v.v.).
+4. **Sửa lỗi dính liền chữ các liên kết thao tác:**
+   - Cập nhật quy tắc CSS `button.link` trong `app.css` với `display: inline-flex`, `gap: 4px`, `margin-right: 8px` và padding/hover hợp lý, chấm dứt hiện tượng chữ dính liền (`Mở logger / agent / mạngQuản lý nguồn dữ liệu`).
+5. **Thân thiện hóa (Humanize) toàn bộ Điều phối EMS & Máy tính tư vấn:**
+   - Thay thế toàn bộ mã hex vô nghĩa (`6cc445cdbe4211f0434d9dfd`) bằng tên thân thiện, hãng và số serial (`Biến tần · Hãng (Serial)`).
+   - Thêm nút **Nạp cấu hình mẫu chuẩn (Preset)** và nút **Xóa trắng (Clear)** cho tất cả máy tính điều phối (Volt-Watt quy chuẩn lưới, Bơm nhiệt COP, Cân bằng pha Fortescue IEC 61000-4-30, Đội sạc xe điện EV Fleet DLM) để người dùng nghiệp dư không bị bỡ ngỡ trước khung JSON trống.
+   - Trình bày kết quả tính toán dưới dạng thẻ KPI trực quan, huy hiệu trạng thái (RUN/TRIP, COP, VUF/CUF) và bảng điều phối rõ ràng; đóng gói toàn bộ JSON kỹ thuật vào thẻ mở rộng `<details>` để kỹ sư tra cứu khi cần.
+6. **Nâng cấp Kho bí mật (Secrets Vault) & Lịch sử bản ghi:**
+   - Thay thế hộp thoại JSON thô bằng thẻ thông tin bảo mật chuẩn hóa: Trạng thái kho (`AVAILABLE`), Thuật toán (`Fernet AES-128 + HMAC`), Số tài khoản bảo vệ và cam kết Zero-Knowledge an toàn tuyệt đối trên trình duyệt.
+   - Hiển thị metadata bản ghi dưới dạng Fact Card lịch sử thay cho chuỗi JSON raw.
+
+**Kết quả kiểm thử & xác minh toàn diện (Consolidated Verification):**
+- `ruff check .`: PASS (0 errors)
+- `node --check` (11 files JavaScript): PASS (0 errors)
+- `python -m build --no-isolation`: PASS (`solar_fleet_ems-0.2.0.tar.gz` và `.whl` thành công)
+- Full pytest backend: **1.789 passed, 0 failed trong 281.26s**
+- Full pytest browser/UI contracts: **38 passed, 0 failed trong 61.51s**
+
+**Điểm tiếp tục cũ ngày 01/10 (đã được checkpoint 03/10 thay thế):**
+- Duy trì chế độ READ ONLY mặc định. Không dùng credentials thật hoặc phát lệnh phần cứng khi chưa nghiệm thu R12.
+- Chuẩn bị tài liệu kỹ thuật và hướng dẫn người dùng kết nối thiết bị Deye (OpenAPI qua App ID/Secret và Modbus TCP / SOLARMAN V5 Logger cục bộ).
 
 Tiếp nối: đã thêm durable user/session revisions xuyên HTTP reads/preview, queued commands, rollout, reconciliation và WebSocket; signed plan giữ operator revision, post-ACK giữ quarantine/order IDs. Storage migration/second connection/rollback và unrelated-authority controls có tests. Bản source cuối đã kiểm chứng: backend 1613 passed (12 warnings), browser 33 passed; Ruff, JS syntax/linkage, sdist/wheel build và git diff --check đạt. Xem mục đầu findings cho log/exit artifacts và giới hạn. Ưu tiên còn lại là exact-object entity fences (heartbeat vẫn invalidates), history/report/transport matrix và security surfaces/background owners. Không coi user/session counters là full-route coverage hoặc multiprocess safety; session lookup hiện dùng BEGIN IMMEDIATE, cần đánh giá contention. Không thay FE/protocol/commissioning; R01/R02 vẫn mở.
 

@@ -5,6 +5,7 @@ import hmac
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -19,7 +20,9 @@ from .agent import install_agent
 from .analytics import install_analytics
 from .catalog import data, native_catalog
 from .controller import Controller, entity_id
+from .deye_connection import install_deye_connection
 from .domain import Model, Principal, Role, SafetyError, utcnow
+from .goodwe_connection import install_goodwe_connection
 from .incident_api import install_incidents
 from .management import install_management
 from .runtime import install_runtime
@@ -49,6 +52,11 @@ class HistoryQuery(Model):
     start: int
     end: int
     points: list[str] = Field(min_length=1, max_length=100)
+
+
+class RefreshReadings(Model):
+    site_id: str | None = Field(default=None, max_length=200)
+    device_id: str | None = Field(default=None, max_length=200)
 
 
 def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
@@ -198,6 +206,23 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         for d in devices:
             seen = controller.device(d["id"]).last_seen
             d["stale"] = seen is None or not -5 <= (utcnow() - seen).total_seconds() <= 300
+        for site in sites:
+            site["vendor_report"] = controller.reported_station(site["id"])
+        account_labels = {}
+        for site in sites:
+            config = store.get("integration", site.get("integration_id")) or {}
+            label = config.get("name", "")
+            if who.role == Role.ADMIN and "*" in who.site_ids and config:
+                if config["id"] not in account_labels:
+                    try:
+                        plugin = controller.registry.find(config.get("vendor"))
+                        identity_field = plugin.registration.get("account_identity_field", "identity_value") if plugin else "identity_value"
+                        identity = controller.vault.get(config["id"]).get(identity_field)
+                        account_labels[config["id"]] = identity if isinstance(identity, str) else label
+                    except SafetyError:
+                        account_labels[config["id"]] = label
+                label = account_labels[config["id"]]
+            site["account_label"] = label
         return {
             "sites": sites,
             "devices": devices,
@@ -224,11 +249,47 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
         await controller.poll()
         return {"ok": True}
 
+    @app.post("/api/readings/refresh")
+    async def refresh_readings(body: RefreshReadings, request: Request, who=Depends(admin)):
+        # Same shared collector/budgets as automatic reads. Never a hardware write.
+        configs = [c for c in store.list("integration") if c.get("enabled")]
+        if body.device_id:
+            device = authorized_device(body.device_id, who)
+            if body.site_id and body.site_id != device.site_id:
+                raise HTTPException(422, "device_site_mismatch")
+            configs = [c for c in configs if c["id"] == device.integration_id]
+        elif body.site_id:
+            site = store.get("site", body.site_id)
+            if not site or not who.can_access(body.site_id):
+                raise HTTPException(404, "site_not_found")
+            configs = [c for c in configs if c["id"] == site.get("integration_id")]
+        if not configs:
+            return {"state": "NO_SOURCE", "updated": 0, "retry_after_seconds": None}
+        try:
+            results = await controller.poll(integration_ids={c["id"] for c in configs},
+                                            preferred_device_id=body.device_id)
+        except SafetyError as exc:
+            if str(exc) not in ("poll_already_running", "poll_cooldown"):
+                raise
+            return {"state": "BUSY", "updated": 0, "retry_after_seconds": 15}
+        require_session_principal(store, request.cookies.get("solar_session"), who)
+        updated = sum(r.get("state") != "ERROR" for r in results)
+        failed = sum(r.get("state") == "ERROR" or bool(r.get("station_report_error")) for r in results)
+        waits = []
+        for config in configs:
+            last = (store.get("integration_state", config["id"]) or {}).get("last_attempt")
+            if last:
+                waits.append(max(0, controller.collection_cadence(config) -
+                                 int((utcnow() - datetime.fromisoformat(last)).total_seconds())))
+        return {"state": "PARTIAL" if failed and updated else "FAILED" if failed else "UPDATED" if updated else "WAITING",
+                "updated": updated, "retry_after_seconds": min(waits) if waits else None}
+
     @app.get("/api/devices/{id}")
     async def detail(id: str, who=Depends(user)):
         device = authorized_device(id, who)
         return {
             "device": device,
+            "can_refresh": who.role == Role.ADMIN and "*" in who.site_ids,
             "adapter": controller.registry.describe(device.identity.vendor),
             "latest": controller.latest(device),
             "capabilities": controller.capabilities(device),
@@ -379,6 +440,8 @@ def create_app(controller: Controller, *, port=8765, poll=True) -> FastAPI:
 
     install_stream(app, controller, origins, hosts)
     install_workspaces(app, controller, user, admin)
+    install_deye_connection(app, controller, user, admin)
+    install_goodwe_connection(app, controller, admin)
     install_incidents(app, controller, user)
     from .maintenance import install_maintenance
 

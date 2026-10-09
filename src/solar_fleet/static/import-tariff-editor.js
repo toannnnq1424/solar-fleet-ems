@@ -1,16 +1,17 @@
 import { l, number, date } from "./i18n.js";
+import { vietnamToUTC } from './hourly-price-editor.js';
 
 export function importTariffEditor(ui, siteId, snapshot) {
   const {div, p, input, field, e, api, table} = ui;
   const root = div("stack");
-  root.append(p(l("Giá khai báo VND, không phải giá EVN đã xác minh. Phiên bản chỉ thêm, không chồng lấn; chưa hỗ trợ sửa/xóa. Thời gian ISO có múi giờ, ví dụ +00:00. Không gồm thuế/phí.",
-    "Declared VND rates, not verified EVN tariffs. Append-only, non-overlapping versions; editing/deletion not supported. Use ISO timestamps with timezone, e.g. +00:00. Taxes/fees excluded.")));
-  const start = input("text", ""), end = input("text", ""), rate = input("number", ""), source = input("text", "");
+  root.append(p(l("Chọn thời gian theo giờ Việt Nam (UTC+7) và giá từ hợp đồng của bạn. Giá khai báo chưa gồm thuế/phí, không phải giá EVN đã xác minh. Mỗi lần lưu thêm một giai đoạn không chồng lấn; chưa hỗ trợ sửa/xóa.",
+    "Choose Vietnam time (UTC+7) and the rate in your contract. Declared rates exclude taxes/fees and are not verified EVN tariffs. Each save adds a non-overlapping period; editing/deletion is not supported."),'field-help'));
+  const start = input("datetime-local", ""), end = input("datetime-local", ""), rate = input("number", ""), source = input("text", "");
   rate.step = "any";
-  root.append(field(l("Bắt đầu hiệu lực (ISO)", "Effective start (ISO)"), start),
-    field(l("Kết thúc hiệu lực (ISO)", "Effective end (ISO)"), end),
+  root.append(div('form-grid',field(l("Bắt đầu hiệu lực (giờ Việt Nam)", "Effective start (Vietnam time)"), start),
+    field(l("Kết thúc hiệu lực (giờ Việt Nam)", "Effective end (Vietnam time)"), end),
     field(l("Giá nhập (VND/kWh)", "Import rate (VND/kWh)"), rate),
-    field(l("Nguồn giá nhập", "Import rate source"), source));
+    field(l("Nguồn giá nhập", "Import rate source"), source)));
   const history = div("stack"), status = p("");
   status.setAttribute("role", "log");
   status.setAttribute("aria-label", "Import tariff status");
@@ -27,7 +28,7 @@ export function importTariffEditor(ui, siteId, snapshot) {
     try {
       if (!rate.value.trim() || !Number.isFinite(Number(rate.value))) throw new Error(l("Cần giá hợp lệ.", "A valid rate is required."));
       const result = await api(`/sites/${encodeURIComponent(siteId)}/import-tariffs`, {
-        effective_start: start.value, effective_end: end.value, import_vnd_per_kwh: Number(rate.value),
+        effective_start: vietnamToUTC(start.value), effective_end: vietnamToUTC(end.value), import_vnd_per_kwh: Number(rate.value),
         source: source.value, currency: "VND", expected_revision: revision,
       });
       revision = result.revision;

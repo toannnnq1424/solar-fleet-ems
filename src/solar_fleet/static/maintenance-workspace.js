@@ -313,8 +313,9 @@ export function createMaintenanceWorkspace(ui) {
 
       if (selected) await open(selected);
       else {
-        detail.replaceChildren(p(l("Chọn công việc để xem chi tiết.", "Select work to see its details.")));
-        actions.replaceChildren();
+        detail.replaceChildren(card(l('Chi tiết công việc','Work details'),p(l("Chọn công việc để xem chi tiết.", "Select work to see its details.")),
+          fact(l('Thiết bị','Equipment'),'—'),fact(l('Thời hạn','Deadline'),'—')));
+        actions.replaceChildren(card(l('Theo dõi xử lý','Response tracking'),p(l('Phân công, danh mục kiểm tra và kết quả sẽ hiển thị khi chọn công việc.','Assignment, checklists and results appear when a work order is selected.'))));
       }
     }
 
@@ -425,6 +426,7 @@ export function createMaintenanceWorkspace(ui) {
       offset = 0;
       await reload();
     }, l("Lọc công việc", "Filter work"));
+    filter.classList.add('maintenance-filter');
 
     filter.finish(div("form-grid",
       field(l("Tìm công việc", "Search work"), search),
@@ -867,7 +869,8 @@ export function createMaintenanceWorkspace(ui) {
           card(l("Danh mục kế hoạch bảo trì phòng ngừa định kỳ", "Preventive Maintenance Plans"),
             notice("Kế hoạch định kỳ được kiểm tra tự động bởi Controller runtime. Khi đến hạn, hệ thống tự động sinh phiếu công tác với source: MAINTENANCE_PLAN.",
               "Preventive schedules are polled automatically by the controller runtime. When due, work orders are automatically created with source: MAINTENANCE_PLAN."),
-            rows.length ? tbl : p(l("Chưa có kế hoạch bảo trì định kỳ nào trong phạm vi này.", "No preventive maintenance plans in this scope."))
+            tbl,
+            !rows.length ? p(l("Chưa có kế hoạch bảo trì định kỳ nào trong phạm vi này.", "No preventive maintenance plans in this scope.")) : null
           )
         );
       } else {
@@ -999,14 +1002,14 @@ export function createMaintenanceWorkspace(ui) {
     const preflight = card(
       l("Điều kiện An Toàn Trước Khi Nâng Cấp Firmware (Pre-flight Prerequisites)", "Pre-flight Safety Prerequisites"),
       notice(
-        "Kiểm soát nghiêm ngặt nâng cấp OTA nhằm chống bricking và gián đoạn vận hành. Chỉ thực hiện khi có checksum SHA-256 đối chiếu và đạt đầy đủ 4 điều kiện an toàn.",
-        "Strict OTA gating prevents equipment bricking and outage. Only executes with verified SHA-256 checksum and all 4 pre-flight conditions met."
+        "Đây là danh mục điều kiện cần kiểm tra, không phải kết quả đạt. Lưu yêu cầu nâng cấp chưa gửi firmware; còn cần trình điều khiển đã nghiệm thu và cửa sổ bảo trì.",
+        "These are requirements, not passed checks. Staging does not transfer firmware; an accepted driver and maintenance window are also required."
       ),
       div("grid four maintenance-preflight-box",
-        div("stack", e("strong", l("1. Kết nối thiết bị", "1. Connectivity")), badge(l("Thiết bị Online & Fresh", "Device online"), "good")),
-        div("stack", e("strong", l("2. Cảnh báo hoạt động", "2. Active Alarms")), badge(l("Không có lỗi nguy cấp", "No critical alarms"), "good")),
-        div("stack", e("strong", l("3. Dung lượng pin dự phòng", "3. Auxiliary / Battery")), badge(l("Tối thiểu SOC >= 30%", "Min SOC >= 30%"), "good")),
-        div("stack", e("strong", l("4. Tính toàn vẹn tệp", "4. Binary Checksum")), badge(l("Mã băm SHA-256 64-hex", "SHA-256 64-hex"), "good"))
+        div("stack", e("strong", l("1. Kết nối thiết bị", "1. Connectivity")), p(l("Cần dữ liệu kết nối mới", "Recent connection data required"))),
+        div("stack", e("strong", l("2. Cảnh báo hoạt động", "2. Active Alarms")), p(l("Kiểm tra lỗi nguy cấp", "Check critical alarms"))),
+        div("stack", e("strong", l("3. Dung lượng pin dự phòng", "3. Auxiliary / Battery")), p(l("Kiểm tra mức pin theo thiết bị", "Check equipment battery requirements"))),
+        div("stack", e("strong", l("4. Tính toàn vẹn tệp", "4. Binary Checksum")), p(l("Đối chiếu mã SHA-256 từ hãng", "Verify the manufacturer's SHA-256")))
       )
     );
     root.append(preflight);
@@ -1038,8 +1041,8 @@ export function createMaintenanceWorkspace(ui) {
         `${d.vendor} ${d.model || ""}`,
         d.serial || "—",
         badge(d.current_firmware, "gray"),
-        badge(d.online ? l("Trực tuyến", "Online") : l("Mất kết nối", "Offline"), d.online ? "good" : "bad"),
-        d.preflight.passed ? badge(l("Sẵn sàng OTA", "OTA Ready"), "good") : badge(l("Chưa đạt điều kiện", "Blocked"), "bad"),
+        badge(d.online == null ? l("Chưa rõ kết nối", "Connectivity unknown") : d.online ? l("Trực tuyến", "Online") : l("Mất kết nối", "Offline"), d.online == null ? "gray" : d.online ? "good" : "bad"),
+        d.preflight.passed ? badge(l("Đạt kiểm tra sơ bộ", "Preliminary checks passed")) : badge(l("Chưa đạt điều kiện", "Blocked"), "bad"),
         technical() ? btn(l("Nâng cấp OTA", "Stage OTA"), () => stageFirmwareDialog(async () => {
           await firmware();
         }, d.site_id, d.device_id)) : "—",
@@ -1047,7 +1050,7 @@ export function createMaintenanceWorkspace(ui) {
     );
 
     root.append(card(l("Danh mục phiên bản Firmware thiết bị", "Device Firmware Inventory"),
-      invRows.length ? invTable : p(l("Chưa có thiết bị trong phạm vi này.", "No devices in this scope."))));
+      invTable, !invRows.length ? p(l("Chưa có thiết bị trong phạm vi này.", "No devices in this scope.")) : null));
 
     // Section: Staged OTA Requests Queue (live from store!)
     const reqRows = fwData.requests;
@@ -1090,7 +1093,7 @@ export function createMaintenanceWorkspace(ui) {
     root.append(card(l("Hàng đợi nâng cấp Firmware (OTA Staging Queue)", "OTA Upgrade Queue"),
       notice("Hàng đợi OTA được lưu trữ an toàn trong SQLite store. Lệnh nâng cấp chỉ được nạp tới thiết bị trong cửa sổ bảo trì đã xác nhận.",
         "OTA requests are safely stored in the SQLite store. Upgrade commands are only delivered to equipment during the verified maintenance window."),
-      reqRows.length ? reqTable : p(l("Chưa có yêu cầu nâng cấp firmware nào đang chờ xử lý.", "No pending firmware upgrade requests."))));
+      reqTable, !reqRows.length ? p(l("Chưa có yêu cầu nâng cấp firmware nào đang chờ xử lý.", "No pending firmware upgrade requests.")) : null));
 
     return root;
   }

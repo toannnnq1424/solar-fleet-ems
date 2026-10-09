@@ -88,7 +88,7 @@ def install_accounts(app, controller, admin):
         if not config.get("enabled"):
             raise SafetyError("integration_not_available")
         last = store.get("connection_check", id)
-        if last and (utcnow() - datetime.fromisoformat(last["checked_at"])).total_seconds() < 60:
+        if last and last.get("checked_at") and (utcnow() - datetime.fromisoformat(last["checked_at"])).total_seconds() < 60:
             raise HTTPException(429, "connection_check_cooldown")
         if controller.poll_lock.locked():
             raise SafetyError("poll_already_running")

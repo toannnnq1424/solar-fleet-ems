@@ -330,7 +330,12 @@ class EVNTOUOptimizer:
                 "cost_vnd": round(slot_cost, 0),
             })
 
-        net_savings_vnd = max(0.0, baseline_cost_vnd - optimized_cost_vnd)
+        # Public monetary totals are whole VND. Derive savings/profit from those
+        # same rounded totals so the returned accounting identities always hold.
+        # Keep full precision during dispatch; rounding never changes the plan.
+        baseline_cost_vnd = round(baseline_cost_vnd, 0)
+        optimized_cost_vnd = round(optimized_cost_vnd, 0)
+        net_savings_vnd = baseline_cost_vnd - optimized_cost_vnd
         savings_pct = (net_savings_vnd / baseline_cost_vnd * 100.0) if baseline_cost_vnd > 0 else 0.0
 
         # Construct universal energy plan (TOU programme with 6 configurable time slots).
@@ -347,7 +352,8 @@ class EVNTOUOptimizer:
 
         total_discharged_kwh = sum(s["discharge_kw"] for s in slots)
         degradation_cost_vnd = round(total_discharged_kwh * self.battery_deg_cost_vnd, 0)
-        net_profit_vnd = round(max(0.0, net_savings_vnd - degradation_cost_vnd), 0)
+        net_profit_vnd = round(net_savings_vnd - degradation_cost_vnd, 0)
+
 
         return OptimizationPlanResult(
             site_id=site_id,
@@ -405,9 +411,9 @@ def install_ems_optimizer(app, controller, user):
         site_id: str,
         category: str = "MANUFACTURING",
         voltage: str = "LOW_VOLTAGE_UNDER_22KV",
-        battery_kwh: float = 15.0,
-        max_charge_kw: float = 6.0,
-        max_discharge_kw: float = 6.0,
+        battery_kwh: float | None = None,
+        max_charge_kw: float | None = None,
+        max_discharge_kw: float | None = None,
         who=Depends(user) if user else None,
     ):
         if who and hasattr(who, "can_access") and not who.can_access(site_id):
@@ -432,19 +438,54 @@ def install_ems_optimizer(app, controller, user):
         latest = controller.latest(dev_obj) or {}
         samples = {p["metric"]: p["value"] for p in latest.get("samples", []) if p.get("value") is not None}
         current_soc = samples.get("battery_soc")
+
+        # Check SOC freshness (max 3600 seconds = 1 hour)
+        MAX_SOC_AGE_SECONDS = 3600.0
         if current_soc is None:
             for dev in devices:
                 for s in controller.store.history(dev["id"], limit=50):
                     if s.get("metric") == "battery_soc" and s.get("value") is not None:
-                        current_soc = float(s["value"])
-                        break
+                        s_ts = s.get("source_timestamp") or s.get("received_at")
+                        if s_ts:
+                            try:
+                                dt = s_ts if isinstance(s_ts, datetime) else datetime.fromisoformat(str(s_ts))
+                                now_cmp = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+                                age = abs((now_cmp - dt).total_seconds())
+                                if age <= MAX_SOC_AGE_SECONDS:
+                                    current_soc = float(s["value"])
+                                    break
+                            except Exception:
+                                pass
                 if current_soc is not None:
                     break
         if current_soc is None:
             raise HTTPException(
                 422,
-                "insufficient_measured_telemetry_for_site: verified battery_soc observation required"
+                "insufficient_measured_telemetry_for_site: fresh verified battery_soc observation required (within 1 hour)"
             )
+
+        # Resolve battery ratings: prefer request query params, fallback to primary device/BMS metadata
+        primary_meta = primary_dev.get("metadata") if isinstance(primary_dev.get("metadata"), dict) else {}
+        if battery_kwh is None:
+            bat_wh = primary_meta.get("battery_capacity_wh") or primary_dev.get("battery_capacity_wh")
+            if bat_wh is not None:
+                battery_kwh = float(bat_wh) / 1000.0
+        if max_charge_kw is None:
+            chg = primary_meta.get("max_charge_kw") or primary_dev.get("max_charge_kw")
+            if chg is not None:
+                max_charge_kw = float(chg)
+        if max_discharge_kw is None:
+            dis = primary_meta.get("max_discharge_kw") or primary_dev.get("max_discharge_kw")
+            if dis is not None:
+                max_discharge_kw = float(dis)
+
+        if battery_kwh is None or max_charge_kw is None or max_discharge_kw is None:
+            raise HTTPException(
+                422,
+                "insufficient_device_configuration: battery_kwh, max_charge_kw, max_discharge_kw "
+                "must be configured in device/BMS metadata or provided explicitly in request parameters",
+            )
+
 
         # Build 24h representative curves from real observations (hourly averages)
         solar_hourly: dict[int, list[float]] = {h: [] for h in range(24)}
@@ -562,8 +603,11 @@ def install_ems_optimizer(app, controller, user):
             bat_wh = meta.get("battery_capacity_wh") or dev_dict.get("battery_capacity_wh")
             if rated_w is None or bat_wh is None:
                 continue
-            max_chg = meta.get("max_charge_kw") or dev_dict.get("max_charge_kw", float(rated_w) / 1000.0)
-            max_dis = meta.get("max_discharge_kw") or dev_dict.get("max_discharge_kw", float(rated_w) / 1000.0)
+            max_chg = meta.get("max_charge_kw") or dev_dict.get("max_charge_kw")
+            max_dis = meta.get("max_discharge_kw") or dev_dict.get("max_discharge_kw")
+            if max_chg is None or max_dis is None:
+                # Do not infer battery charge/discharge limits from inverter rated AC power
+                continue
             clean_d = {k: v for k, v in dev_dict.items() if k in Device.model_fields}
             dev_obj = Device.model_validate(clean_d)
             latest = controller.latest(dev_obj) or {}
@@ -572,10 +616,20 @@ def install_ems_optimizer(app, controller, user):
             if soc is None:
                 for s in controller.store.history(d["id"], limit=50):
                     if s.get("metric") == "battery_soc" and s.get("value") is not None:
-                        soc = float(s["value"])
-                        break
+                        s_ts = s.get("source_timestamp") or s.get("received_at")
+                        if s_ts:
+                            try:
+                                dt = s_ts if isinstance(s_ts, datetime) else datetime.fromisoformat(str(s_ts))
+                                now_cmp = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+                                age = abs((now_cmp - dt).total_seconds())
+                                if age <= 3600.0:
+                                    soc = float(s["value"])
+                                    break
+                            except Exception:
+                                pass
             if soc is None:
                 continue
+
             members.append(
                 InverterFleetMember(
                     device_id=d["id"],
@@ -609,4 +663,3 @@ def install_ems_optimizer(app, controller, user):
             "projected_socs": res.projected_socs,
             "message": res.message,
         }
-

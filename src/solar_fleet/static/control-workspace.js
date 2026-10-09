@@ -1,5 +1,6 @@
 import { advisoryCalculator } from "./advisory-calculator.js";
 import { l, t, number } from "./i18n.js";
+import { icon } from "./icons.js";
 
 // All actual commands use the shared capability form, preview and confirmation engine.
 export async function renderControlMainWorkspace(ui) {
@@ -22,10 +23,11 @@ export async function renderControlMainWorkspace(ui) {
     return root;
   }
   const device = devices.find(d => d.id === deviceId);
-  root.append(card(l("Thông tin thiết bị", "Device identity"),
+  const identity=card(l("Thông tin thiết bị", "Device identity"),
     p([data.device.brand, data.device.model, data.device.serial_number].filter(Boolean).join(" · ")),
     badge(data.device.status || "UNKNOWN"),
-    btn(l("Mở chi tiết thiết bị", "Open device details"), () => ui.deviceDetail(deviceId))));
+    btn(l("Mở chi tiết thiết bị", "Open device details"), () => ui.deviceDetail(deviceId)));
+  identity.classList.add('control-identity');root.append(identity);
   root.append(div("form-actions",
     btn(l("Điều khiển cơ bản", "Basic control"), () => go("operations", "remote")),
     btn(l("Cấu hình theo hãng", "Vendor settings"), () => go("operations", "advanced")),
@@ -36,17 +38,49 @@ export async function renderControlMainWorkspace(ui) {
     "Chọn tính năng để xem giá trị trước/sau. Lệnh chỉ được gửi sau bước xác nhận; nhận lệnh chưa phải xác minh thành công.",
     "Preview the before/after values. Sending requires confirmation; acceptance does not establish successful readback."));
   const capabilities = data.intent_capabilities || [];
-  root.append(card(l("Khả năng của thiết bị này", "Capabilities for this exact device"),
-    capabilities.length ? table(
-      [l("Chức năng", "Intent"), l("Hỗ trợ", "Support"), l("Điều kiện", "Reason"), l("Thao tác", "Action")],
-      capabilities.map(c => [t(c.intent), badge(c.state, c.state === "VERIFIED" ? "good" : "warn"), c.reason,
-        c.state === "VERIFIED" && c.semantic_match === "exact" && operator()
-          ? btn(l("Xem trước thay đổi", "Preview change"), () => controlForm(device, c))
-          : p(l("Chưa có profile đã nghiệm thu", "No accepted profile"))]))
-      : p(l("Chưa có cấu hình tương thích đã xác thực.", "No verified capability profile."))));
-  root.append(card(l("Số đo hiện tại", "Current readings"),
+  const groups = [
+    ['home', l('Chế độ sử dụng điện', 'Operating mode'), ['SET_WORK_MODE','SET_SELF_CONSUMPTION']],
+    ['grid', l('Giới hạn điện lưới', 'Grid limits'), ['SET_ZERO_EXPORT','SET_EXPORT_LIMIT','SET_GRID_IMPORT_LIMIT','SET_PEAK_SHAVING']],
+    ['battery', l('Mức pin và dự phòng', 'Battery levels and reserve'), ['SET_RESERVE_SOC','SET_MIN_SOC','SET_SHUTDOWN_SOC','SET_RESTART_SOC']],
+    ['battery', l('Công suất sạc và xả', 'Charge and discharge limits'), ['SET_MAX_CHARGE_CURRENT','SET_MAX_DISCHARGE_CURRENT','SET_MAX_CHARGE_POWER','SET_MAX_DISCHARGE_POWER']],
+    ['calendar', l('Lịch sạc/xả', 'Charge/discharge schedule'), ['SET_TOU','ENABLE_TOU','DISABLE_TOU']],
+    ['bolt', l('Sạc từ điện lưới', 'Grid charging'), ['ENABLE_GRID_CHARGE','DISABLE_GRID_CHARGE','FORCE_CHARGE']],
+    ['bolt', l('Xả pin theo yêu cầu', 'On-demand discharge'), ['FORCE_DISCHARGE','STOP_FORCE_OPERATION']],
+    ['shield', l('Điện dự phòng', 'Backup supply'), ['SET_BACKUP_EPS']],
+    ['home', l('Phụ tải thông minh', 'Smart loads'), ['SET_SMART_LOAD']],
+    ['device', l('Máy phát điện', 'Generator'), ['SET_GENERATOR_POLICY','SET_GENERATOR_METER']],
+  ];
+  const used = new Set(groups.flatMap(g => g[2]));
+  groups.push(['settings',l('Thông số điện & thiết bị','Electrical and equipment settings'), capabilities.filter(c=>!used.has(c.intent)).map(c=>c.intent)]);
+  function capabilityRow(c) {
+    const available = c.state === 'VERIFIED' && c.semantic_match === 'exact';
+    const row = div('capability-row', div('stack gap-sm', e('b',t(c.intent)),
+      badge(c.state,available ? 'good' : 'warn')));
+    if (available && operator()) row.append(btn(l('Xem trước thay đổi','Preview change'),()=>controlForm(device,c),'secondary'));
+    else row.append(e('span',available ? l('Cần quyền vận hành','Operator access required') : l('Chưa thể điều khiển','Control unavailable'),'small muted'));
+    const reason = e('details','', 'capability-reason');
+    reason.append(e('summary',l('Điều kiện sử dụng','Requirements')),
+      p(c.reason || l('Cần kỹ thuật viên xác minh đúng model và kết nối trước khi sử dụng.','A technician must verify the exact model and connection before use.')));
+    return div('capability-item',row,reason);
+  }
+  const capabilityGrid = div('capability-grid control-families');
+  for (const [glyph,label,intents] of groups) {
+    const rows = capabilities.filter(c=>intents.includes(c.intent));
+    if (!rows.length) continue;
+    const group = e('section','', 'capability-group');
+    const heading=div('capability-heading',icon(glyph),e('h3',label));
+    const choice=select(rows.map(c=>[c.intent,t(c.intent)]),rows[0].intent);
+    choice.setAttribute('aria-label',label+' · '+l('Thao tác','Action'));
+    choice.classList.add('capability-choice');
+    const body=div('control-tile-grid',capabilityRow(rows[0]));
+    choice.onchange=()=>body.replaceChildren(capabilityRow(rows.find(c=>c.intent===choice.value)));
+    group.append(heading,choice,body);capabilityGrid.append(group);
+  }
+  const readings = card(l("Số đo hiện tại", "Current readings"),
     table([l("Thông số", "Metric"), l("Giá trị", "Value")],
-      Object.entries(data.telemetry || {}).map(([key, value]) => [key, typeof value === "number" ? number(value) : value ?? "—"]))));
+      Object.entries(data.telemetry || {}).map(([key, value]) => [t(key), typeof value === "number" ? number(value) : t(value ?? "—")])));
+  readings.classList.add('control-readings');
+  root.append(div('control-layout',capabilities.length ? capabilityGrid : card(l('Tính năng điều khiển','Control features'),p(l('Chưa có cấu hình tương thích đã xác thực.','No verified capability profile.'))),readings));
   if (state.tab === "advanced" || state.tab === "pq_dispatch") {
     const result = await api("/devices/" + encodeURIComponent(deviceId) + "/native-config-groups");
     root.append(card(l("Nhóm cấu hình hãng / OEM", "Vendor / OEM settings"),
@@ -59,6 +93,10 @@ export async function renderControlMainWorkspace(ui) {
       table([l("Thiết bị", "Device"), l("Trạng thái", "State")],
         (result.devices || []).map(d => [d.device_id, d.status || "TIMEOUT"]))));
   }
+
+  const engineering = e("details", "", "engineering-tools");
+  engineering.append(e("summary",l("Công cụ kỹ sư · tính toán tham khảo", "Engineering tools · advisory calculations")));
+  root.append(engineering);
 
   // 30-BRAND MODBUS FC06/FC16 COMMAND PACKET GENERATOR
   const translatorContainer = div("stack");
@@ -120,7 +158,7 @@ export async function renderControlMainWorkspace(ui) {
     }
   });
 
-  root.append(card(
+  engineering.append(card(
     l("Biên dịch lệnh điều khiển Modbus đa hãng (30 Brand Translator)", "Multi-Vendor Modbus FC06/FC16 Command Packet Translator"),
     p(l("Chuyển đổi lệnh điều phối trừu tượng của EMS thành các gói tin Modbus FC06/FC16 ghi thanh ghi chính xác theo giao thức độc quyền của từng hãng sản xuất.",
         "Translates high-level EMS dispatch intents into exact Modbus holding register write packets for the selected vendor.")),
@@ -135,9 +173,9 @@ export async function renderControlMainWorkspace(ui) {
   ));
 
   const generatorFields = "specs {rated_power_kw, min_loading_ratio, optimal_loading_ratio, max_loading_ratio, fuel_idle_liters_per_hour, fuel_slope_liters_per_kwh, crank_time_seconds, warmup_time_seconds, cooldown_time_seconds, min_run_time_seconds, auto_start_soc_threshold, auto_stop_soc_threshold}; ";
-  root.append(advisoryCalculator(ui, "Genset dispatch estimate", "/genset/evaluate-dispatch",
+  engineering.append(advisoryCalculator(ui, "Genset dispatch estimate", "/genset/evaluate-dispatch",
     generatorFields + "initial_state, elapsed_in_state_seconds, cumulative_run_seconds, microgrid_load_kw, battery_soc_pct, is_grid_available, battery_max_charge_kw, battery_max_discharge_kw, dt_seconds"));
-  root.append(advisoryCalculator(ui, "Black-start scenario", "/genset/black-start-sequence",
+  engineering.append(advisoryCalculator(ui, "Black-start scenario", "/genset/black-start-sequence",
     generatorFields + "observations [{bus_voltage_v, pv_frequency_hz, critical_load_kw}]. Scenario only; hardware acknowledgements are not verified."));
 
   return root;

@@ -53,6 +53,7 @@ def test_all_sidebar_routes_and_site_tabs_use_real_local_services(browser_page):
     page.get_by_label("Plant scope", exact=True).select_option("SIM-SITE-0")
     for tab in [
         "overview",
+        "plant_info",
         "data",
         "devices",
         "control",
@@ -68,6 +69,8 @@ def test_all_sidebar_routes_and_site_tabs_use_real_local_services(browser_page):
         assert "undefined" not in page.locator("#content").inner_text(), tab
         if tab == "overview":
             page.screenshot(path=str(artifact_dir / "site-overview.png"), full_page=True)
+        elif tab == "plant_info":
+            page.screenshot(path=str(artifact_dir / "plant-info.png"), full_page=True)
     page.get_by_label("Language / Ngôn ngữ").select_option("vi")
     page.goto(origin + "/#settings/main/connections")
     expect(page.locator("#content .progress-loading")).to_have_count(0)
@@ -155,4 +158,4 @@ def test_device_native_values_readable_without_invented_temperature(browser_page
     expect(dialog).to_contain_text("SIMULATOR operating state")
     expect(dialog).to_contain_text("Charging")
     expect(dialog).to_contain_text("1.234")
-    expect(dialog).to_contain_text("Receipt time does not replace")
+    expect(dialog).to_contain_text("Receipt time is not measurement time")

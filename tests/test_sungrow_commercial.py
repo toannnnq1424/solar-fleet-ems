@@ -73,16 +73,19 @@ def test_sungrow_commercial_control_validation():
 
 def test_sungrow_commercial_registry_lookup():
     from solar_fleet.adapters.modbus_profiles import get_register_map
-    fields_110 = get_register_map("sungrow", "sg110cx")
-    fields_125 = get_register_map("sungrow", "sg125hx")
-    fields_comm = get_register_map("sungrow", "commercial")
+    fields_110 = get_register_map("sungrow", "sg110cx", exact=True)
+    fields_125 = get_register_map("sungrow", "sg125hx", exact=True)
     assert len(fields_110) == 25  # 5 status + 18 mppt + 2 holding
     assert len(fields_125) == 19  # 5 status + 12 mppt + 2 holding
-    assert len(fields_comm) == 25
 
-    # SG250HX must NOT be registered (unverified without official evidence)
+    # Generic alias 'commercial' and unverified 'sg250hx' must NOT be in exact profile registry
+    with pytest.raises(KeyError):
+        get_register_map("sungrow", "commercial", exact=True)
+    with pytest.raises(KeyError):
+        get_register_map("sungrow", "sg_commercial", exact=True)
     with pytest.raises(KeyError):
         get_register_map("sungrow", "sg250hx", exact=True)
+
 
 
 def test_sungrow_commercial_exact_profile():

@@ -14,6 +14,9 @@ def test_incident_creation_assignment_and_notes(browser_page):
     dialog.get_by_label("Description", exact=True).fill("Synthetic connection investigation")
     dialog.get_by_role("button", name="Save", exact=True).click()
     expect(page.get_by_role("heading", name="SIMULATOR browser incident", exact=True)).to_be_visible()
+    expect(page.locator('.incident-directory tbody tr')).to_have_count(1)
+    expect(page.locator('.incident-directory')).to_contain_text('SIMULATOR browser incident')
+    page.locator('.incident-directory').get_by_role('button',name='View details',exact=True).click()
     page.get_by_label("Workflow status", exact=True).select_option("in_progress")
     page.get_by_label("Response note", exact=True).fill("Investigating the synthetic equipment")
     with page.expect_response(
@@ -41,6 +44,7 @@ def test_viewer_cannot_create_or_change_incidents(browser_page):
     login(page, origin, "ui-viewer")
     page.goto(origin + "/#incidents/main")
     expect(page.get_by_role("heading", name="Alert list", exact=True)).to_be_visible()
+    expect(page.locator('.incident-directory thead th')).to_have_count(8)
     expect(page.get_by_role("button", name="+ Create alert", exact=True)).to_have_count(0)
     expect(page.get_by_role("button", name="Save response", exact=True)).to_have_count(0)
 

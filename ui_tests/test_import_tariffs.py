@@ -3,8 +3,8 @@ from test_planning_editor import open_editor
 
 
 def fill_rate(page):
-    page.get_by_label("Effective start (ISO)", exact=True).fill("2026-09-28T00:00:00+00:00")
-    page.get_by_label("Effective end (ISO)", exact=True).fill("2026-09-29T00:00:00+00:00")
+    page.get_by_label("Effective start (Vietnam time)", exact=True).fill("2026-09-28T07:00")
+    page.get_by_label("Effective end (Vietnam time)", exact=True).fill("2026-09-29T07:00")
     page.get_by_label("Import rate (VND/kWh)", exact=True).fill("2000")
     page.get_by_label("Import rate source", exact=True).fill("SYNTHETIC browser contract")
 

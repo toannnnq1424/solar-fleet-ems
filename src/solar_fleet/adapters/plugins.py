@@ -5,6 +5,7 @@ import hashlib
 from ..domain import SafetyError
 from ..integration import (
     DeviceObservation,
+    DeviceReport,
     IntegrationPlugin,
     IntegrationRegistry,
     MeasurementObservation,
@@ -29,7 +30,7 @@ def plant(raw):
     return PlantObservation(id, str(raw.get("name") or id), raw.get("regionTimezone"))
 
 
-def device_decoder(online_states):
+def device_decoder(online_states, *, preserve_unknown=False):
     def decode(raw):
         serial = raw.get("deviceSn")
         if not isinstance(serial, str) or not serial.strip():
@@ -38,6 +39,7 @@ def device_decoder(online_states):
             serial,
             str(raw.get("deviceType") or "UNKNOWN"),
             raw.get("model"),
+            None if preserve_unknown and raw.get("connectStatus") is None else
             type(raw.get("connectStatus")) is int and raw["connectStatus"] in online_states,
             source_time(raw.get("collectionTime")),
             raw.get("productId"),
@@ -46,7 +48,7 @@ def device_decoder(online_states):
     return decode
 
 
-def measurement_decoder(online_states):
+def measurement_decoder(online_states, *, preserve_unknown=False):
     def decode(raw):
         points, serial = raw.get("dataList"), raw.get("deviceSn")
         if not isinstance(serial, str) or not serial:
@@ -55,9 +57,11 @@ def measurement_decoder(online_states):
             raise SafetyError("vendor_invalid_measurements")
         return MeasurementObservation(
             serial,
+            None if preserve_unknown and raw.get("deviceState") is None else
             type(raw.get("deviceState")) is int and raw["deviceState"] in online_states,
             source_time(raw.get("collectionTime")),
             points,
+            DeviceReport.model_validate(raw["reported"]) if raw.get("reported") is not None else None,
         )
 
     return decode
@@ -214,8 +218,8 @@ def builtins() -> IntegrationRegistry:
                 version=factory.version,
                 factory=factory,
                 plant=plant,
-                device=device_decoder(cfg["states"]),
-                measurement=measurement_decoder(cfg["states"]),
+                device=device_decoder(cfg["states"], preserve_unknown=id == "GoodWe"),
+                measurement=measurement_decoder(cfg["states"], preserve_unknown=id == "GoodWe"),
                 namespace=cfg.get("namespace", id.lower()),
                 evidence_ids=tuple(spec["evidence"]),
                 authentication=cfg["auth"],

@@ -932,7 +932,7 @@ def install_maintenance(app, controller, user):
                     "model": d.identity.model,
                     "serial": d.metadata.get("serial", d.vendor_id),
                     "current_firmware": d.identity.firmware or "UNKNOWN",
-                    "online": bool(d.online),
+                    "online": d.online,
                     "last_seen": d.last_seen,
                     "preflight": preflight,
                     "active_request": active_req,

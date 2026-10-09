@@ -21,3 +21,10 @@ def test_import_snapshot_export_and_missing_meter_feedback(browser_page):
         page.get_by_role("button", name="Generate report", exact=True).click()
     assert response.value.status == 201
     expect(page.get_by_text("Report saved and downloaded.", exact=True)).to_be_visible()
+    page.reload()
+    archived=page.locator('.report-archive-item').first
+    expect(archived).to_be_visible()
+    with page.expect_download():
+        archived.get_by_role('button').click()
+    page.set_viewport_size({'width':430,'height':1000})
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')

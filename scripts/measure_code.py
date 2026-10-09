@@ -20,6 +20,7 @@ GROUPS = (
     ("browser_tests", "Test UI / browser fixture", "ui_tests", {".py"}),
     ("scripts", "Scripts tự viết", "scripts", {".py", ".js", ".cjs", ".mjs", ".ps1"}),
 )
+GENERATED_ASSETS = {"src/solar_fleet/static/map-land.js"}
 
 
 def get_git_state() -> dict[str, Any]:
@@ -47,6 +48,8 @@ def inventory():
         entries = []
         for path in sorted((ROOT / directory).rglob("*")):
             if not path.is_file() or path.suffix not in suffixes or "__pycache__" in path.parts:
+                continue
+            if path.relative_to(ROOT).as_posix() in GENERATED_ASSETS:
                 continue
             lines = path.read_text(encoding="utf-8-sig").splitlines()
             entries.append(

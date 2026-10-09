@@ -19,6 +19,17 @@ def test_all_read_connector_forms_have_localized_labels_and_mask_secrets(browser
         page.get_by_role("dialog").get_by_role("button").filter(
             has=page.locator(".vendor-wordmark", has_text=provider["id"])).click()
         dialog = page.get_by_role("dialog")
+        if provider['id']=='Deye':
+            dialog.get_by_role('button',name='Advanced API connection' if language=='en' else 'Kết nối API nâng cao',exact=True).click()
+        extra = [key for key in provider["fields"] if key not in {
+            "email", "username", "user_name", "identity_value", "account", "user_account", "password", "user_password",
+        } and not provider.get("field_defaults", {}).get(key)]
+        if extra and provider['id']!='Deye':
+            expect(dialog.locator('input[type="password"]')).to_have_count(0)
+            if provider['id']=='GoodWe':
+                dialog.get_by_label('Your GoodWe app' if language=='en' else 'Ứng dụng GoodWe đang dùng',exact=True).select_option('sems')
+            dialog.get_by_role("button", name="I have the connection details" if language == "en"
+                               else "Tôi đã có thông tin kết nối", exact=True).click()
         expect(dialog).to_contain_text(("Connect " if language == "en" else "Kết nối ") + provider["id"])
         # Name + credentials; exclude optional numeric organization and selects.
         controls = dialog.locator('input[type="text"], input[type="password"]')

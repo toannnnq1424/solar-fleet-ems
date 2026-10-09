@@ -2,6 +2,91 @@
 
 # Vendor source audit
 
+## Authorized hk SEMS+ read trial — 08 October 2026
+
+The [new E-grade record](evidence/goodwe-live-read-ui-2026-10-08.md),
+`GOODWE_SEMSPLUS_HK_READ_OBS_20261008`, supersedes the no-live-trial statement below
+for this single account/region only. Native inverter/meter observations now persist;
+logger and related BATTERY_BANK successful telemetry responses omit `data`. An initial
+null-only repair did not fix the live case; scoped missing-data handling was then
+confirmed. Raw group/factor aliases are preserved, not accepted as canonical semantics.
+No new code was copied, no browser tokens/cookies extracted and no writes commissioned.
+Official source-time/control/readback contracts, other regions and exact identities remain
+unresolved. The two registries now contain 65 matching IDs; historic counts below are dated.
+
+### Station aggregates follow-up — 08/10/2026
+
+Freshness follow-up: inspected pinned `custom_components/sems/const.py` locally and
+via its public raw URL on 08/10. Maintainer config defaults/minimum to **60 seconds**
+and describes minute-resolution station reports. This is **community behavior, not
+an official GoodWe quota or SLA**. SolarOne now applies a 60s minimum only to the
+SEMS+ platform, preserves slower explicit policies, Classic SEMS 300s minimum,
+per-account/device budgets, rotation and 429 backoff. UI receipt reload is 15s and
+must not be described as 15s equipment acquisition. No new source code copied.
+
+`GOODWE_SEMSPLUS_STATION_001`: reviewed MIT
+[TimSoethout/goodwe-sems-home-assistant@72c06c72](https://github.com/TimSoethout/goodwe-sems-home-assistant/tree/72c06c72caf0600272ca2ac17db6474af60d59ae):
+`custom_components/sems/sems_api.py` flow/statistics methods, API example schemas,
+non-inverter tests, battery-direction examples and release notes. License packaged;
+no upstream runtime or customer fixture copied. Independently structured optional
+`StationReport` interface in the existing adapter/controller, monitoring-only.
+Authorized hk diagnostic confirmed station flow fields and local `refreshTime`,
+day statistics summaries/dated kWh rows, and inverter telecounting field/unit shapes.
+The basic-info request was rejected: no timezone inferred from gateway or host clock.
+Native device factors still have no established source clock. Flow timestamps cannot
+be retroactively attached to them. `pAc` is not used as a PV fallback; no device summing,
+profit calculation, GOOD promotion or physical control. Month/year/live UI acceptance
+is recorded separately in the dated evidence, not inferred from these examples.
+
+## SEMS+ experimental connector — 07 October 2026 (later implementation)
+
+Supersedes the reference-only/boolean-connectivity statements in the earlier entry below.
+`adapters/goodwe_plus.py` adapts the pinned MIT ioBroker contracts for cross-login,
+request signature, typed inventory, related devices and native telemetry. Attribution and
+the complete license are packaged; no additional dependency. The existing GoodWe plugin,
+shared transport budgets/guards, Controller, encrypted vault and API scopes remain owners.
+
+- Official public [regional configuration](https://semsplus.goodwe.com/config.js), retrieved
+  2026-10-07 without a customer session, lists cn/eu/au/hk/us SEMS+ hosts. This supports
+  explicit server choices, **not** acceptance of every regional gateway or customer account.
+- [timvanderHorst/goodwe-semsplus](https://github.com/timvanderHorst/goodwe-semsplus/tree/e37be2e695a82e6b0afd8ee0a5a2d227494bbed5),
+  `api.py` and `tests/test_api.py`, was inspected only for factual station-query endpoint,
+  pageIndex/pageSize and dataList shape. No LICENSE found: no code imported/copied. Paging
+  is independently bounded, rejects duplicates and fails closed at the local limit.
+- No real login/API request has been made through this implementation. Portal observation
+  and synthetic tests do not validate gateway availability, token lifetime, source time,
+  field semantics or official third-party access terms. Local 30-minute refresh and
+  five-minute polling/backoff are protective choices, not vendor SLA claims.
+- Native fields retain units/zero/null; missing source time and connectivity stay unknown.
+  No new canonical mapping, alarm/history contract, physical configuration or command.
+- Consent is unchecked and mandatory; no cross-region fallback, redirect following,
+  raw vendor errors/logging or browser-session reuse. User must review/accept vendor terms
+  themselves. Q1 connector is a controlled read-only trial, not production certification.
+
+## SEMS+ portal baseline and public implementation review — 07 October 2026
+
+[Sanitized QA and scoped research](evidence/goodwe-portal-qa-2026-10-07.md): user-authorized
+portal inspection established SEMS+ inventory and visible feature families, not API/write
+acceptance. No session material or customer screenshots stored. `bueste/ioBroker.goodwe-sems`
+at `5d6b4796e60a022a97b38fdb0f551304cf518033` (MIT) was inspected for gateway auth,
+telemetry, related-device behavior and tests. No code/dependency imported; no live API calls.
+Classic GoodWe's unconditional online flag was removed independently, not replaced with an
+unverified SEMS+ mapping. Common boolean connectivity still needs the I2 migration.
+
+## Account/API preparation re-review — 04 October 2026
+
+Read-only public research for the [vendor setup guides](vendor-api-access-guide-vi.md); no protocol code imported, dependency added or hardware/profile authority promoted. Existing registry claims retain their original dates; these findings constrain readiness rather than enable capabilities.
+
+- **GoodWe, official public portal:** [SEMS Portal](https://eu.semsportal.com/home/login) contains a service-discontinuation/migration notice. This is not a live probe of all legacy API regions. [API Introduction 2022](https://community.goodwe.com/static/images/2022-11-08281223.pdf), pages 1–3, was read and visually inspected; it distinguishes organization and third-party API access, but does not establish current SEMS+ authentication. The current connector still uses the legacy SEMS path. The supplied phone crop shows a logo, not enough to identify the app. UI now warns before password entry; SEMS+ is not marked ready.
+- **Solis, official current auth guide:** [Authorization](https://developer.soliscloud.com/guide/authorization.html) separates user HMAC and third-party authorization-code OAuth. Code inspection of `Solis._get_oauth2_token` found `client_credentials` with JSON, not the documented customer consent/code exchange. Generic form exposes HMAC keys. The existing OAuth branch must not be described as a completed multi-customer connection. Reconcile the contract before any OAuth live QA; no adapter modification in this UI batch.
+- **SOLARMAN:** [activation article](https://helpcenter.solarmanpv.com/portal/en/kb/articles/i-want-to-open-api-how-can-i-open-api) supplies the support/approval route. Documentation distinguishes an application request from accepting a contract; no registration or email sent.
+- **Sungrow:** [Developer Portal](https://developer-api.isolarcloud.com/) public indexed Quick start was readable, while the opened SPA had no extracted text. It supports account/application review and AppKey issuance; post-login secret location and exact region compatibility remain unverified.
+- **Huawei:** [Northbound login interface](https://info.support.huawei.com/enterprise/en/doc/EDOC1100307213/9e1a18d2/login-interface) indexed official text describes userName/systemCode; direct access restricted. No unverified administrator menu path is presented as an observed workflow.
+- **Growatt:** [Installer Operation Manual](https://cdn.growatt.com/pdf/Installer%20Operation%20Manual.pdf), page 90, downloaded and visually inspected after web fetch timeout. The API-token request screenshot is installer-facing, not evidence every homeowner can access that menu.
+- **Eybond/OEM:** [official site](https://www.eybond.com/) identifies platform links/contact. No universal self-service Bluesun app-key portal was verified. Platform, logger and account authority must be established before selecting a connector.
+
+These are official-source onboarding observations (some index-only as noted), **not evidence of successful authentication, normalized readings, customer tenancy or write/readback acceptance**. No new runtime registry entry is warranted solely for a setup guide.
+
 Current 27 September addition: [30-project review](legacy-project-audit.md), [model/HA implementation](model-library-and-home-assistant.md), four pinned MIT source bundles in the [source lock](../src/solar_fleet/data/model-source-lock.json). Registry IDs ha-solarman-models, glance-modbus-models, sungrow-ha-models and sem-hourly-baseline are community evidence, not hardware acceptance.
 
 > Current implementation is indexed in [multi-vendor contracts](multivendor-contracts.md), including the later [Eybond read connector](eybond-read-integration.md). The [registry](evidence/source-registry.json) currently has 61 unique IDs, including withdrawn claims. Source entries below retain their observation dates; their old counts are historical. [Documentation index](README.md).
@@ -31,6 +116,8 @@ Baseline 2026-09-13. A/B/C/D là loại nguồn, không phải chứng nhận th
 | open_questions | Public shell only; organization grants and quota not supplied. |
 
 ## DEYE_API_001
+
+Authentication re-review **2026-10-04**: read the official page's `account_token` / `get_access_token` schemas and data-center parameters. They specify App ID/App Secret plus account email/password; centers are `eu/am/india`. Implemented a server-managed application configuration and separate email/password account form using the existing adapter, without copying upstream code or adding dependencies. No refresh endpoint, browser-session scraping or multi-customer grant is inferred. App authorization for other customers, quota and exact-account live behavior remain unverified. Original snapshot date/hash below are unchanged; review notes are synchronized in both registries. Implementation and test evidence: [managed Deye connection](evidence/deye-managed-connection-2026-10-04.md).
 
 [Deye Open MCP Tool Documentation](https://developer.deyecloud.com/openmcp/docs/deye-open-mcp-tools.html)
 
@@ -1794,4 +1881,3 @@ Tuân thủ nghiêm ngặt quy tắc tại [AGENTS.md](../AGENTS.md):
 | claims | Nameplates encode serial numbers, manufacturer model codes, rated power, and grid phase in standardized alphanumeric patterns. Regex parsing enables instantaneous binding of scanned hardware to target Modbus register maps. |
 | implications | Implemented in `src/solar_fleet/onboarding_scanner.py`. Eliminates manual typing errors during commissioning. |
 | open_questions | Handling degraded or damaged QR codes in high-temperature outdoor solar fields. |
-

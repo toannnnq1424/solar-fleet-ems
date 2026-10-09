@@ -11,7 +11,22 @@ Ba nguyên tắc kỹ thuật bất di bất dịch của dự án:
 
 ## Sản phẩm và tiến độ hiện tại
 
-**Khi yêu cầu “tiếp tục”:** làm theo [lộ trình sửa chữa và cải tiến](remediation-roadmap.md), bắt đầu từ checkpoint đã lưu. Tài liệu này sở hữu thứ tự thực thi và tiêu chí đóng đợt, không thay thế bằng chứng triển khai/kiểm thử bên dưới.
+**09/10/2026 — hiện trạng ưu tiên:** [Đánh giá tiến độ và các khoảng thiếu](project-assessment-2026-10-09.md),
+[kiểm tra cuối 1.894 BE/107 UI](evidence/energy-flow-ui-2026-10-09.md),
+[manifest 12 ảnh tham chiếu riêng](evidence/ui-reference-manifest-2026-10-09.md).
+GoodWe đã đăng nhập/đọc một phần qua SolarOne; chưa full live acceptance. UI vẫn chưa đạt
+nghiệm thu người dùng, interface/history/control còn việc, DE/AI mới kế hoạch. Người dùng
+yêu cầu commit/push rồi dừng chờ lệnh; đây không phải bản phát hành production.
+
+[QA portal GoodWe chỉ đọc — 07/10/2026](evidence/goodwe-portal-qa-2026-10-07.md): đã quan sát phiên SEMS+ do người dùng đăng nhập, chưa nghiệm thu connector SolarOne; ghi rõ sửa lỗi online cố định, hướng dẫn UI và các hợp đồng còn thiếu.
+
+Cập nhật kế hoạch **07/10/2026**: [backlog tính năng hãng — Phần II](vendor-feature-backlog-2026-10-05.md#interface-plan) là nguồn duy nhất cho kế hoạch chuẩn hóa interface theo từng hàm, 34 intent, phân loại native/chuyển đổi/dẫn xuất/đặc thù/không hỗ trợ và các đợt UI → QA đọc → refactor → QA hồi quy. Đây là kế hoạch, chưa là implementation hoặc nghiệm thu.
+
+Đối chiếu mới **05/10/2026**: [58 hạng mục phát triển từ tính năng các hãng](vendor-feature-backlog-2026-10-05.md) và [audit lớp interface từ code](vendor-interface-audit-2026-10-05.md). Có registry/controller chung nhưng chưa hợp nhất toàn bộ history/alarm/native helpers; chưa production-ready. Các mô tả tổng quan tích cực ở đầu mục lục không thay thế kết luận có phạm vi/bằng chứng này.
+
+Chuẩn bị kết nối hãng: [Hướng dẫn xin quyền API theo từng nền tảng](vendor-api-access-guide-vi.md) (04/10/2026), gồm Deye, Solis, SOLARMAN, Sungrow, GoodWe/SEMS+, Huawei, Growatt, Eybond/Bluesun. Phân biệt khóa ứng dụng và quyền chủ nhà máy; có mẫu thư và giới hạn connector hiện tại. Không phải tất cả đều cần App ID/App Secret.
+
+**Khi yêu cầu “tiếp tục”:** đọc [checkpoint và runbook vendor backlog](vendor-feature-backlog-2026-10-05.md#resume-checkpoint), lưu bàn giao hội thoại trước rồi mới RSM-00; [lộ trình sửa chữa](remediation-roadmap.md) giữ chi tiết R01–R12, không có hàng đợi cạnh tranh. Các mô tả cũ bên dưới là lịch sử, không thay bằng chứng mới.
 
 | Tài liệu | Nội dung sở hữu |
 |---|---|
@@ -22,6 +37,14 @@ Ba nguyên tắc kỹ thuật bất di bất dịch của dự án:
 | [Hardware acceptance & Commissioning](hardware-acceptance.md) | 6 bài test điện lực chuẩn IEC 62446-1, thủ tục nghiệm thu và điều kiện mở khóa quyền ghi |
 | [Bản 0.2](release-0.2.md) | Tóm tắt các thay đổi hiện có, không phải thông báo đã triển khai production |
 
+
+## Tiếp tục công việc sau gián đoạn
+
+Đọc [checkpoint hiện tại](vendor-feature-backlog-2026-10-05.md#resume-checkpoint) và
+[runbook từng bước](vendor-feature-backlog-2026-10-05.md#execution-runbook) trước khi
+tiếp tục UI, QA hãng hoặc interface. [Kế hoạch Data Engineering / Applied AI](vendor-feature-backlog-2026-10-05.md#data-ai-plan)
+bao gồm lịch sử receipt/correction, capacity/retention và Solar Text-to-SQL chỉ đọc;
+đây là phạm vi dự kiến, chưa phải tính năng hoàn thành.
 
 ## UI, kiến trúc và điều kiện triển khai
 
@@ -47,7 +70,7 @@ Bắt đầu ở [hợp đồng đa hãng hiện tại](multivendor-contracts.md
 | [Source audit](vendor-source-audit.md) | Nguồn theo ngày, applicability và các kết luận đã thu hồi |
 | [Rà soát 30 dự án cũ](legacy-project-audit.md) | Quyết định từng dự án, license, nguồn ghim, phần đã port và phần chưa xây |
 | [Model / Home Assistant](model-library-and-home-assistant.md) | Collector TCP/V5, sensor bridge, forecast baseline và energy flow chung |
-| [Source registry](evidence/source-registry.json) | 61 ID nguồn, gồm record đã thu hồi; đồng bộ với [registry đóng gói](../src/solar_fleet/data/source-registry.json) |
+| [Source registry](evidence/source-registry.json) | 65 ID nguồn tại checkpoint 08/10, gồm record đã thu hồi; đồng bộ với [registry đóng gói](../src/solar_fleet/data/source-registry.json) |
 | [Compatibility matrix](vendor-compatibility-matrix.md) | Baseline nghiên cứu 10 phạm vi; không phải danh sách adapter đã nghiệm thu |
 | [Vendor matrix JSON](evidence/vendor-matrix.json) | Dữ liệu nghiên cứu baseline, không phải runtime support registry |
 | [Universal control mapping](universal-control-mapping.md) | Candidate Deye và khoảng semantic chưa xác minh |
@@ -58,9 +81,11 @@ Bắt đầu ở [hợp đồng đa hãng hiện tại](multivendor-contracts.md
 
 ## Kiểm thử và QA đã ghi nhận
 
+Mới ngày 07/10: [UI chuyên sâu EMS, mạng, biểu đồ và lớp bản đồ](evidence/ui-deep-workspaces-2026-10-07.md), tiếp nối [UI xem/so sánh số đo](evidence/ui-observation-inspector-2026-10-07.md). Bằng chứng kiểm thử tách khỏi pixel acceptance và QA tài khoản hãng.
+
 [Validation index](validation.md) là điểm vào kết quả thực thi. [Browser contract](browser-test-contract.md) mô tả cách chạy và isolation.
 
-- [27/09 — Legacy reuse và energy flow](legacy-validation-2026-09-27.md): đợt mới nhất; model/agent/HA/baseline, CSS global và browser QA.
+- 27/09 — Legacy reuse và energy flow: file `legacy-validation-2026-09-27.md` được tham chiếu trước đây nhưng chưa có trong checkout; không dùng mục này như evidence đã kiểm chứng. Xem các evidence hiện có bên dưới và checkpoint hiện tại.
 - [25/09 — Mapping và navigation](mapping-validation-2026-09-25.md): snapshot trước, 450 BE; 13 browser trước sửa UI, 8 ca rerun gồm một ca mới; build và QA có giới hạn.
 - [24/09 — Eybond](eybond-validation-2026-09-24.md): contract/workflow và package của snapshot trước đó.
 - [23/09 — Adapter/workspace audit](audit-validation-2026-09-23.md): kết quả snapshot theo ngày.

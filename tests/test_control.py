@@ -27,7 +27,7 @@ class Simulator:
         return Configuration(
             values={"maxChargeCurrent": self.value},
             freshness_verified=not self.cached,
-            device_timestamp=utcnow() - timedelta(seconds=60 if self.stale else 0),
+            device_timestamp=utcnow() - timedelta(seconds=61 if self.stale else 0),
         )
 
     async def send(self, call, *, before_send):
@@ -523,4 +523,40 @@ def test_verify_semantic_readback_intent_mismatch():
         readback={"someOtherField": 10},
         expected={"someOtherField": 10},
         intent="SET_CHARGE_CURRENT",
+    )
+
+
+def test_fresh_config_boundaries():
+    from solar_fleet.control import SafetyError, fresh
+    from solar_fleet.domain import Configuration
+
+    now = utcnow()
+
+    # 59.0s -> fresh (accepted)
+    c_59 = Configuration(values={"a": 1}, freshness_verified=True, device_timestamp=now - timedelta(seconds=59))
+    fresh(c_59)  # Should not raise
+
+    # 60.0s -> stale (rejected)
+    c_60 = Configuration(values={"a": 1}, freshness_verified=True, device_timestamp=now - timedelta(seconds=60))
+    with pytest.raises(SafetyError, match="device_readback_stale"):
+        fresh(c_60)
+
+    # 61.0s -> stale (rejected)
+    c_61 = Configuration(values={"a": 1}, freshness_verified=True, device_timestamp=now - timedelta(seconds=61))
+    with pytest.raises(SafetyError, match="device_readback_stale"):
+        fresh(c_61)
+
+
+@pytest.mark.parametrize("missing_field", ["target_soc", "power_w", "grid_charge", "time"])
+def test_tou_missing_readback_field_fails_verification(missing_field):
+    from solar_fleet.control import verify_semantic_readback
+
+    expected_slot = {"time": "01:00", "target_soc": 80.0, "power_w": 3000, "grid_charge": True}
+    rb_slot = dict(expected_slot)
+    del rb_slot[missing_field]
+
+    assert not verify_semantic_readback(
+        readback={"timeUseSettingItems": [rb_slot]},
+        expected={"timeUseSettingItems": [expected_slot]},
+        intent="SET_TOU",
     )

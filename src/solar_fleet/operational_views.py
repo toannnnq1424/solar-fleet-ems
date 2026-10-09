@@ -196,8 +196,10 @@ class OperationalViews:
 
     def equipment(self, device):
         channels = device_values(self.controller, device)
-        recent = [s for s in self.controller.latest(device)["samples"] if not s["stale"]]
+        latest = self.controller.latest(device)
+        recent = [s for s in latest["samples"] if not s["stale"]]
         caps = self.controller.capabilities(device)
+        online = device.online if recent else None
         return {
             **device.model_dump(mode="json"),
             "vendor": device.identity.vendor,
@@ -208,8 +210,14 @@ class OperationalViews:
             "serial": device.vendor_id,
             "serial_number": device.vendor_id,
             "firmware_version": device.identity.firmware,
-            "online": bool(device.online and recent),
-            "status": "ONLINE" if device.online and recent else "UNKNOWN",
+            "online": online,
+            "status": "ONLINE" if online is True else "OFFLINE" if online is False else "UNKNOWN",
+            "reading_summary": {
+                "sample_count": len(latest["samples"]),
+                "verified_recent_count": sum(s["quality"] == "GOOD" and s["value"] is not None for s in recent),
+                "received_at": latest.get("received_at"),
+            },
+            "vendor_report": latest.get("reported"),
             "power_kw": self.kw(value(channels, "pv_w", "W")),
             "soc_pct": value(channels, "soc_pct", "%"),
             "temp_c": value(channels, "inverter_temperature_c", "°C"),
@@ -310,6 +318,7 @@ class OperationalViews:
         ]
         return {
             "site": site,
+            "vendor_report": self.controller.reported_station(site_id),
             "energy_flow": flow,
             "plant_status": status,
             "quick_presets": presets,

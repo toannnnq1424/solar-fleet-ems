@@ -1,4 +1,8 @@
 import { l, t, date, number } from "./i18n.js";
+import { energyFlowCard } from "./energy-flow.js";
+import { deviceHistoryPanel } from "./device-history.js";
+import { deviceLiveMonitor } from './device-live-monitor.js';
+import { metricTiles } from "./ui-visuals.js";
 import { icon } from "./icons.js";
 
 export async function renderJournalMainWorkspace(ui) {
@@ -73,31 +77,31 @@ export async function renderJournalMainWorkspace(ui) {
         "journal-kpi-card",
         div("kpi-header", icon("fileText"), e("span", l("Tổng số lệnh hôm nay", "Total Commands Today"))),
         div("kpi-value", `${summary.total_today}`),
-        div("kpi-sub", summary.total_today > 0 ? "● Đang theo dõi" : "Chưa có lệnh")
+        div("kpi-sub", summary.total_today > 0 ? l("Đang theo dõi","Tracking commands") : l("Chưa có lệnh","No commands yet"))
       ),
       div(
         "journal-kpi-card success-card",
         div("kpi-header", icon("checkCircle"), e("span", l("Thành công", "Successful"))),
         div("kpi-value text-good", `${summary.success_count}`),
-        div("kpi-sub text-good", `${Math.round((summary.success_count / (summary.total_today || 1)) * 100)}% tỷ lệ đạt`)
+        div("kpi-sub text-good", summary.total_today ? number(summary.success_count / summary.total_today * 100)+l("% tỷ lệ đạt","% successful") : l("Chưa có lệnh để tính tỷ lệ","No commands to calculate a rate"))
       ),
       div(
         "journal-kpi-card danger-card",
         div("kpi-header", icon("alertTriangle"), e("span", l("Thất bại", "Failed"))),
         div("kpi-value text-bad", `${summary.failed_count}`),
-        div("kpi-sub text-bad", summary.failed_count ? "Cần kiểm tra thiết bị" : "0 lỗi phát sinh")
+        div("kpi-sub text-bad", summary.failed_count ? l("Cần kiểm tra thiết bị","Check equipment") : l("Chưa ghi nhận lệnh lỗi","No failed commands recorded"))
       ),
       div(
         "journal-kpi-card warn-card",
         div("kpi-header", icon("clock"), e("span", l("Chờ xác nhận", "Pending Acknowledgment"))),
         div("kpi-value text-warn", `${summary.pending_count}`),
-        div("kpi-sub text-warn", "Đang chuyển tiếp bus")
+        div("kpi-sub text-warn", summary.pending_count ? l("Có lệnh đang chờ kết quả","Commands awaiting a result") : l("Không có lệnh đang chờ","No pending commands"))
       ),
       div(
         "journal-kpi-card info-card",
         div("kpi-header", icon("control"), e("span", l("Cần đọc lại", "Need Readback"))),
         div("kpi-value text-blue", `${summary.need_readback_count}`),
-        div("kpi-sub text-blue", "Vòng lặp đọc lại Modbus")
+        div("kpi-sub text-blue", l("Đối chiếu kết quả sau khi gửi","Post-command verification"))
       )
     );
     container.append(kpiRow);
@@ -221,16 +225,7 @@ export async function renderJournalMainWorkspace(ui) {
 
     function renderTable(data) {
       const items = data.items || [];
-      if (!items.length) {
-        tablePane.replaceChildren(
-          card(
-            l("Danh sách lệnh điều khiển", "Command History"),
-            p(l("Chưa có lệnh điều khiển nào phù hợp với bộ lọc.", "No command logs match the current filter."))
-          )
-        );
-        drawerPane.replaceChildren();
-        return;
-      }
+      if (!items.some(item => item.id === selectedCommand?.id)) selectedCommand = null;
 
       const rows = items.map((item) => {
         const rowEl = e("tr", "", item.id === selectedCommand?.id ? "row-selected" : "");
@@ -249,9 +244,9 @@ export async function renderJournalMainWorkspace(ui) {
         const tdSite = e("td", item.site_name || "—");
         const tdDev = e("td", item.device_name || "—");
         const tdCmd = e("td", e("b", item.command_name || item.intent));
-        const tdOld = e("td", item.old_value || "—");
-        const tdNew = e("td", e("b", item.new_value || "—"));
-        const tdSource = e("td", badge(item.source || "Web Portal", "blue"));
+        const tdOld = e("td", item.old_value ?? "—");
+        const tdNew = e("td", e("b", item.new_value ?? "—"));
+        const tdSource = e("td", badge(item.source || "—", "blue"));
 
         const stBadge = badge(
           item.status,
@@ -262,7 +257,7 @@ export async function renderJournalMainWorkspace(ui) {
         const verBadge = badge(item.verification_status, item.verification_level);
         const tdVer = e("td", verBadge);
 
-        const tdOp = e("td", item.operator_id || "Nguyễn Văn A");
+        const tdOp = e("td", item.operator_id || "—");
         const tdNotes = e("td", e("span", (item.notes || "—").slice(0, 30) + "…", "small text-muted"));
 
         rowEl.append(tdCheck, tdTime, tdSite, tdDev, tdCmd, tdOld, tdNew, tdSource, tdSt, tdVer, tdOp, tdNotes);
@@ -290,6 +285,12 @@ export async function renderJournalMainWorkspace(ui) {
 
       const tbody = e("tbody");
       rows.forEach((r) => tbody.append(r));
+      if (!rows.length) {
+        const empty=e('td',l('Chưa có lệnh điều khiển nào phù hợp với bộ lọc.','No command logs match the current filter.'),'table-empty');
+        empty.colSpan=12;const row=e('tr');row.append(empty);tbody.append(row);
+        drawerPane.replaceChildren(card(l('Chi tiết lệnh','Command details'),
+          p(l('Chọn một lệnh trong danh sách để xem giá trị trước/sau và quá trình xác minh.','Select a command to review before/after values and verification history.'))));
+      }
       tbl.append(thead, tbody);
 
       // Pagination bar
@@ -310,13 +311,15 @@ export async function renderJournalMainWorkspace(ui) {
       }, currentPage >= data.total_pages ? "secondary disabled" : "secondary");
 
       const pageIndicator = e("b", `${l("Trang", "Page")} ${data.current_page} / ${data.total_pages}`);
+      btnPrev.disabled = currentPage <= 1;
+      btnNext.disabled = currentPage >= data.total_pages;
 
       pagRow.append(countLabel, div("row", btnPrev, pageIndicator, btnNext));
 
       tablePane.replaceChildren(
         card(
           div("row-between", e("b", l("Danh sách lệnh điều khiển", "Command History List")), countLabel),
-          tbl,
+          div('table-scroll',tbl),
           pagRow
         )
       );
@@ -353,7 +356,7 @@ export async function renderJournalMainWorkspace(ui) {
           div(
             "stack-dense",
             e("b", cmd.command_name || cmd.intent, "drawer-title"),
-            e("span", `${cmd.device_name} (${cmd.vendor || "Deye"}) · ${cmd.site_name}`, "small text-muted")
+            e("span", [cmd.device_name, cmd.vendor, cmd.site_name].filter(Boolean).join(' · ') || '—', "small text-muted")
           )
         ),
         badge(
@@ -411,11 +414,11 @@ export async function renderJournalMainWorkspace(ui) {
             "journal-info-grid",
             div("info-item", e("span", l("Mã lệnh:", "Command ID:")), e("b", cmd.id ? cmd.id.slice(0, 16) + "…" : "—")),
             div("info-item", e("span", l("Loại lệnh:", "Intent:")), e("b", cmd.command_name || cmd.intent)),
-            div("info-item", e("span", l("Người thao tác:", "Operator:")), e("b", cmd.operator_id || "Nguyễn Văn A")),
-            div("info-item", e("span", l("Nguồn gửi:", "Source:")), badge(cmd.source || "Web Portal", "blue")),
+            div("info-item", e("span", l("Người thao tác:", "Operator:")), e("b", cmd.operator_id || "—")),
+            div("info-item", e("span", l("Nguồn gửi:", "Source:")), badge(cmd.source || "—", "blue")),
             div("info-item", e("span", l("Thời gian thực thi:", "Duration:")), e("b", `${number(cmd.duration_seconds)} s`)),
             div("info-item", e("span", l("Cập nhật cuối:", "Updated At:")), e("span", cmd.updated_at || "—")),
-            div("info-item", e("span", l("Ghi chú vận hành:", "Notes:")), e("p", cmd.notes || "Thao tác gửi lệnh chuẩn", "small text-muted"))
+            div("info-item", e("span", l("Ghi chú vận hành:", "Notes:")), e("p", cmd.notes || "—", "small text-muted"))
           );
           bodyContainer.append(infoGrid);
         }
@@ -433,21 +436,59 @@ export async function renderJournalMainWorkspace(ui) {
   // =========================================================================
   else if (currentTab === "realtime") {
     const ds=devices();
-    if(!ds.length){container.append(p(t('noData')));return container;}
-    const id=ds.some(d=>d.id===state.selectedRealtimeDevice)?state.selectedRealtimeDevice:ds[0].id;
-    const choose=select(ds.map(d=>[d.id,d.name||d.vendor_id]),id);
+    const id=ds.some(d=>d.id===state.selectedRealtimeDevice)?state.selectedRealtimeDevice:ds[0]?.id;
+    const choose=select([['',l('Chọn thiết bị','Choose equipment')],...ds.map(d=>[d.id,d.name||d.vendor_id])],id||'');
     choose.onchange=()=>{state.selectedRealtimeDevice=choose.value;render();};
-    const rt=await api('/journal/realtime/'+encodeURIComponent(id));
-    container.append(div('row',field(t('devices'),choose),btn(t('refresh'),render),
-      btn(l('Xuất CSV','Export CSV'),()=>window.open('/api/reports/telemetry?'+new URLSearchParams({device_id:id,download:'true'}),'_blank','noopener'))));
-    container.append(card(rt.device.name,p(rt.device.vendor+' · '+rt.device.model+' · '+rt.device.serial),p(date(rt.device.last_seen))));
-    const measures=[['PV',rt.kpis.p_pv_kw,'kW'],['AC',rt.kpis.p_ac_kw,'kW'],['SOC',rt.kpis.soc_pct,'%'],[l('Tải','Load'),rt.kpis.load_power_kw,'kW'],[l('Nhiệt độ','Temperature'),rt.kpis.temp_c,'°C']];
-    container.append(div('overview-kpis',...measures.map(([name,val,unit])=>div('fact',p(name),e('b',number(val)+' '+unit)))));
-    container.append(card(l('Thông số đã xác minh','Verified measurements'),table([l('Thông số','Metric'),l('Giá trị','Value'),l('Đơn vị','Unit'),l('Thời điểm nguồn','Source time'),l('Chất lượng','Quality')],
-      rt.parameters.map(v=>[v.name,number(v.value),v.unit,date(v.updated_at),v.quality]))),
-      card(l('Kết nối và dữ liệu','Connectivity and data'),table([l('Hạng mục','Item'),t('status')],Object.entries(rt.connectivity).filter(([k,v])=>typeof v!=='object').map(([k,v])=>[t(k),String(v??'UNKNOWN')]))),
-      notice('Thông số thiếu hiển thị —. Biểu đồ điện áp pha, chuỗi DC và độ trễ cần profile dữ liệu tương ứng.',
-        'Missing values display —. Phase voltage, DC string and latency plots require the corresponding measurement profiles.'));
+    const load = async () => {
+      const [rt, history] = await Promise.all([
+        api('/journal/realtime/'+encodeURIComponent(id)),
+        api('/devices/'+encodeURIComponent(id)+'/history'),
+      ]);
+      return {rt, history};
+    };
+    const initial=id?await load():{rt:{device:{},kpis:{},parameters:[],connectivity:{}},history:{samples:[]}};
+    const details=id?await api('/devices/'+encodeURIComponent(id)):{latest:{}};
+    container.append(div('row monitor-toolbar',field(t('devices'),choose),btn(l('Cập nhật','Refresh'),render),
+      ...(id?[btn(l('Xuất CSV','Export CSV'),()=>download('/reports/telemetry?'+new URLSearchParams({device_id:id,download:'true'}),'device-readings.csv'))]:[])));
+    const renderReadings = (details, {rt, history}) => {
+      const panels=div('stack device-live-details'),device=rt.device;
+      panels.append(card(device.name||l('Thông tin thiết bị','Equipment information'),
+        div('monitor-device-heading',div('monitor-equipment-icon',icon('device')),
+          div('facts',fact(l('Hãng / Model','Vendor / Model'),[device.vendor,device.model].filter(Boolean).join(' / ')||'—'),
+            fact(l('Số sê-ri','Serial number'),device.serial||'—'),fact(t('plants'),device.site_name||'—'),fact(l('Nhận dữ liệu gần nhất','Last received'),date(device.last_seen))))));
+      if (!details.latest?.reported) panels.append(metricTiles(ui,[
+        ['sun',l('Điện mặt trời','Solar PV'),rt.kpis.p_pv_kw,'kW','green'],
+        ['device',l('Đầu ra biến tần','Inverter output'),rt.kpis.p_ac_kw,'kW'],
+        ['battery',l('Mức pin','Battery level'),rt.kpis.soc_pct,'%','green'],
+        ['bolt',l('Điện lưới','Grid power'),rt.kpis.grid_power_kw,'kW'],
+        ['home',l('Tải tiêu thụ','Consumption'),rt.kpis.load_power_kw,'kW'],
+        ['thermometer',l('Nhiệt độ','Temperature'),rt.kpis.temp_c,'°C','orange']],'monitor-kpis'));
+      const measurements=deviceHistoryPanel(ui,history.samples||[],{compact:true});
+      const plot=measurements.firstElementChild,mini=measurements.lastElementChild;
+      const flow=energyFlowCard(ui,rt.energy_flow||{},target=>{
+        state.site=ds.find(d=>d.id===id)?.site_id||state.site;
+        if(target==='control')go('operations','control');else go('overview',target,'main');
+      });
+      const connectivityLabels={
+        data_freshness:l('Dữ liệu đã xác minh','Verified observations'),cloud_connection:l('Kết nối tài khoản hãng','Vendor cloud connection'),
+        local_agent_connection:l('Kết nối bộ thu thập','Collector connection'),meter_status:l('Công tơ','Meter'),bms_status:l('Pin / BMS','Battery / BMS'),
+        firmware_version:l('Phần mềm thiết bị','Firmware'),active_alarms_count:l('Cảnh báo đang mở','Open alerts'),remote_control_supported:l('Đã nghiệm thu thiết bị','Equipment commissioned')};
+      const connection=card(l('Kết nối và dữ liệu','Connectivity and data'),...Object.entries(connectivityLabels).map(([key,label])=>{
+        const value=rt.connectivity[key];
+        const text=value==null?l('Chưa xác định','Unknown'):typeof value==='boolean'?(value?l('Có','Yes'):l('Chưa','Not yet')):key==='firmware_version'?String(value):t(String(value));
+        return fact(label,text);
+      }),p(l('Nghiệm thu không thay thế quyền truy cập, kiểm tra tương thích và đọc lại của từng lệnh.','Commissioning does not replace permissions, compatibility checks or command readback.'),'field-help'));
+      connection.classList.add('monitor-connectivity');
+      panels.append(div('monitor-reference-layout',flow,plot,connection,mini),
+        card(l('Thông số đã xác minh','Verified measurements'),table([l('Thông số','Metric'),l('Giá trị','Value'),l('Đơn vị','Unit'),l('Thời điểm nguồn','Source time'),l('Chất lượng','Quality')],
+        rt.parameters.map(v=>[t(v.name),number(v.value),v.unit,date(v.updated_at),t(v.quality)]))),
+        notice('Số đo thiếu hiển thị —. Các kênh điện áp, dòng điện, tần số và nhiệt độ chỉ hiển thị nếu có bản ghi đúng đơn vị; không tự gán pha hoặc chuỗi DC.',
+          'Missing observations display —. Voltage, current, frequency and temperature use exact recorded units; phases and DC strings are never inferred.'));
+      return panels;
+    };
+    if (id) container.append(deviceLiveMonitor({...ui, api}, details, id, {initial, load, render: renderReadings}));
+    else container.append(renderReadings(details, initial));
+
   }
 
   else if (currentTab === "audit_trail") {

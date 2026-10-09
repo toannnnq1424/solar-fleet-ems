@@ -1,4 +1,5 @@
 import { l, t, date, number, language } from "./i18n.js";
+import { metricTiles, countChart } from './ui-visuals.js';
 
 export function createIncidentCenter(ui) {
   const { state, e, div, p, btn, badge, card, input, select, field, fact,
@@ -21,13 +22,13 @@ export function createIncidentCenter(ui) {
   const duration = (seconds) => seconds == null ? "—" : number(seconds / 60, 0) + l(" phút", " min");
 
   async function center() {
-    let offset = 0, selected = state.tab || "", current = null, activeTab = "overview";
+    let offset = 0, selected = state.tab || "", current = null, activeTab = "overview", openRequest = 0;
     const search = input("search"), severity = select([["", l("Tất cả mức độ", "All severities")], ...levels()]),
       status = select([["", l("Tất cả trạng thái", "All statuses")], ...statuses()]),
       assignment = select([["", l("Mọi phân công", "All assignments")], ["unassigned", l("Chưa phân công", "Unassigned")], ["mine", l("Của tôi", "Assigned to me")]]),
       sla = select([["", l("Mọi SLA", "All SLAs")], ["breached", l("Đã quá hạn", "Breached")]]),
-      list = div("record-list"), detail = div("stack"), actions = div("stack"),
-      metrics = div("grid four"), analytics = div("grid three"), pager = div("toolbar");
+      list = div("incident-directory"), detail = div("stack"), actions = div("stack"),
+      metrics = div("incident-metrics"), analytics = div("grid three"), charts=div('grid three incident-charts'), pager = div("toolbar");
     search.placeholder = l("Tên cảnh báo, mã lỗi, thiết bị…", "Alert, error code, device…");
     search.maxLength = 200;
     async function reload() {
@@ -39,18 +40,24 @@ export function createIncidentCenter(ui) {
       if (assignment.value === "unassigned") query.set("unassigned", "true");
       if (sla.value) query.set("only_breached", "true");
       const [page, summary] = await Promise.all([api("/incidents?" + query), api("/incidents/summary?" + scope())]);
-      metrics.replaceChildren(...[[l("Cảnh báo đang mở", "Open alerts"), summary.open], [l("Nguy cấp", "Critical"), summary.critical],
-        [l("Đang xử lý", "In progress"), summary.in_progress], [l("Giải quyết hôm nay", "Resolved today"), summary.resolved_today]]
-        .map(([label, value]) => card(label, e("strong", number(value, 0), "metric-value"))));
-      list.replaceChildren(...page.items.map((row) => {
-        const button = btn("", async () => { selected = row.id; activeTab = "overview"; await open(row.id); }, "record-button" + (row.id === selected ? " selected" : ""));
-        button.append(div("row", badge(levelLabel(row.severity), row.severity === "critical" ? "bad" : "warn"), e("strong", row.title)),
-          p(siteName(row.site_id)), div("row", badge(stateLabel(row.status)), e("small", date(row.updated_at))),
-          p(row.description.slice(0, 130)));
+      metrics.replaceChildren(metricTiles(ui,[['alert',l('Cảnh báo đang mở','Open alerts'),summary.open,'','red'],
+        ['alert',l('Nguy cấp','Critical'),summary.critical,'','solar'],
+        ['settings',l('Đang xử lý','In progress'),summary.in_progress],
+        ['check',l('Giải quyết hôm nay','Resolved today'),summary.resolved_today,'','green']]));
+      charts.replaceChildren(
+        card(l('Cảnh báo mới theo ngày','New alerts by day'),countChart((summary.trend||[]).map(r=>({label:r.date.slice(5),value:r.count})),l('Số cảnh báo mới theo ngày UTC','New alerts by UTC day'))),
+        card(l('Mức độ cảnh báo đang mở','Open alert severity'),countChart(levels().map(([key,label])=>({label,value:summary.by_severity?.[key]??0})),l('Mức độ cảnh báo','Alert severity'),true)),
+        card(l('Phân nhóm cảnh báo · 7 ngày','Alert categories · 7 days'),countChart(categories().map(([key,label])=>({label,value:summary.by_category?.[key]??0})),l('Nhóm cảnh báo','Alert categories'),true)));
+      list.replaceChildren(table([l('Thời gian','Time'),l('Mức độ','Severity'),t('plants'),l('Cảnh báo','Alert'),
+        l('Thiết bị','Equipment'),t('status'),l('Phụ trách','Assignee'),l('Thao tác','Action')],page.items.map((row) => {
+        const button = btn(l('Xem chi tiết','View details'), async () => { selected = row.id; activeTab = "overview"; await open(row.id); }, 'link incident-open');
         button.setAttribute("aria-pressed", String(row.id === selected));
         button.dataset.recordId = row.id;
-        return button;
-      }));
+        const device=state.fleet.devices.find(d=>d.id===row.device_id);
+        return [date(row.updated_at),badge(levelLabel(row.severity),row.severity==='critical'?'bad':'warn'),
+          siteName(row.site_id),div('stack gap-xs',e('strong',row.title),e('small',row.alarm_code||'—','muted')),
+          device?.name||device?.vendor_id||'—',badge(stateLabel(row.status)),row.assigned_to||'—',button];
+      })));
       if (!page.items.length) list.append(p(l("Không có cảnh báo phù hợp bộ lọc.", "No alerts match these filters.")));
       pager.replaceChildren(btn(l("Trước", "Previous"), async () => { offset = Math.max(0, offset - 20); await reload(); }),
         p(`${page.total ? offset + 1 : 0}–${Math.min(offset + 20, page.total)} / ${page.total}`),
@@ -67,14 +74,26 @@ export function createIncidentCenter(ui) {
         fact(l("Đang quá hạn", "Open breaches"), summary.sla_breached_open), p(l("Thời gian liên tục 24/7, UTC.", "Elapsed time, 24/7, UTC."))),
       card(l("Phân nhóm nguyên nhân", "Categories"), ...categories().map(([key, label]) => fact(label, summary.by_category[key] || 0))));
       if (!selected || !page.items.some((r) => r.id === selected)) selected = page.items[0]?.id || "";
-      if (selected) await open(selected); else { detail.replaceChildren(p(l("Chọn một cảnh báo để xử lý.", "Select an alert to investigate."))); actions.replaceChildren(); }
+      if (selected) await open(selected); else {
+        detail.replaceChildren(card(l('Chi tiết cảnh báo','Alert details'),
+          p(l('Chưa có cảnh báo để xem. Khi có bản ghi, mô tả và lịch sử xử lý sẽ xuất hiện tại đây.','No alert to review. Recorded descriptions and response history will appear here.')),
+          fact(l('Thiết bị','Equipment'),'—'),fact(l('Ghi nhận gần nhất','Last observed'),'—')));
+        actions.replaceChildren(card(l('Phân công & xử lý','Assignment & response'),
+          fact(l('Phụ trách','Assignee'),'—'),fact(l('Thời hạn xử lý','Resolution deadline'),'—'),
+          p(l('Chọn một cảnh báo để phân công và ghi nhận xử lý.','Select an alert to assign it and record a response.'))));
+      }
     }
     async function mutate(path, values) { await api(path, values); closeDialog(); await reload(); }
     async function open(id) {
-      current = await api(`/incidents/${encodeURIComponent(id)}/detail`);
+      const request=++openRequest;
+      detail.replaceChildren(card(l('Chi tiết cảnh báo','Alert details'),p(l('Đang tải…','Loading…'))));
+      actions.replaceChildren();
+      const loaded = await api(`/incidents/${encodeURIComponent(id)}/detail`);
+      if (request !== openRequest) return;
+      current = loaded;
       const row = current.incident;
-      list.querySelectorAll(".record-button").forEach((node) => {
-        node.classList.toggle("selected", node.dataset.recordId === id);
+      list.querySelectorAll(".incident-open").forEach((node) => {
+        node.closest('tr').classList.toggle("row-selected", node.dataset.recordId === id);
         node.setAttribute("aria-pressed", String(node.dataset.recordId === id));
       });
       const content = div("stack");
@@ -123,12 +142,13 @@ export function createIncidentCenter(ui) {
           p(l("SLA được chụp tại thời điểm mở sự cố; thay chính sách không xóa lịch sử quá hạn.", "SLA targets are captured when an incident opens; policy changes do not erase breaches."))));
       await draw(activeTab);
     }
-    const root = div("stack", div("toolbar", p(l("Theo dõi, phân công và xử lý sự cố trên các nhà máy.", "Monitor, assign and resolve incidents across plants.")),
-      operator() ? btn(l("+ Tạo cảnh báo", "+ Create alert"), () => createManual(reload), "primary") : null), metrics,
-      div("form-grid", field(l("Tìm kiếm", "Search"), search), field(l("Mức độ", "Severity"), severity),
+    const root = div("stack incident-workspace-root", div("toolbar", p(l("Theo dõi, phân công và xử lý sự cố trên các nhà máy.", "Monitor, assign and resolve incidents across plants.")),
+      operator() ? btn(l("+ Tạo cảnh báo", "+ Create alert"), () => createManual(reload), "primary") : null), metrics,charts,
+      div("filter-strip", field(l("Tìm kiếm", "Search"), search), field(l("Mức độ", "Severity"), severity),
         field(t("status"), status), field(l("Phân công", "Assignment"), assignment), field("SLA", sla),
         btn(l("Lọc cảnh báo", "Apply filters"), async () => { offset = 0; selected = ""; await reload(); })),
-      div("workbench-layout", card(l("Danh sách cảnh báo", "Alert list"), list, pager), detail, actions), analytics);
+      card(l("Danh sách cảnh báo", "Alert list"), list, pager),
+      div("workbench-layout incident-detail-layout", detail, actions), analytics);
     await reload(); return root;
   }
 
@@ -205,10 +225,11 @@ export function createIncidentCenter(ui) {
       await ui.refresh();
     });
     f.append(field(t("name"), name));
+    const grid=div('sla-grid');f.append(grid);
     for (const [key, label] of levels()) {
       const target = policy.targets[key], response = input("number", target.response_minutes, true), resolution = input("number", target.resolution_minutes, true);
       response.min = resolution.min = 1; response.max = 43200; resolution.max = 129600;
-      fields[key] = {response, resolution}; f.append(card(label, div("form-grid", field(l("Tiếp nhận trong (phút)", "Respond within (min)"), response), field(l("Giải quyết trong (phút)", "Resolve within (min)"), resolution))));
+      fields[key] = {response, resolution}; grid.append(card(label, div("form-grid", field(l("Tiếp nhận trong (phút)", "Respond within (min)"), response), field(l("Giải quyết trong (phút)", "Resolve within (min)"), resolution))));
     }
     if (technical()) f.finish(); else f.querySelectorAll("input").forEach((node) => node.disabled = true);
     return card(l("Mục tiêu SLA theo mức độ", "SLA targets by severity"), notice("Áp dụng cho sự cố mở mới. Thông báo quá hạn ở trong ứng dụng; chưa gửi email/SMS.", "Applies to new incidents. Escalations are in-app; email/SMS is not sent."), f);

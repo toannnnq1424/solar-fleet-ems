@@ -173,8 +173,6 @@ _REGISTRY: dict[tuple[str, str], tuple[list, Any]] = {
     ("sungrow", "sg"):             (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     ("sungrow", "sg110cx"):        (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
     ("sungrow", "sg125hx"):        (SUNGROW_SG125HX_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg125hx")),
-    ("sungrow", "sg_commercial"):  (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
-    ("sungrow", "commercial"):     (SUNGROW_COMMERCIAL_REGISTERS, lambda r, s: _sungrow_commercial_decode(r, "sg110cx")),
     ("sungrow", ""):               (SUNGROW_SHX_INPUT_REGISTERS, lambda r, s: _sungrow_decode(r, SUNGROW_SHX_INPUT_REGISTERS)),
     # Huawei
     ("huawei", "sun2000"):  (HUAWEI_SUN2000_REGISTERS, lambda r, s: _huawei_decode(r, HUAWEI_SUN2000_REGISTERS)),

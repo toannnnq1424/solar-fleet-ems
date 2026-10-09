@@ -11,10 +11,11 @@ from .adapters.plugins import builtins
 from .budgets import Budgets
 from .catalog import capabilities
 from .control import CommandEngine
-from .data_workspace import accepted_profile, apply_profile, collection_due
-from .domain import Device, DeviceIdentity, SafetyError, Sample, Source, utcnow
+from .data_workspace import accepted_profile, apply_profile, collection_due, minimum_collection_interval
+from .deye_connection import require_managed_application
+from .domain import Device, DeviceIdentity, SafetyError, Sample, Source, VendorError, utcnow
 from .incidents import IncidentService
-from .integration import ReadAdapter
+from .integration import DeviceReport, ReadAdapter, StationReport
 from .security import Vault, principal, redact
 from .storage import Store
 from .telemetry import normalize_points, refresh_quality
@@ -64,6 +65,7 @@ class Controller:
         config = self.store.get("integration", id)
         if not config or not config.get("enabled"):
             raise SafetyError("integration_not_available")
+        require_managed_application(self.store, config)
         revision = config.get("credential_revision")
         if id in self.adapters:
             cached = self.adapter_credentials.get(id)
@@ -110,7 +112,9 @@ class Controller:
                 raise
             except Exception:
                 self.store.audit("system", {"event": "poll_failed", "reason": "internal_poll_error"})
-            await asyncio.sleep(120)
+            # Check due accounts often; collection_due still enforces each
+            # provider/policy interval. A 120s scheduler rounded 300s up to 360s.
+            await asyncio.sleep(15)
 
     async def discover(self, config: dict, adapter: ReadAdapter):
         plugin = self.registry.require(config["vendor"])
@@ -234,25 +238,28 @@ class Controller:
                 discovered.append(id)
         for old in self.store.list("device"):
             if old["integration_id"] == config["id"] and old["id"] not in discovered:
-                old["online"] = False
+                old["online"] = None
                 old["metadata"]["discovery_missing"] = True
                 self.store.put("device", old["id"], old)
         self.store.put("discovery", config["id"], {"last_success": utcnow().isoformat()})
 
-    async def poll(self):
+    async def poll(self, *, integration_ids=None, preferred_device_id=None):
         if self.poll_lock.locked():
             raise SafetyError("poll_already_running")
         if time.monotonic() - self.last_poll < 15:
             raise SafetyError("poll_cooldown")
         async with self.poll_lock:
-            self.last_poll = time.monotonic()
+            results = []
             for config in self.store.list("integration"):
+                if integration_ids is not None and config["id"] not in integration_ids:
+                    continue
                 plugin = self.registry.find(config["vendor"])
-                minimum = plugin.registration.get("minimum_poll_seconds", 120) if plugin else 120
+                minimum = minimum_collection_interval(config, plugin.registration if plugin else {})
                 if not config.get("enabled") or not collection_due(
                     self.store, config, minimum_interval=minimum
                 ):
                     continue
+                self.last_poll = time.monotonic()
                 state = {"id": config["id"], "last_attempt": utcnow().isoformat(), "state": "CONNECTING"}
                 try:
                     adapter = self.integration_adapter(config["id"])
@@ -308,6 +315,9 @@ class Controller:
                             ),
                         )
                         selected = (devices[cursor:] + devices[:cursor])[:batch] if devices else []
+                        preferred = next((d for d in devices if d.id == preferred_device_id), None)
+                        if preferred and preferred not in selected:
+                            selected = [preferred, *selected[:max(0, batch - 1)]]
                         wanted = {d.vendor_id: d for d in selected}
                         # Include omitted devices: their offline path also writes state.
                         device_snapshot = {d.id: self.store.get("device", d.id) for d in selected}
@@ -334,17 +344,53 @@ class Controller:
                             raise SafetyError("poll_context_changed")
 
                     rows = await guarded_read(check_poll, adapter.latest, list(wanted)) if wanted else []
+                    station_reports = {}
+                    report_reader = getattr(adapter, "station_report", None)
+                    if report_reader:
+                        # One oldest site per cycle; do not multiply account calls
+                        # by fleet size or re-fetch period totals on every UI visit.
+                        candidates = sorted(site_snapshot.items(), key=lambda pair: (
+                            (self.store.get("station_report", pair[0]) or {}).get("received_at", "")
+                        ))
+                        for site_id, site in candidates:
+                            previous = self.store.get("station_report", site_id) or {}
+                            received = previous.get("received_at")
+                            report_interval = self.collection_cadence(config)
+                            if (received and previous.get("contract_version") == 1
+                                    and previous.get("credential_revision") == config.get("credential_revision")
+                                    and 0 <= (utcnow() - datetime.fromisoformat(received)).total_seconds() < report_interval):
+                                continue
+                            try:
+                                report = await guarded_read(check_poll, report_reader, str(site["vendor_id"]))
+                                if not isinstance(report, StationReport) or report.station_id != str(site["vendor_id"]):
+                                    raise SafetyError("station_report_identity_mismatch")
+                                station_reports[site_id] = {
+                                    "site_id": site_id, "integration_id": config["id"],
+                                    "contract_version": 1,
+                                    "credential_revision": config.get("credential_revision"),
+                                    "vendor": config["vendor"], "source": "VENDOR_CLOUD",
+                                    "received_at": utcnow().isoformat(), "report": report.model_dump(mode="json"),
+                                }
+                            except VendorError:
+                                # Device reads already succeeded. Expose partial
+                                # failure separately, never label old totals fresh.
+                                state["station_report_error"] = "vendor_station_report_unavailable"
+                            break
                     check_poll()
                     with self.store.transaction():
                         # Revalidate after acquiring the write lock as another SQLite
                         # connection can commit between the preflight check and BEGIN.
                         check_poll()
+                        for site_id, report in station_reports.items():
+                            self.store.put("station_report", site_id, report)
                         seen = set()
                         for raw in rows:
                             observed = plugin.measurement(raw)
                             device = wanted.get(observed.serial)
                             if device is None:
                                 raise SafetyError("latest_response_device_mismatch")
+                            if observed.reported is not None and observed.reported.serial != device.vendor_id:
+                                raise SafetyError("reported_device_identity_mismatch")
                             seen.add(device.id)
                             timestamp = observed.timestamp
                             device.last_seen = timestamp
@@ -370,6 +416,7 @@ class Controller:
                                     "binding_id": binding_id,
                                     "received_at": utcnow().isoformat(),
                                     "source": "VENDOR_CLOUD",
+                                    "reported": observed.reported.model_dump(mode="json") if observed.reported else None,
                                     "samples": [s.model_dump(mode="json") for s in samples],
                                     "native": redact(raw),
                                 },
@@ -377,7 +424,7 @@ class Controller:
                             self.store.put("device", device.id, device.model_dump(mode="json"))
                         for device in selected:
                             if device.id not in seen:
-                                device.online = False
+                                device.online = None
                                 self.store.put("device", device.id, device.model_dump(mode="json"))
                         self.store.put(
                             "poll_cursor", config["id"], {"offset": (cursor + batch) % max(1, len(devices))}
@@ -393,6 +440,49 @@ class Controller:
                 except Exception:
                     state.update(state="ERROR", error="invalid_vendor_response_or_internal_error")
                 self.store.put("integration_state", config["id"], state)
+                results.append(state)
+            return results
+
+    def reported_station(self, site_id):
+        """Monitoring only, scoped to the active discovered account and binding."""
+        row = self.store.get("station_report", site_id)
+        site = self.store.get("site", site_id) or {}
+        if not row or row.get("site_id") != site_id or row.get("source") != "VENDOR_CLOUD":
+            return None
+        config = self.store.get("integration", row.get("integration_id")) or {}
+        if not (config.get("enabled") and config.get("vendor") == site.get("vendor") == row.get("vendor")
+                and site.get("source") == "VENDOR_CLOUD" and site.get("integration_id") == config.get("id")
+                and config.get("credential_revision") == row.get("credential_revision")):
+            return None
+        bound = any(
+            d.site_id == site_id and d.integration_id == config["id"] and not d.metadata.get("discovery_missing")
+            and (b := self.store.get("binding", entity_id(config["id"], "binding", d.vendor_id)))
+            and b.get("site_id") == site_id and b.get("device_id") == d.id
+            and b.get("integration_id") == config["id"] and b.get("telemetry_enabled")
+            for d in self.devices()
+        )
+        if not bound:
+            return None
+        try:
+            report = StationReport.model_validate(row.get("report"))
+            received = datetime.fromisoformat(row["received_at"])
+            if report.station_id != str(site.get("vendor_id")) or received.tzinfo is None:
+                return None
+        except (ValidationError, ValueError, KeyError, TypeError):
+            return None
+        cadence = self.collection_cadence(config)
+        return {**report.model_dump(mode="json"), "received_at": row["received_at"],
+                "vendor": row["vendor"], "quality": "VENDOR_REPORTED", "control_eligible": False,
+                "collection_interval_seconds": cadence,
+                "receipt_expired": not -5 <= (utcnow() - received).total_seconds() <= max(300, cadence * 2 + 120),
+                "source_timezone": None}
+
+    def collection_cadence(self, config):
+        """Configured minimum between account reads, not a vendor real-time SLA."""
+        plugin = self.registry.find(config.get("vendor"))
+        minimum = minimum_collection_interval(config, plugin.registration if plugin else {})
+        policy = self.store.get("collection_policy", config.get("id")) or {}
+        return max(minimum, policy.get("interval_seconds", minimum))
 
     def latest(self, device: Device) -> dict:
         current = self.store.get("device", device.id)
@@ -448,6 +538,14 @@ class Controller:
             "samples": [],
             "state": "NO_DATA",
         }
+        if row.get('reported') is not None:
+            try:
+                reported = DeviceReport.model_validate(row['reported'])
+                if reported.serial != device.vendor_id:
+                    raise ValueError('reported_device_identity_mismatch')
+                row['reported'] = reported.model_dump(mode='json')
+            except (ValidationError, ValueError):
+                row = {**row, 'reported': None}
         for source in self.store.list("agent_latest"):
             if (
                 isinstance(source, dict)
@@ -485,6 +583,8 @@ class Controller:
         row["samples"] = [
             refresh_quality(Sample.model_validate(s), 300).model_dump(mode="json") for s in row["samples"]
         ]
+        if row.get("received_at"):
+            row["collection_interval_seconds"] = self.collection_cadence(config)
         return row
 
     def collect_alarms(self, device: Device, rows: list[dict]):

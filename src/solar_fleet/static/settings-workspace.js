@@ -2,6 +2,7 @@
 import { icon } from "./icons.js";
 import { planningEditor } from "./planning-editor.js";
 import { importTariffEditor } from "./import-tariff-editor.js";
+import { deviceOnboarding } from "./device-onboarding.js";
 import { l, t, date, number } from "./i18n.js";
 
 export async function renderSettingsWorkspace(ctx) {
@@ -42,7 +43,7 @@ export async function renderSettingsWorkspace(ctx) {
   const activeTab = state.tab || (admin() ? "users" : "vendors");
 
   const navTabs = [
-    ["users", l("Người dùng & phân quyền", "Users & RBAC"), "user"],
+    ["users", l("Người dùng & phân quyền", "Users & access"), "user"],
     ["vendors", l("Tài khoản hãng & kết nối", "Vendor accounts"), "cloud"],
     ["site_config", l("Cấu hình nhà máy", "Site configuration"), "settings"],
     ["device_onboarding", l("Liên kết thiết bị mới", "Device onboarding"), "device"],
@@ -61,7 +62,7 @@ export async function renderSettingsWorkspace(ctx) {
 
   // Top header with title, subtitle, and subtabs
   const headerCard = div(
-    "card settings-header-card",
+    "settings-header-card",
     div(
       "row space-between align-center",
       div(
@@ -70,12 +71,12 @@ export async function renderSettingsWorkspace(ctx) {
           "row align-center gap-sm",
           icon("settings"),
           e("h2", l("Cài đặt hệ thống & Quản trị người dùng", "System Settings & Administration"), "workspace-title"),
-          badge(admin() ? l("Quản trị cấp cao (Admin)", "Administrator") : l("Chế độ kỹ thuật", "Technical Mode"), "blue"),
+          badge(admin() ? l("Quản trị viên", "Administrator") : l("Chế độ kỹ thuật", "Technical Mode"), "blue"),
         ),
         p(
           l(
-            "Quản lý định danh người dùng, ma trận phân quyền RBAC, kết nối API Cloud các hãng biến tần, cấu hình nhà máy và liên kết thiết bị theo tiêu chuẩn SCADA.",
-            "Manage user identities, RBAC matrix, inverter vendor API connections, plant configuration, and device commissioning records.",
+            "Thêm người dùng, chọn nhà máy họ được xem, kết nối tài khoản hãng và quản lý thông tin thiết bị.",
+            "Manage users, their plant access, vendor accounts and equipment information.",
           ),
           "text-muted text-sm",
         ),
@@ -157,12 +158,9 @@ export async function renderSettingsWorkspace(ctx) {
     );
     container.append(kpiGrid);
 
-    // 2-Column Main Layout (Left: Users Table with search/filters/pagination, Right: RBAC Matrix & Org accounts)
-    const mainCols = div("row gap-md settings-2col-layout");
-
-    // Left Column: User Management Table
-    const leftCol = div("stack gap-md flex-6");
+    // User Directory Table (Full Width)
     const userTableCard = div("card stack gap-sm");
+
 
     // Table Header with search, filters, actions
     const tableHeader = div(
@@ -316,17 +314,12 @@ export async function renderSettingsWorkspace(ctx) {
         "Administrators manage accounts and plant permissions. Sensitive hardware control operations (e.g. grid code unlock, forced dispatch) require an accepted device capability, authorization and readback; the local audit chain can be verified.",
       ),
     );
-    leftCol.append(userTableCard);
-
-    // Right Column: Roles Matrix & Org-level Cloud Accounts
-    const rightCol = div("stack gap-md flex-4");
-
     // Card 1: RBAC Roles & Permissions Matrix
     const rbacCard = div(
       "card stack gap-sm",
       div(
         "row space-between align-center",
-        div("row align-center gap-xs", icon("shield"), e("b", l("Ma trận vai trò & quyền hạn (RBAC)", "Roles & Permissions Matrix"), "card-title")),
+        div("row align-center gap-xs", icon("shield"), e("b", l("Vai trò và quyền truy cập", "Roles & Permissions Matrix"), "card-title")),
         badge(`${rolesMatrix.length} ${l("vai trò", "roles")}`, "blue-soft"),
       ),
       p(
@@ -338,35 +331,39 @@ export async function renderSettingsWorkspace(ctx) {
       ),
       div(
         "table-responsive",
-        table(
-          [
-            l("Vai trò", "Role"),
-            l("Xem", "View"),
-            l("Lệnh", "Ctrl"),
-            l("Soạn TOU", "TOU draft"),
-            l("Lưới", "Grid"),
-            l("Soạn lệnh loạt", "Bulk draft"),
-            l("Khóa", "Keys"),
-            l("Log", "Log"),
-          ],
-          rolesMatrix.map((r) => {
-            const p = r.permissions || {};
-            const cell = (val) => (val ? icon("check") : icon("close"));
-            return [
-              div("stack gap-none", e("b", l(r.name_vi, r.role), "text-xs"), e("span", r.role, "text-xs text-muted")),
-              cell(p.view_data),
-              cell(p.quick_control),
-              cell(p.edit_tou),
-              cell(p.grid_settings),
-              cell(p.bulk_rollout),
-              cell(p.manage_credentials),
-              cell(p.view_security_log),
-            ];
-          }),
-        ),
+        (() => {
+          const tEl = table(
+            [
+              l("Vai trò", "Role"),
+              l("Xem", "View"),
+              l("Lệnh", "Ctrl"),
+              l("Soạn TOU", "TOU draft"),
+              l("Lưới", "Grid"),
+              l("Soạn lệnh loạt", "Bulk draft"),
+              l("Khóa", "Keys"),
+              l("Log", "Log"),
+            ],
+            rolesMatrix.map((r) => {
+              const p = r.permissions || {};
+              const cell = (val) => (val ? icon("check") : icon("close"));
+              return [
+                div("stack gap-none", e("b", l(r.name_vi, r.role), "text-xs"), e("span", r.role, "text-xs text-muted")),
+                cell(p.view_data),
+                cell(p.quick_control),
+                cell(p.edit_tou),
+                cell(p.grid_settings),
+                cell(p.bulk_rollout),
+                cell(p.manage_credentials),
+                cell(p.view_security_log),
+              ];
+            }),
+          );
+          tEl.classList.add("rbac-matrix-table");
+          return tEl;
+        })(),
       ),
     );
-    rightCol.append(rbacCard);
+
 
     // Card 2: Org-level Cloud Accounts List
     const cloudCard = div(
@@ -406,8 +403,6 @@ export async function renderSettingsWorkspace(ctx) {
         ),
       ),
     );
-    rightCol.append(cloudCard);
-
     // Card 3: Recent Security Audit Log
     const auditCard = div(
       "card stack gap-sm",
@@ -429,7 +424,7 @@ export async function renderSettingsWorkspace(ctx) {
               e("b", log.action_label_vi || log.event || log.action, "text-xs"),
               e("span", `${log.user_id || "system"} · ${date(log.timestamp)}`, "text-muted"),
             ),
-            badge(log.ip_address || "127.0.0.1", "gray"),
+            badge(log.ip_address || "—", "gray"),
           ),
         ),
       ),
@@ -439,12 +434,11 @@ export async function renderSettingsWorkspace(ctx) {
         "small-btn secondary",
       ),
     );
-    rightCol.append(auditCard);
 
-    mainCols.append(leftCol, rightCol);
-    container.append(mainCols);
+    container.append(div('users-reference-layout',userTableCard,div('stack',rbacCard,cloudCard,auditCard)));
     return container;
   }
+
 
   // --------------------------------------------------------------------------
   // SUBTAB 2: VENDOR CLOUD ACCOUNTS & DIAGNOSTIC TEST PANEL (Mockup #21)
@@ -475,41 +469,27 @@ export async function renderSettingsWorkspace(ctx) {
     const importRates = await api('/sites/' + encodeURIComponent(currentSiteId) + '/import-tariffs');
     planningForm.append(card(l("Giá điện nhập có hiệu lực", "Effective import rates"),
       importTariffEditor(ctx, currentSiteId, importRates)));
-    return div('stack', field(t('plants'), picker),
-      notice('Thông tin lưu tại đây là hồ sơ nhà máy. Điều khiển, lịch, biểu giá và nguồn dữ liệu dùng các luồng riêng bên dưới.',
-        'This page stores plant records. Use the linked workflows for control, schedules, tariffs and data sources.'),
+    const configuration=div('site-settings-grid',
       card(l('Quyền sở hữu và liên hệ', 'Ownership and contacts'), f),
-      card(l('Ranh giới đo và cấu hình quy hoạch', 'Measurement boundaries and planning configuration'),
-        p(l('Lưu cấu hình tư vấn, không kích hoạt điều khiển. Chỉ quản trị viên được lưu. Biểu giá USD cần 24 giờ UTC liên tiếp và nguồn gốc; thiếu dữ liệu đo vẫn chặn tính toán.',
-          'Advisory configuration only; no dispatch enabled. Only administrators can save. USD prices require 24 consecutive UTC hours and provenance; missing observations still block calculation.')),
-        p(l('Bỏ chọn thiết bị tư vấn để xóa cấu hình pin và giá; không thay đổi quyền điều khiển.', 'Choose Not configured for the advisory device to clear battery and price inputs; control permissions are unchanged.')),
+      div('stack site-planning-main',
+        p(l('Cấu hình phục vụ tính toán tham khảo, không kích hoạt điều khiển. Chỉ nhập thông số được xác nhận từ hồ sơ thiết bị.',
+          'Advisory calculations only; does not enable dispatch. Use parameters confirmed in equipment documentation.')),
         planningForm),
-      card(l('Cấu hình vận hành', 'Operating configuration'), div('row wrap',
+      card(l('Cấu hình vận hành', 'Operating configuration'), div('quick-action-list',
         btn(l('Biểu giá điện', 'Electricity tariffs'), () => go('reports', '', 'tariff')),
         btn(l('Lịch / TOU', 'Schedules / TOU'), () => go('operations', 'schedules')),
         btn(l('Pin, EPS và giới hạn phát', 'Battery, EPS and export limits'), () => go('operations', 'control')),
         btn(l('Nguồn dữ liệu', 'Data sources'), () => go('settings', '', 'source_policy')),
         btn(l('Chính sách thông báo', 'Notification policies'), () => go('settings', '', 'notification_policy')))),
-      card(l('Hồ sơ đã lưu', 'Saved records'), table([l('Hạng mục', 'Section'), t('status')], checklist.map(c=>[c.item,c.status])), raw(l('Chi tiết bản nháp', 'Draft details'), cfg)));
+      card(l('Hồ sơ đã lưu', 'Saved records'), table([l('Hạng mục', 'Section'), t('status')], checklist.map(c=>[t(c.item),t(c.status)])), raw(l('Chi tiết bản nháp', 'Draft details'), cfg)));
+    return div('stack', field(t('plants'), picker),
+      notice('Thông tin lưu tại đây là hồ sơ nhà máy. Điều khiển, lịch, biểu giá và nguồn dữ liệu dùng các luồng riêng bên dưới.',
+        'This page stores plant records. Use the linked workflows for control, schedules, tariffs and data sources.'),
+      configuration);
   }
 
   async function renderDeviceOnboardingTab() {
-    const all = state.fleet.devices.filter(d => !state.site || d.site_id === state.site);
-    const rename = d => {
-      const name = input('text', d.name || d.vendor_id);name.required = true;
-      const f = form(async () => {
-        await api('/admin/devices/onboard-complete', {site_id:d.site_id, vendor:d.identity.vendor,
-          serial_number:d.vendor_id, integration_id:d.integration_id, device_name:name.value.trim()});
-        closeDialog(); await refresh();
-      });
-      f.finish(field(t('name'), name)); showDialog(l('Đặt tên thiết bị', 'Name equipment'), f);
-    };
-    return div('stack', notice('Kết nối tài khoản hãng rồi đồng bộ danh mục để nhận diện thiết bị. Đặt tên không thay thế nghiệm thu hoặc thay đổi cấu hình điện.',
-      'Connect a vendor account and synchronize its inventory to identify equipment. Naming equipment does not commission it or change electrical settings.'),
-      card(l('1. Kết nối và nhận diện', '1. Connect and discover'), btn(l('Mở tài khoản hãng', 'Open vendor accounts'),()=>go('settings','connections'))),
-      card(l('2. Thiết bị đã được nhận diện', '2. Discovered equipment'), table([t('name'),t('plants'),l('Hãng / Model', 'Vendor / Model'),'Serial',l('Thao tác','Action')],
-        all.map(d=>[d.name||d.vendor_id,siteName(d.site_id),d.identity.vendor+' / '+d.identity.model,d.vendor_id,btn(t('edit'),()=>rename(d))]))),
-      card(l('3. Kiểm tra và bàn giao', '3. Review and handover'), btn(l('Mở hồ sơ bàn giao', 'Open handover records'),()=>go('operations','','handover'))));
+    return deviceOnboarding(ctx);
   }
 
   async function renderSecurityTab() {

@@ -1,4 +1,5 @@
 import { l, t, date, number } from "./i18n.js";
+import { deyeApplicationDialog } from './deye-connection.js';
 
 // Route content only. Every element uses the global components and layout tokens.
 export async function accountsView(ui) {
@@ -159,6 +160,10 @@ export async function accountsView(ui) {
         "stack",
         p(row.account),
         p(`${row.vendor} · ${row.region}`),
+        row.credential_source==='MANAGED_DEYE_APPLICATION'?btn(l('Liên kết lại bằng email / mật khẩu','Reconnect with email / password'),
+          ()=>integrationForm({...providers.find(p=>p.id==='Deye'),reconnect:row})):null,
+        row.vendor==='GoodWe'&&row.platform==='sems_plus'?btn(l('Liên kết lại SEMS+','Reconnect SEMS+'),
+          ()=>integrationForm({...providers.find(p=>p.id==='GoodWe'),reconnect:row})):null,
         row.equipment_brand
           ? p(l("Hãng khai báo: ", "Declared brand: ") + row.equipment_brand)
           : null,
@@ -173,12 +178,8 @@ export async function accountsView(ui) {
           "primary",
         ),
         btn(
-          l("Khám phá & đồng bộ danh mục", "Discover & synchronize inventory"),
-          async () => {
-            await api("/sync", {});
-            closeDialog();
-            await refresh();
-          },
+          l("Đồng bộ danh mục · xem phạm vi", "Synchronize inventory · review scope"),
+          synchronizeDialog,
         ),
         btn(
           row.enabled
@@ -199,6 +200,33 @@ export async function accountsView(ui) {
       ),
     );
   }
+  function synchronizeDialog() {
+    const enabled=(data?.accounts||[]).filter(a=>a.enabled);
+    const confirm=form(async()=>{await api('/sync',{});closeDialog();await refresh();},
+      l('Đồng bộ các tài khoản đang bật','Synchronize enabled accounts'));
+    confirm.finish(p(l('Hiện tại thao tác này đọc và cập nhật danh mục của tất cả tài khoản đang bật, không chỉ tài khoản vừa chọn. Không gửi lệnh điều khiển.','This currently reads and updates inventory for all enabled accounts, not only the selected account. It sends no equipment commands.'),'notice'),
+      table([l('Tài khoản','Account'),l('Hãng','Vendor')],enabled.map(a=>[a.name,a.equipment_brand||a.vendor])),
+      p(l('Khi hoàn tất, kiểm tra trạng thái từng tài khoản và nhà máy. Yêu cầu đồng bộ hoàn tất không đảm bảo mọi nguồn đều có dữ liệu.','Afterward, review each account and plant status. Completion of the sync request does not mean every source supplied data.'),'field-help'));
+    showDialog(l('Xác nhận phạm vi đồng bộ','Confirm synchronization scope'),confirm);
+  }
+  async function preparationDialog(){
+    const options=await api('/connections/deye/options');
+    const configured=options.applications.filter(a=>a.enabled);
+    showDialog(l('Chuẩn bị kiểm thử tài khoản thật','Prepare a real-account test'),div('stack account-preflight',
+      p(l('Bạn tự nhập thông tin trên form. Giai đoạn đầu chỉ kiểm tra đăng nhập, quyền xem, nhà máy, thiết bị và số đo; không điều khiển hoặc triển khai lịch.','Enter credentials yourself in the form. The first stage checks sign-in, read access, plants, devices and readings only; no control or schedule deployment.'),'notice'),
+      card('Deye',badge(configured.length?l('Có cấu hình ứng dụng','Application configured'):l('Thiếu cấu hình ứng dụng','Application setup missing'),configured.length?'':'warn'),
+        p(configured.length?l('Đã lưu cấu hình cho khu vực: ','Configuration saved for regions: ')+configured.map(a=>a.region).join(', ')+l('. Chưa chứng minh tài khoản của bạn được cấp quyền.','. This does not prove access for your account.'):
+          l('Chưa nhập mật khẩu. Quản trị viên cần khóa ứng dụng được Deye cấp trước khi mở luồng email/mật khẩu.','Do not enter a password yet. An administrator needs Deye-issued application keys before the email/password flow is available.')),
+        btn(l('Mở luồng Deye','Open Deye connection'),()=>integrationForm(providers.find(s=>s.id==='Deye')))),
+      card('GoodWe',badge(l('SEMS+ · kiểm thử chỉ đọc','SEMS+ · read-only trial'),'warn'),p(l('Có luồng SEMS+ riêng bằng email/mật khẩu và máy chủ tài khoản, không cần App ID/App Secret hoặc nhập ID nhà máy. Chưa nghiệm thu tài khoản thật; xác thực, kiểm tra dữ liệu và đồng bộ là các bước riêng.','A separate SEMS+ email/password flow uses your account server, without App ID/App Secret or manual plant IDs. Live-account acceptance is pending; authentication, data checks and synchronization are separate steps.')),
+        btn(l('Xem yêu cầu GoodWe','View GoodWe requirements'),()=>integrationForm(providers.find(s=>s.id==='GoodWe')))),
+      card(l('Sau khi liên kết','After linking'),
+        e('ol','', 'connection-next-steps'))));
+    const list=document.querySelector('.account-preflight .connection-next-steps');
+    [l('Kiểm tra kết nối: xem riêng từng bước xác thực, nhà máy, thiết bị và số đo.','Check connection: review authentication, plants, devices and readings separately.'),
+      l('Xác nhận phạm vi đồng bộ rồi mới nhập danh mục về SolarOne.','Review synchronization scope before importing inventory into SolarOne.'),
+      l('Đối chiếu tên, số sê-ri, thời gian và đơn vị với ứng dụng hãng; dữ liệu chưa xác minh vẫn để trống.','Compare names, serial numbers, timestamps and units with the vendor app; unverified readings stay empty.')].forEach(s=>list.append(e('li',s)));
+  }
   const rows = [];
   for (const spec of providers) {
     const accounts = (data?.accounts || []).filter(
@@ -207,7 +235,7 @@ export async function accountsView(ui) {
     if (accounts.length)
       for (const account of accounts) {
         const check = account.diagnostic;
-        const ok = check?.state === "PASS";
+        const ok = check?.checks?.some(c => c.key === 'authentication' && c.state === 'PASS') || check?.state === "PASS";
         const access = div(
           "stack-tight",
           e("span", l("Đọc dữ liệu", "Read data")),
@@ -242,7 +270,7 @@ export async function accountsView(ui) {
           ),
         );
         const last = account.status?.last_success;
-        const action = btn("⋯", () => accountActions(account), "icon-button");
+        const action = btn(icon("moreVertical"), () => accountActions(account), "icon-button");
         action.setAttribute(
           "aria-label",
           l("Thao tác tài khoản ", "Account actions: ") + account.name,
@@ -262,9 +290,13 @@ export async function accountsView(ui) {
             e("span", last ? date(last) : "—"),
             e(
               "span",
-              last
-                ? l("Đã đồng bộ", "Synchronized")
-                : l("Chưa đồng bộ", "Not synced"),
+              account.status?.state === 'ERROR'
+                ? l('Lần đọc mới nhất bị lỗi', 'Latest read failed')
+                : account.status?.state === 'PILOT_CAPACITY_EXCEEDED'
+                  ? l('Đang đọc luân phiên thiết bị', 'Reading devices in rotation')
+                  : last
+                    ? l("Đã hoàn tất lượt đọc", "Read cycle completed")
+                    : l("Chưa đồng bộ", "Not synced"),
               "small muted",
             ),
           ),
@@ -273,7 +305,7 @@ export async function accountsView(ui) {
       }
     else {
       const action = allowed
-        ? btn("+", () => connect(spec), "icon-button")
+        ? btn(icon("plus"), () => connect(spec), "icon-button")
         : e("span", "—");
       if (allowed)
         action.setAttribute("aria-label", l("Kết nối ", "Connect ") + spec.id);
@@ -285,7 +317,7 @@ export async function accountsView(ui) {
           spec.id === "Bluesun"
             ? l("Có đường tích hợp", "Integration paths")
             : spec.implemented
-              ? l("Sẵn sàng kết nối", "Connector available")
+              ? l("Chưa xác thực", "Not authenticated")
               : l("Đang nghiên cứu", "Researching"),
         ),
         "—",
@@ -316,6 +348,9 @@ export async function accountsView(ui) {
           )
         : null,
     ),
+    allowed ? div('account-secondary-actions',
+      btn(l('Hướng dẫn kết nối & kiểm thử','Connection & testing guide'),preparationDialog),
+      btn(l('Cấu hình ứng dụng Deye','Deye application setup'),()=>deyeApplicationDialog(ui))) : null,
     table(
       [
         l("Hãng", "Vendor"),
@@ -365,7 +400,7 @@ export async function accountsView(ui) {
           e(
             "strong",
             pass
-              ? l("Kết nối thành công", "Connection successful")
+              ? l("Kiểm tra đọc mẫu thành công", "Sample read check passed")
               : failed
                 ? l("Cần kiểm tra kết nối", "Connection needs attention")
                 : l("Chưa kiểm tra kết nối", "Connection not checked"),
@@ -373,8 +408,8 @@ export async function accountsView(ui) {
           p(
             pass
               ? l(
-                  "Đã kiểm tra các bước đọc bên dưới.",
-                  "Read checks are listed below.",
+                  "Kết quả bên dưới chỉ kiểm tra một nhà máy và một thiết bị mẫu; chưa chứng minh mọi thiết bị có số đo hoặc có quyền điều khiển.",
+                  "The checks below cover one plant and one sample device; they do not establish readings or control access for every device.",
                 )
               : l(
                   "Chọn tài khoản và kiểm tra để có kết quả thực tế.",
@@ -402,7 +437,7 @@ export async function accountsView(ui) {
                 ? "alert"
                 : "circle",
           ),
-          e("span", label),
+          div('stack-tight',e("span", label),row?.count!=null?e('small',String(row.count)+' '+l('mục nhận được','items received'),'muted'):null),
           e(
             "strong",
             states[value] || value,
@@ -415,10 +450,12 @@ export async function accountsView(ui) {
         ),
       );
     }
-    if (result)
+    if (result) {
+      resultPanel.append(p(l('Kiểm tra này chỉ đọc một nhà máy và tối đa một thiết bị mẫu; chưa đồng bộ danh mục và không xác nhận độ chính xác của mọi số đo.','This checks one plant and at most one sample device; it does not import inventory or verify every reading.'),'field-help'));
+      if(pass)resultPanel.append(btn(l('Tiếp tục: xem phạm vi đồng bộ','Next: review synchronization scope'),synchronizeDialog,'full-width'));
       resultPanel.append(
         btn(
-          l("▤ Xem chi tiết phản hồi", "▤ View response details"),
+          l("Xem chi tiết phản hồi", "View response details"),
           () =>
             showDialog(
               l("Kết quả kiểm tra", "Check result"),
@@ -430,6 +467,7 @@ export async function accountsView(ui) {
           "full-width",
         ),
       );
+    }
   }
   function populate(id) {
     account.replaceChildren();
@@ -457,7 +495,9 @@ export async function accountsView(ui) {
   }
   async function runCheck() {
     const id = account.value;
-    if (!id) return;
+    if (!id||checking) return;
+    checking=true;checkButton.disabled=vendor.disabled=account.disabled=true;
+    resultPanel.setAttribute('aria-busy','true');
     resultPanel.replaceChildren(
       p(
         l(
@@ -466,6 +506,7 @@ export async function accountsView(ui) {
         ),
       ),
     );
+    resultPanel.firstElementChild.setAttribute('role','status');
     try {
       const result = await api(`/integrations/${id}/check`, {});
       const saved = data.accounts.find((a) => a.id === id);
@@ -479,10 +520,15 @@ export async function accountsView(ui) {
           p(error.message),
         ),
       );
+    } finally {
+      checking=false;vendor.disabled=false;account.disabled=!(data?.accounts||[]).some(a=>(a.equipment_brand||a.vendor)===vendor.value);
+      checkButton.disabled=!allowed||!(data?.accounts||[]).some(a=>a.id===account.value&&a.enabled);
+      resultPanel.removeAttribute('aria-busy');
     }
   }
+  let checking=false;
   const checkButton = btn(
-    l("▷ Kiểm tra kết nối", "▷ Check connection"),
+    l("Kiểm tra kết nối", "Check connection"),
     runCheck,
     "primary full-width",
   );
@@ -679,51 +725,61 @@ export async function accountsView(ui) {
   const vault = data?.vault,
     healthy = vault?.state === "AVAILABLE";
   const vaultCard = card(
-    l("Tình trạng kho bí mật", "Secret storage status"),
+    l("Bảo mật tài khoản", "Credential security"),
     p(
       l(
-        "Theo dõi khả năng đọc thông tin kết nối đã mã hóa.",
+        "Theo dõi khả năng lưu trữ và mã hóa an toàn thông tin kết nối hãng.",
         "Check availability of encrypted connection credentials.",
       ),
     ),
     div(
       `notice ${healthy ? "success" : ""}`,
       div(
-        "row",
+        "row gap-sm align-center",
         icon(healthy ? "shield" : "info"),
         e(
           "strong",
           healthy
-            ? l("Hoạt động bình thường", "Available")
-            : l("Cần quyền quản trị", "Administrator access required"),
+            ? l("Kho khóa an toàn • Sẵn sàng", "Vault Available & Ready")
+            : allowed ? l("Chưa sẵn sàng", "Not ready") : l("Cần quyền quản trị", "Administrator access required"),
         ),
       ),
       p(
         healthy
           ? l(
-              "Thông tin kết nối được mã hóa trên controller.",
-              "Connection credentials are encrypted on the controller.",
+              `Mã hóa đối xứng ${vault?.encryption || "Fernet AES-128"}. Bảo vệ ${vault?.encrypted_accounts || 0} tài khoản hãng trên máy chủ.`,
+              `Server-side encryption ${vault?.encryption || "Fernet AES-128"}. Protecting ${vault?.encrypted_accounts || 0} accounts on controller.`,
             )
           : l(
-              "Chỉ quản trị viên được xem thông tin kho.",
-              "Only administrators may inspect the vault.",
+              allowed ? "Chưa xác nhận được khả năng lưu thông tin kết nối. Kiểm tra cấu hình mã hóa trên máy chủ." : "Chỉ quản trị viên được xem thông tin kho.",
+              allowed ? "Credential storage is not confirmed. Check the server encryption configuration." : "Only administrators may inspect the vault.",
             ),
       ),
     ),
     div(
-      "row between",
+      "row between align-center margin-top-xs",
       e(
         "span",
         vault ? l("Cập nhật: ", "Updated: ") + date(vault.checked_at) : "—",
         "small muted",
       ),
       allowed
-        ? btn(l("Chi tiết", "Details"), () =>
-            showDialog(
-              l("Kho bí mật", "Secret storage"),
-              raw(l("Trạng thái", "Status"), vault),
-            ),
-          )
+        ? btn(l("Xem chi tiết kho khóa", "Inspect vault details"), () => {
+            const vaultDetails = div("stack gap-sm",
+              div("overview-kpis",
+                div("fact", e("span", l("Trạng thái:", "Status:")), badge(vault?.state || "UNKNOWN", healthy ? "good" : "bad")),
+                div("fact", e("span", l("Thuật toán mã hóa:", "Encryption Algorithm:")), badge(vault?.encryption || "Fernet (AES-128 + HMAC)", "blue")),
+                div("fact", e("span", l("Số tài khoản mã hóa:", "Protected Accounts:")), e("b", `${vault?.encrypted_accounts || 0} ${l("tài khoản", "accounts")}`)),
+                div("fact", e("span", l("Bảo mật trình duyệt:", "Browser Exposure:")), badge(vault?.browser_secret_access ? l("Có lộ bí mật", "Exposed") : l("An toàn (Zero Secret Exposure)", "Safe (Zero Exposure)"), "good"))
+              ),
+              p(l(
+                "Thông tin kết nối được lưu mã hóa trên máy chủ. Giao diện quản lý không hiển thị lại mật khẩu và khóa bí mật đã lưu.",
+                "Connection credentials are stored encrypted on the server. The management interface does not display stored passwords or secret keys."
+              ), "small muted"),
+              raw(l("Chi tiết dành cho kỹ thuật viên", "Technical details"), vault)
+            );
+            showDialog(l("Kho bí mật & Bảo mật thông tin xác thực", "Secret Storage & Credential Security"), vaultDetails);
+          })
         : null,
     ),
   );
